@@ -18,13 +18,16 @@ const AboutMe = () => {
                                     <p className="text-md md:text-xl font-regular">
                                         Well, name’s Valentino Yudhistira Jehaut (A.k.a Valen) and nice to know you! <br/><br/>
                                         I’m 20 years old now and currently living in Bali, Indonesia. I just graduated from SMK TI Bali Global Denpasar majoring in Software Engineering and currently pursuing Double Bachelor's Degree in Information Systems (ITB Stikom Bali) & Information Technology (HELP University)<br/><br/>
-                                        I’ve had experience as a web developer for more than 2 years now and as a UI/UX Designer for more than a year. At that time, i'm always curious and open to trying new technologies just to enhance my skills so that i didn't miss out on the current trends.<br/><br/>
+                                        I’ve had experience as a web developer for more than 2.5 years now and as a UI/UX Designer for more than a year. At that time, i'm always curious and open to trying new technologies just to enhance my skills so that i didn't miss out on the current trends.<br/><br/>
                                         Now, i'm currently as a UI/UX Designer & Part-time Web Developer at &nbsp;
                                         <span className='underline underline-offset-2 decoration-red-600 tooltip' data-tip="Click to Open">
                                             <a href='https://www.bendega.id' target="_blank" rel="noreferrer">Bendega.id</a>
-                                        </span> and also as a Web Developer at &nbsp;
+                                        </span>, a Web Developer at &nbsp;
                                         <span className='underline underline-offset-2 decoration-red-600 tooltip' data-tip="Click to Open">
                                             <a href='https://www.balimountainretreat.com' target="_blank" rel="noreferrer">Bali Mountain Retreat</a>
+                                        </span> and&nbsp;
+                                        <span className='underline underline-offset-2 decoration-red-600 tooltip' data-tip="Click to Open">
+                                            <a href='https://mashup-tokyo.myshopify.com' target="_blank" rel="noreferrer">Mashup R Japan</a>
                                         </span>.<br/><br/>
                                     </p>
                                     <div className="row">
