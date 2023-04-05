@@ -17,7 +17,7 @@ const AboutMe = () => {
                                     <h1 className="mb-10 text-5xl md:text-8xl font-bold underline underline-offset-8 decoration-wavy decoration-sky-400">About Me</h1>
                                     <p className="text-md md:text-xl font-regular">
                                         Well, name’s Valentino Yudhistira Jehaut (A.k.a Valen) and nice to know you! <br/><br/>
-                                        I’m 19 years old now and currently living in Bali, Indonesia. I just graduated from SMK TI Bali Global Denpasar majoring in Software Engineering and currently pursuing Double Bachelor's Degree in Information Systems (ITB Stikom Bali) & Information Technology (HELP University)<br/><br/>
+                                        I’m 20 years old now and currently living in Bali, Indonesia. I just graduated from SMK TI Bali Global Denpasar majoring in Software Engineering and currently pursuing Double Bachelor's Degree in Information Systems (ITB Stikom Bali) & Information Technology (HELP University)<br/><br/>
                                         I’ve had experience as a web developer for more than 2 years now and as a UI/UX Designer for more than a year. At that time, i'm always curious and open to trying new technologies just to enhance my skills so that i didn't miss out on the current trends.<br/><br/>
                                         Now, i'm currently as a UI/UX Designer & Part-time Web Developer at &nbsp;
                                         <span className='underline underline-offset-2 decoration-red-600 tooltip' data-tip="Click to Open">
