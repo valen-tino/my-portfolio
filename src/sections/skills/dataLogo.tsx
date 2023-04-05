@@ -79,6 +79,11 @@ export const dataLogo = {
             id:16,
             title: 'Slack',
             imageURL:'slack.svg'
+        },
+        {
+            id:17,
+            title:'Vercel',
+            imageURL:'vercel.svg'
         }
 
     ]
