@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Analytics } from '@vercel/analytics/react';
+import { inject } from '@vercel/analytics';
 
 import './App.css';
 import AboutMe from './sections/aboutme/aboutme';
@@ -10,11 +10,9 @@ import Navbar from './sections/nav/nav';
 import Portfolio from './sections/portfolios/portfolio';
 
 
-function App({ Component, pageProps }) {
+function App() {
   return (
     <div className="App">
-      <Component {...pageProps} />
-      <Analytics />
         <div className='start'>
           <Navbar/>
           <Hero/>
@@ -33,6 +31,8 @@ function App({ Component, pageProps }) {
     </div>
   );
 }
+
+inject();
 
 export default App;
 
