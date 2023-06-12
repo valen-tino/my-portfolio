@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Analytics } from '@vercel/analytics/react';
+
 import './App.css';
 import AboutMe from './sections/aboutme/aboutme';
 import Contact from './sections/contact/contact';
@@ -8,9 +10,11 @@ import Navbar from './sections/nav/nav';
 import Portfolio from './sections/portfolios/portfolio';
 
 
-function App() {
+function App({ Component, pageProps }) {
   return (
     <div className="App">
+      <Component {...pageProps} />
+      <Analytics />
         <div className='start'>
           <Navbar/>
           <Hero/>
