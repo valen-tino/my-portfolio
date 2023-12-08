@@ -28,7 +28,7 @@ const Navbar = () => {
             </div>
             <a className="btn btn-ghost">
               <svg width="136" className='w-8 -mt-8 md:w-10 md:-mt-9' height="100" viewBox="0 0 136 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M11 10V137L126 10V137H71.2973V101.639" stroke={classFunc(scrollPosition > 0 ? 'black' : 'white')} stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M11 10V137L126 10V137H71.2973V101.639" stroke={classFunc(scrollPosition > 0 ? 'black' : 'white')} strokeWidth="16" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </a>
           </div>

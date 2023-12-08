@@ -84,6 +84,16 @@ export const dataLogo = {
             id:17,
             title:'Vercel',
             imageURL:'vercel.svg'
+        },
+        {
+            id:18,
+            title:'Advanced Custom Field',
+            imageURL:'acf.png'
+        },
+        {
+            id:19,
+            title:'Bricks Builder',
+            imageURL:'bricks.svg'
         }
 
     ]

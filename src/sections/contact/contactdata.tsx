@@ -5,7 +5,7 @@ export const dataContact = {
             title: 'Email',
             desc:'Wanna collab? or just wanna say hi? Just ask me anything!',
             short:'Email Me',
-            linkTo:'mailto:valenjehaut@tutanota.com',
+            linkTo:'mailto:vazeey2003@gmail.com',
             imageURL:'email.svg',
             color:'bg-warning text-warning-content'
         },

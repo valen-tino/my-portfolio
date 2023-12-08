@@ -12,7 +12,7 @@ export const dataPortfolio = {
             id: 2,
             title: 'Maje Salon',
             desc:'Starting in 2017, Maje Salon is a small woman-only salon based in Denpasar, Bali. Their services includes Hair Mask, Hair Cutting, Facial, Tradisional Creambath, and etc.\n\n I make this as a final project for getting a certificate in Junior Web Programmer at Balai Dikat Industri. I use Figma to design the UI/UX, Bootstrap 4 as my main frontend library, and I also made my own CMS using PHP as the main backend.',
-            linkTo:'https://mayasalon.baliconnectionservices.com/',
+            linkTo:'#',
             imageURL:'majesalon.png',
             tech:['HTML ',' CSS',' JS',' PHP',' MySQL']
         },
@@ -28,7 +28,7 @@ export const dataPortfolio = {
             id:4,
             title:'Starsea',
             desc:'My client wants to have a product showcase website for their brand and their products and also using Whatsapp as the preferred payment method.\n\nI use Figma to design the UI/UX, Wordpress for the CMS, and Elementor as the UI Library.',
-            linkTo:'http://starsea.id/',
+            linkTo:'#',
             imageURL:'starsea.png',
             tech:[' Wordpress',' Elementor']
         },
@@ -46,7 +46,15 @@ export const dataPortfolio = {
             desc: `MURSIM was a project for Mashup R Tokyo, designed to showcase their innovative "MURSIM" product. The platform offered data plan packages and an affiliate link program, catering to foreign travelers visiting Japan. As a UI/UX designer and Wordpress developer, I utilized Figma for wireframing and prototyping, Wordpress with Elementor for website building, and ACF for custom post types and fields. The goal was to create a user-friendly and modern website that provided clear information and a seamless purchase process through their Surveysparrow Form.`,
             linkTo:'https://jslg.tokyo/mursim/youtube',
             imageURL:'mursim.png',
-            tech:[' Wordpress',' Elementor','ACF']
+            tech:[' Wordpress',' Bricks Builder','ACF']
+        },
+        {
+            id:7,
+            title:'Kopi Nggoang',
+            desc: `Kopi Nggoang was an one page website project for one of my clients who has a business in the local coffee industry. I utilized Figma for wireframing and prototyping, Wordpress as the main CMS & Elementor as the Website Builder.`,
+            linkTo:'https://kopinggoang.biz.id/',
+            imageURL:'kopi-nggoang-porto.png',
+            tech:[' Wordpress','Elementor']
         }
     ]
 }
