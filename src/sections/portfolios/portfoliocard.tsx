@@ -14,9 +14,12 @@ const PortfolioCard = () =>  {
                               <p className='text-sm text-left'>{item.desc}</p>
                               <div className="badge">{item.tech + ""}</div> 
                               <div className="card-actions justify-end">
+                                {/* Conditionally render the button only if linkTo is not empty */}
+                                {item.linkTo && (
                                   <a href={item.linkTo} target="_blank" rel="noreferrer">
-                                      <button className="btn btn-primary">Click Here</button>
+                                    <button className="btn btn-primary">Click Here</button>
                                   </a>
+                                )}
                               </div>
                           </div>
                   </div>

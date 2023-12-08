@@ -12,7 +12,7 @@ export const dataPortfolio = {
             id: 2,
             title: 'Maje Salon',
             desc:'Starting in 2017, Maje Salon is a small woman-only salon based in Denpasar, Bali. Their services includes Hair Mask, Hair Cutting, Facial, Tradisional Creambath, and etc.\n\n I make this as a final project for getting a certificate in Junior Web Programmer at Balai Dikat Industri. I use Figma to design the UI/UX, Bootstrap 4 as my main frontend library, and I also made my own CMS using PHP as the main backend.',
-            linkTo:'#',
+            linkTo:'',
             imageURL:'majesalon.png',
             tech:['HTML ',' CSS',' JS',' PHP',' MySQL']
         },
@@ -28,7 +28,7 @@ export const dataPortfolio = {
             id:4,
             title:'Starsea',
             desc:'My client wants to have a product showcase website for their brand and their products and also using Whatsapp as the preferred payment method.\n\nI use Figma to design the UI/UX, Wordpress for the CMS, and Elementor as the UI Library.',
-            linkTo:'#',
+            linkTo:'',
             imageURL:'starsea.png',
             tech:[' Wordpress',' Elementor']
         },
