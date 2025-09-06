@@ -17,15 +17,14 @@
     "react-scroll": "^1.9.3"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.13",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
     "@types/react-router-dom": "^5.3.3",
     "@types/react-scroll": "^1.8.10",
     "@vitejs/plugin-react": "^5.0.2",
     "autoprefixer": "^10.4.21",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.13",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.4",
     "typescript": "^5.9.2",
     "vite": "^7.1.4"
   }
