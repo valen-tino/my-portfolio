@@ -1,38 +1,17 @@
-import { useState } from 'react';
-import { inject } from '@vercel/analytics';
-
-import './App.css';
-import AboutMe from './sections/aboutme/aboutme';
-import Contact from './sections/contact/contact';
-import Footer from './sections/footer/footer';
-import Hero from './sections/hero/hero';
-import Navbar from './sections/nav/nav';
-import Portfolio from './sections/portfolios/portfolio';
-
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
+import Home from './pages/Home';
+import PortfolioPage from './pages/PortfolioPage';
+import PortfolioDetail from './pages/PortfolioDetail';
 
 function App() {
   return (
-    <div className="App">
-        <div className='start'>
-          <Navbar/>
-          <Hero/>
-        </div>
-        <div className='about-me'>
-          <AboutMe/>
-        </div>
-        <div className='portfolio'>
-          <Portfolio/>
-        </div>
-        <div className='end'>
-          <Contact/>
-          <Footer/>
-        </div>
-
-    </div>
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/portfolio" element={<PortfolioPage />} />
+      <Route path="/portfolio/:id" element={<PortfolioDetail />} />
+    </Routes>
   );
 }
 
-inject();
-
 export default App;
-
