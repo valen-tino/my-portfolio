@@ -9,7 +9,15 @@ const EducationSection: React.FC = () => {
     const fetchEducationData = async () => {
       try {
         const data = await CMSStorage.getEducation();
-        setEducationItems(data);
+        // Sort education items by date (most recent first)
+        const sortedData = [...data].sort((a, b) => {
+          // Get dates for comparison, using startDate as fallback for endDate
+          const dateA = a.endDate || a.startDate;
+          const dateB = b.endDate || b.startDate;
+          // Compare dates in descending order (newest first)
+          return dateB.localeCompare(dateA);
+        });
+        setEducationItems(sortedData);
       } catch (error) {
         console.error('Error fetching education data:', error);
         setEducationItems([]);

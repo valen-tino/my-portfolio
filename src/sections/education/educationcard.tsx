@@ -19,16 +19,16 @@ const EducationCard: React.FC<Props> = ({ item }) => {
     <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-all duration-300 border border-base-200 hover:border-info/20 w-full h-full">
       <div className="card-body p-6">
         {/* Header */}
-        <div className="flex flex-col mb-4">
-          <h3 className="card-title text-lg font-bold text-base-content mb-2 line-clamp-2">
+        <div className="flex flex-col mb-4 items-center text-center">
+          <h3 className="card-title text-lg font-bold text-base-content mb-2 line-clamp-2 justify-center">
             {item.title}
           </h3>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center justify-center gap-2 mb-2">
             <div className="badge badge-info badge-outline text-xs">
               {item.institution}
             </div>
           </div>
-          <div className="flex items-center gap-2 text-base-content/60">
+          <div className="flex items-center justify-center gap-2 text-base-content/60">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />
             </svg>
@@ -40,7 +40,7 @@ const EducationCard: React.FC<Props> = ({ item }) => {
 
         {/* Description */}
         {item.description && (
-          <div className="flex-grow">
+          <div className="flex-grow text-center">
             <p className="text-base-content/70 text-sm leading-relaxed">
               {item.description}
             </p>
