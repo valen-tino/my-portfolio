@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 // JWT Secret - In production, use environment variable
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || '4Z3lRYx7O5uKGZj2MICiWgVaYLv5RVy5uFwQFdi2GHqA2fEwTn32KUgINetfR1hY';
 
 // Generate JWT token
 const generateToken = (userId) => {
