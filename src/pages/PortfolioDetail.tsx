@@ -76,7 +76,7 @@ const PortfolioDetail: React.FC = () => {
       
       <section className="section pt-24 pb-24">
         <div className="section-container">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-4xl mx-auto px-4 sm:px-16 lg:px-32">
             {/* Breadcrumb */}
             <div className="breadcrumbs text-sm mb-8">
               <ul>

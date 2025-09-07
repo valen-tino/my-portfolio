@@ -9,7 +9,7 @@ const PortfolioPage: React.FC = () => {
       <Navbar />
       
       {/* Portfolio Section */}
-      <section className="section bg-base-100 pt-24 pb-24 px-8 sm:px-16 lg:px-32">
+      <section className="section bg-base-100 pt-24 pb-24">
         <div className="section-container">
           <Portfolio />
         </div>

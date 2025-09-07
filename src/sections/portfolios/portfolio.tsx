@@ -139,13 +139,13 @@ const Portfolio: React.FC<Props> = ({ limit }) => {
                     <span className="text-sm font-medium text-base-content/70 whitespace-nowrap">Roles:</span>
                     <button
                       onClick={() => handleRoleFilter('All')}
-                      className={`badge badge-lg cursor-pointer transition-all ${
+                      className={`badge badge-lg cursor-pointer transition-all inline-flex items-center whitespace-nowrap ${
                         selectedRole === 'All'
                           ? 'badge-info shadow-lg'
                           : 'badge-outline badge-info hover:badge-info hover:shadow-md'
                       }`}
                     >
-                      All
+                      <span className="whitespace-nowrap">All</span>
                       <span className="badge badge-xs ml-1 badge-neutral">
                         {portfolioItems.length}
                       </span>
@@ -159,13 +159,13 @@ const Portfolio: React.FC<Props> = ({ limit }) => {
                         <button
                           key={roleName}
                           onClick={() => handleRoleFilter(roleName)}
-                          className={`badge badge-lg cursor-pointer transition-all ${
+                          className={`badge badge-lg cursor-pointer transition-all inline-flex items-center whitespace-nowrap ${
                             isSelected
                               ? `badge-${role?.color || 'info'} shadow-lg`
                               : `badge-outline badge-${role?.color || 'info'} hover:badge-${role?.color || 'info'} hover:shadow-md`
                           }`}
                         >
-                          {roleName}
+                          <span className="whitespace-nowrap">{roleName}</span>
                           <span className={`badge badge-xs ml-1 ${
                             isSelected ? 'badge-neutral' : 'badge-ghost'
                           }`}>

@@ -5,6 +5,8 @@ const path = require('path');
 require('dotenv').config();
 
 const app = express();
+const User = require('./models/User');
+let adminBootstrapped = false;
 
 // Middleware
 const allowedOrigins = [
@@ -29,6 +31,28 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Bootstrap admin user once if configured
+app.use(async (req, res, next) => {
+  try {
+    if (!adminBootstrapped) {
+      const adminEmail = process.env.ADMIN_EMAIL;
+      const adminPassword = process.env.ADMIN_PASSWORD;
+      if (adminEmail && adminPassword) {
+        const existing = await User.findOne({ email: adminEmail.toLowerCase() });
+        if (!existing) {
+          await User.create({ email: adminEmail.toLowerCase(), password: adminPassword, role: 'admin', isActive: true });
+          console.log('✅ Admin user bootstrapped');
+        }
+      }
+      adminBootstrapped = true;
+    }
+  } catch (e) {
+    console.error('Admin bootstrap error:', e?.message || e);
+  } finally {
+    next();
+  }
+});
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)

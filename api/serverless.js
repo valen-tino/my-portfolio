@@ -18,12 +18,14 @@ const contactRoutes = require('../server/routes/contact');
 const experiencesRoutes = require('../server/routes/experiences');
 const uploadRoutes = require('../server/routes/upload');
 const aiRoutes = require('../server/routes/ai');
+const User = require('../server/models/User');
 
 // Create Express app
 const app = express();
 
 // MongoDB connection with connection pooling for serverless
 let cachedDb = null;
+let adminBootstrapped = false;
 
 async function connectToDatabase() {
   if (cachedDb && mongoose.connection.readyState === 1) {
@@ -109,10 +111,33 @@ app.use((req, res, next) => {
   next();
 });
 
-// Ensure database connection before handling requests
+// Ensure database connection before handling requests and bootstrap admin user if configured
 app.use(async (req, res, next) => {
   try {
     await connectToDatabase();
+
+    // Bootstrap admin user exactly once per cold start if env vars are present
+    if (!adminBootstrapped) {
+      const adminEmail = process.env.ADMIN_EMAIL;
+      const adminPassword = process.env.ADMIN_PASSWORD;
+      if (adminEmail && adminPassword) {
+        try {
+          const existing = await User.findOne({ email: adminEmail.toLowerCase() });
+          if (!existing) {
+            await User.create({ email: adminEmail.toLowerCase(), password: adminPassword, role: 'admin', isActive: true });
+            console.log('Admin user bootstrapped');
+          }
+          adminBootstrapped = true;
+        } catch (bootErr) {
+          console.error('Admin bootstrap error:', bootErr?.message || bootErr);
+          // continue regardless
+          adminBootstrapped = true;
+        }
+      } else {
+        adminBootstrapped = true; // avoid checking on every request
+      }
+    }
+
     next();
   } catch (error) {
     res.status(500).json({ 
