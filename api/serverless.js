@@ -26,23 +26,29 @@ const app = express();
 let cachedDb = null;
 
 async function connectToDatabase() {
-  if (cachedDb) {
+  if (cachedDb && mongoose.connection.readyState === 1) {
     return cachedDb;
   }
 
   try {
-    const connection = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/portfolio', {
+    if (!process.env.MONGODB_URI) {
+      throw new Error('MONGODB_URI environment variable is not set');
+    }
+    
+    const connection = await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       bufferCommands: false,
       serverSelectionTimeoutMS: 10000,
+      maxPoolSize: 10,
     });
     
     cachedDb = connection;
     console.log('MongoDB connected successfully');
     return connection;
   } catch (error) {
-    console.error('MongoDB connection error:', error);
+    console.error('MongoDB connection error:', error.message);
+    console.error('Connection string:', process.env.MONGODB_URI ? 'Set (hidden)' : 'NOT SET');
     throw error;
   }
 }
@@ -102,13 +108,34 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/ai', aiRoutes);
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    success: true, 
-    message: 'API is running',
-    environment: process.env.NODE_ENV,
-    timestamp: new Date().toISOString()
-  });
+app.get('/api/health', async (req, res) => {
+  try {
+    const dbStatus = mongoose.connection.readyState;
+    const dbStatusText = ['disconnected', 'connected', 'connecting', 'disconnecting'][dbStatus] || 'unknown';
+    
+    res.json({ 
+      success: true, 
+      message: 'API is running',
+      environment: process.env.NODE_ENV,
+      timestamp: new Date().toISOString(),
+      database: {
+        status: dbStatusText,
+        mongoUri: process.env.MONGODB_URI ? 'Set' : 'Not set'
+      },
+      env: {
+        hasMongoUri: !!process.env.MONGODB_URI,
+        hasJwtSecret: !!process.env.JWT_SECRET,
+        hasAdminEmail: !!process.env.ADMIN_EMAIL,
+        hasCloudinaryName: !!process.env.CLOUDINARY_CLOUD_NAME
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Health check failed',
+      error: error.message
+    });
+  }
 });
 
 // Error handling middleware
@@ -131,3 +158,6 @@ app.use((req, res) => {
 
 // Export for Vercel
 module.exports = app;
+
+// Also export as default for Vercel Edge Functions
+module.exports.default = app;
