@@ -79,3 +79,24 @@ html {
     @apply text-sm;
   }
 }
+
+/* Markdown prose font customization */
+.prose {
+  font-family: 'Sora', sans-serif !important;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+  font-family: 'Sora', sans-serif !important;
+}
+
+.prose p, .prose li, .prose blockquote, .prose strong, .prose em {
+  font-family: 'Sora', sans-serif !important;
+}
+
+.prose code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace !important;
+}
+
+.prose pre {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace !important;
+}
