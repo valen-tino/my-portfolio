@@ -36,10 +36,10 @@ const ExperienceManagement: React.FC = () => {
     }
   };
 
-  const saveExperience = async (experience: Experience, isNew: boolean = false) => {
+  const saveExperience = async (experience: Experience, isNew: boolean = false): Promise<Experience> => {
     setLoading(true);
     try {
-      let savedExperience;
+      let savedExperience: Experience;
       if (isNew) {
         savedExperience = await CMSStorage.addExperience(experience);
         setExperiences(prev => [savedExperience, ...prev]);

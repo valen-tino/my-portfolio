@@ -27,16 +27,16 @@ const TechToolsManagement: React.FC = () => {
     }
   };
 
-  const saveTechTool = async (tool: TechTool, isNew: boolean = false) => {
+  const saveTechTool = async (tool: TechTool, isNew: boolean = false): Promise<TechTool> => {
     setLoading(true);
     try {
-      let savedTool;
+      let savedTool: TechTool;
       if (isNew) {
         savedTool = await CMSStorage.addTechTool(tool);
-        setTechTools(prev => [...prev, savedTool]);
+        setTechTools(prev => [...prev, savedTool].sort((a, b) => (a.order || 0) - (b.order || 0)));
       } else {
         savedTool = await CMSStorage.updateTechTool(tool.id, tool);
-        setTechTools(prev => prev.map(t => t.id === tool.id ? savedTool : t));
+        setTechTools(prev => prev.map(t => t.id === tool.id ? savedTool : t).sort((a, b) => (a.order || 0) - (b.order || 0)));
       }
       setMessage({
         type: 'success',

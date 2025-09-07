@@ -26,16 +26,16 @@ const RolesManagement: React.FC = () => {
     }
   };
 
-  const saveRole = async (role: Role, isNew: boolean = false) => {
+  const saveRole = async (role: Role, isNew: boolean = false): Promise<Role> => {
     setLoading(true);
     try {
-      let savedRole;
+      let savedRole: Role;
       if (isNew) {
         savedRole = await CMSStorage.addRole(role);
-        setRoles(prev => [...prev, savedRole]);
+        setRoles(prev => [...prev, savedRole].sort((a, b) => (a.order || 0) - (b.order || 0)));
       } else {
         savedRole = await CMSStorage.updateRole(role.id, role);
-        setRoles(prev => prev.map(r => r.id === role.id ? savedRole : r));
+        setRoles(prev => prev.map(r => r.id === role.id ? savedRole : r).sort((a, b) => (a.order || 0) - (b.order || 0)));
       }
       setMessage({
         type: 'success',

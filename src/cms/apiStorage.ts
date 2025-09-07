@@ -48,8 +48,8 @@ export interface ContactEntry {
   name: string;
   email: string;
   message: string;
-  timestamp: string;
-  createdAt: string;
+  timestamp?: string;
+  createdAt?: string;
   isRead?: boolean;
   isReplied?: boolean;
 }
@@ -405,13 +405,14 @@ export class CMSStorage {
   // Legacy compatibility method
   static async getData(): Promise<CMSData> {
     try {
-      const [about, techTools, education, portfolios, contactEntries] = await Promise.all([
+      const [about, techTools, education, portfolios, contactEntries, roles, experiences] = await Promise.all([
         this.getAbout(),
         this.getTechTools(),
         this.getEducation(),
         this.getPortfolios(),
         this.getContacts(),
-        this.getRoles()
+        this.getRoles(),
+        this.getExperiences()
       ]);
 
       return {
@@ -420,7 +421,8 @@ export class CMSStorage {
         education,
         portfolios,
         contactEntries,
-        roles
+        roles,
+        experiences
       };
     } catch (error) {
       console.error('Error fetching CMS data:', error);
@@ -540,7 +542,12 @@ export class CMSStorage {
 
   static async addExperience(experience: Omit<Experience, 'id' | '_id'>): Promise<Experience> {
     try {
-      const response = await apiService.createExperience(experience);
+      // Ensure duration is set for API compatibility
+      const experienceWithDuration = {
+        ...experience,
+        duration: experience.duration || ''
+      };
+      const response = await apiService.createExperience(experienceWithDuration);
       if (response.success) {
         return this.mapExperienceData(response.data);
       }

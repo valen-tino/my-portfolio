@@ -64,11 +64,11 @@ export class AuthService {
 
   static async changePassword(currentPassword: string, newPassword: string): Promise<boolean> {
     try {
-      const response = await apiService.api.post('/auth/change-password', {
+      const response = await apiService.post('/auth/change-password', {
         currentPassword,
         newPassword
       });
-      return response.data.success;
+      return response.success;
     } catch (error) {
       console.error('Change password error:', error);
       return false;

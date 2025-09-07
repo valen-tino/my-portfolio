@@ -1,6 +1,8 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Use relative URL for production deployment on Vercel, localhost for development
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api');
 
 class ApiService {
   private api: AxiosInstance;
@@ -43,6 +45,12 @@ class ApiService {
         return Promise.reject(error);
       }
     );
+  }
+
+  // Generic HTTP methods
+  async post(url: string, data?: any) {
+    const response = await this.api.post(url, data);
+    return response.data;
   }
 
   // Auth methods

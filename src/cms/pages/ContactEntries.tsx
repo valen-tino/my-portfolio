@@ -169,7 +169,7 @@ const ContactEntries: React.FC = () => {
                             {entry.name}
                           </h3>
                           <span className="text-xs text-gray-500 ml-2 flex-shrink-0">
-                            {new Date(entry.timestamp).toLocaleDateString()}
+                            {entry.timestamp ? new Date(entry.timestamp).toLocaleDateString() : new Date(entry.createdAt || '').toLocaleDateString()}
                           </span>
                         </div>
                         <p className="text-sm text-gray-600 truncate">{entry.email}</p>
@@ -197,7 +197,7 @@ const ContactEntries: React.FC = () => {
                         </h2>
                         <p className="text-gray-600 mt-1">{selectedEntry.email}</p>
                         <p className="text-sm text-gray-500 mt-2">
-                          Received: {formatDate(selectedEntry.timestamp)}
+                          Received: {formatDate(selectedEntry.timestamp || selectedEntry.createdAt || '')}
                         </p>
                       </div>
                       <div className="flex space-x-2">
@@ -278,7 +278,7 @@ const ContactEntries: React.FC = () => {
                   <p className="text-sm font-medium text-gray-500">This Week</p>
                   <p className="text-2xl font-semibold text-gray-900">
                     {contactEntries.filter(entry => {
-                      const entryDate = new Date(entry.timestamp);
+                      const entryDate = new Date(entry.timestamp || entry.createdAt || '');
                       const oneWeekAgo = new Date();
                       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
                       return entryDate > oneWeekAgo;
@@ -299,7 +299,7 @@ const ContactEntries: React.FC = () => {
                   <p className="text-sm font-medium text-gray-500">Latest Entry</p>
                   <p className="text-2xl font-semibold text-gray-900">
                     {contactEntries.length > 0 
-                      ? new Date(contactEntries[0].timestamp).toLocaleDateString()
+                      ? new Date(contactEntries[0].timestamp || contactEntries[0].createdAt || '').toLocaleDateString()
                       : 'None'
                     }
                   </p>

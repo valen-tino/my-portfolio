@@ -26,10 +26,10 @@ const EducationManagement: React.FC = () => {
     }
   };
 
-  const saveEducationItem = async (item: EducationItem, isNew: boolean = false) => {
+  const saveEducationItem = async (item: EducationItem, isNew: boolean = false): Promise<EducationItem> => {
     setLoading(true);
     try {
-      let savedItem;
+      let savedItem: EducationItem;
       if (isNew) {
         savedItem = await CMSStorage.addEducation(item);
         setEducationItems(prev => {
@@ -317,7 +317,7 @@ const EducationManagement: React.FC = () => {
                               <p className="text-primary font-medium text-sm">{item.institution}</p>
                             </div>
                             <p className="text-base-content/60 text-xs whitespace-nowrap ml-4">
-                              {formatDate(item.startDate)} - {formatDate(item.endDate)}
+                              {formatDate(item.startDate)} - {formatDate(item.endDate || '')}
                             </p>
                           </div>
                           {item.description && (
