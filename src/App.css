@@ -100,3 +100,16 @@ html {
 .prose pre {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace !important;
 }
+
+/* Badge-info text color customization */
+.badge-info {
+  color: white !important;
+}
+
+.badge-info.badge-outline {
+  color: hsl(var(--in)) !important;
+}
+
+.badge-info.badge-outline:hover {
+  color: white !important;
+}
