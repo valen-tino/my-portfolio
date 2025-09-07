@@ -88,8 +88,8 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Handle preflight requests with the same CORS options
-app.options('*', cors(corsOptions));
+// Express 5 + path-to-regexp v6 no longer supports '*' pattern here.
+// Preflight is handled by the CORS middleware and the manual mirroring middleware below.
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -106,7 +106,7 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Credentials', 'true');
   }
   if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
+    return res.sendStatus(204);
   }
   next();
 });
