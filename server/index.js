@@ -9,6 +9,9 @@ const app = express();
 // Middleware
 const allowedOrigins = [
   process.env.VITE_APP_URL,
+  process.env.VITE_APP_URL_DEV,
+  process.env.VITE_APP_URL_PREVIEW,
+  process.env.VITE_APP_URL_PROD,
   process.env.APP_URL,
   process.env.FRONTEND_URL,
   'http://localhost:5173',

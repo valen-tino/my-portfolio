@@ -54,10 +54,22 @@ async function connectToDatabase() {
 }
 
 // Middleware - CORS using VITE_APP_URL for allowed origins
+const vercelUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined;
+const vercelBranchUrl = process.env.VERCEL_BRANCH_URL ? `https://${process.env.VERCEL_BRANCH_URL}` : undefined;
+
 const allowedOrigins = [
+  // Frontend URLs (env-specific)
   process.env.VITE_APP_URL,
+  process.env.VITE_APP_URL_DEV,
+  process.env.VITE_APP_URL_PREVIEW,
+  process.env.VITE_APP_URL_PROD,
+  // Legacy fallbacks
   process.env.APP_URL,
   process.env.FRONTEND_URL,
+  // Vercel dynamic URLs
+  vercelUrl,
+  vercelBranchUrl,
+  // Local dev
   'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:3001'
@@ -134,12 +146,14 @@ app.get('/api/health', async (req, res) => {
       success: true, 
       message: 'API is running',
       environment: process.env.NODE_ENV,
+      vercelEnv: process.env.VERCEL_ENV,
       timestamp: new Date().toISOString(),
       api: {
-        baseUrl: process.env.VITE_API_URL || 'relative:/api',
+        baseUrl: process.env.VITE_API_URL || process.env.VITE_API_URL_PROD || process.env.VITE_API_URL_PREVIEW || process.env.VITE_API_URL_DEV || 'relative:/api',
       },
       app: {
-        url: process.env.VITE_APP_URL || 'not set'
+        url: process.env.VITE_APP_URL || process.env.VITE_APP_URL_PROD || process.env.VITE_APP_URL_PREVIEW || process.env.VITE_APP_URL_DEV || 'not set',
+        allowedOrigins
       },
       database: {
         status: dbStatusText,
@@ -150,8 +164,8 @@ app.get('/api/health', async (req, res) => {
         hasJwtSecret: !!process.env.JWT_SECRET,
         hasAdminEmail: !!process.env.ADMIN_EMAIL,
         hasCloudinaryName: !!process.env.CLOUDINARY_CLOUD_NAME,
-        hasViteApiUrl: !!process.env.VITE_API_URL,
-        hasViteAppUrl: !!process.env.VITE_APP_URL
+        hasViteApiUrl: !!process.env.VITE_API_URL || !!process.env.VITE_API_URL_PROD || !!process.env.VITE_API_URL_PREVIEW || !!process.env.VITE_API_URL_DEV,
+        hasViteAppUrl: !!process.env.VITE_APP_URL || !!process.env.VITE_APP_URL_PROD || !!process.env.VITE_APP_URL_PREVIEW || !!process.env.VITE_APP_URL_DEV
       }
     });
   } catch (error) {

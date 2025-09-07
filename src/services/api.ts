@@ -1,8 +1,24 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 
-// Use relative URL for production deployment on Vercel, localhost for development
-const API_BASE_URL = import.meta.env.VITE_API_URL || 
-  (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api');
+// Resolve environment
+const APP_ENV = (import.meta.env.VITE_APP_ENV as string | undefined) || (import.meta.env.PROD ? 'production' : 'development');
+
+// Frontend app URL by environment (used for redirects)
+const APP_URL = (
+  (APP_ENV === 'production' && (import.meta.env.VITE_APP_URL_PROD as string | undefined)) ||
+  (APP_ENV === 'preview' && (import.meta.env.VITE_APP_URL_PREVIEW as string | undefined)) ||
+  (APP_ENV === 'development' && (import.meta.env.VITE_APP_URL_DEV as string | undefined)) ||
+  (import.meta.env.VITE_APP_URL as string | undefined)
+);
+
+// API base URL by environment
+const API_BASE_URL = (
+  (APP_ENV === 'production' && (import.meta.env.VITE_API_URL_PROD as string | undefined)) ||
+  (APP_ENV === 'preview' && (import.meta.env.VITE_API_URL_PREVIEW as string | undefined)) ||
+  (APP_ENV === 'development' && (import.meta.env.VITE_API_URL_DEV as string | undefined)) ||
+  (import.meta.env.VITE_API_URL as string | undefined) ||
+  (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api')
+);
 
 class ApiService {
   private api: AxiosInstance;
@@ -39,9 +55,8 @@ class ApiService {
           localStorage.removeItem('cms-auth-token');
           localStorage.removeItem('cms-user');
           if (window.location.pathname.startsWith('/cms/') && window.location.pathname !== '/cms/login') {
-            const appUrl = import.meta.env.VITE_APP_URL as string | undefined;
-            if (appUrl) {
-              window.location.href = `${appUrl.replace(/\/$/, '')}/cms/login`;
+            if (APP_URL) {
+              window.location.href = `${APP_URL.replace(/\/$/, '')}/cms/login`;
             } else {
               window.location.href = '/cms/login';
             }
