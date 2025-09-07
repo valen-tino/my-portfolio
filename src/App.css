@@ -113,3 +113,35 @@ html {
 .badge-info.badge-outline:hover {
   color: white !important;
 }
+
+/* Portfolio detail markdown font override */
+.portfolio-markdown * {
+  font-family: 'Sora', sans-serif !important;
+}
+
+.portfolio-markdown h1, 
+.portfolio-markdown h2, 
+.portfolio-markdown h3, 
+.portfolio-markdown h4, 
+.portfolio-markdown h5, 
+.portfolio-markdown h6 {
+  font-family: 'Sora', sans-serif !important;
+}
+
+.portfolio-markdown p, 
+.portfolio-markdown li, 
+.portfolio-markdown blockquote, 
+.portfolio-markdown strong, 
+.portfolio-markdown em,
+.portfolio-markdown span,
+.portfolio-markdown div {
+  font-family: 'Sora', sans-serif !important;
+}
+
+.portfolio-markdown code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace !important;
+}
+
+.portfolio-markdown pre {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace !important;
+}
