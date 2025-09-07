@@ -5,7 +5,7 @@ export const dataContact = {
             title: 'Email',
             desc:'Wanna collab? or just wanna say hi? Just ask me anything!',
             short:'Email Me',
-            linkTo:'mailto:vazeey2003@gmail.com',
+            linkTo:'mailto:valentinojehaut@gmail.com',
             imageURL:'email.svg',
             color:'bg-warning text-warning-content'
         },
@@ -15,7 +15,7 @@ export const dataContact = {
             desc:'Lets collab!',
             short:'Follow Me',
             linkTo:'https://github.com/valen-tino',
-            imageURL:'github2.svg',
+            imageURL:'github.svg',
             color:'bg-base-100 text-base-content'
         },
         {
@@ -31,10 +31,10 @@ export const dataContact = {
             id:4,
             title:'Facebook',
             desc:'Lets be friends!',
-            short:'Lets Follow',
+            short:'Lets Connect',
             linkTo:'https://facebook.com/valendotj',
             imageURL:'facebook.svg',
-            color:'bg-blue-800 text-base-content'
+            color:'bg-blue-800 text-base-content text-white'
         }
     ]
 }

@@ -1,0 +1,132 @@
+/* Performance Optimized Cursor Inverter */
+.cursor-inverter {
+  /* Positioning - fixed for better performance than absolute */
+  position: fixed;
+  top: 0;
+  left: 0;
+  
+  /* Dimensions - will be set via JS for dynamic sizing */
+  width: 128px;
+  height: 128px;
+  
+  /* Initial state - start invisible and off-screen */
+  opacity: 0;
+  transform: translate3d(-9999px, -9999px, 0);
+  
+  /* Z-index - high enough to be on top */
+  z-index: 9999;
+  
+  /* Prevent interaction */
+  pointer-events: none;
+  
+  /* Shape */
+  border-radius: 50%;
+  
+  /* Core inversion effect */
+  mix-blend-mode: difference;
+  background-color: white;
+  
+  /* Performance optimizations */
+  will-change: transform;
+  contain: layout style paint size;
+  
+  /* Hardware acceleration */
+  backface-visibility: hidden;
+  transform-style: flat;
+  
+  /* Reduce repaints by removing transitions on transform */
+  transition: opacity 0.2s ease-out;
+  
+  /* Simplified border for better performance */
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Simplified pseudo-element for better performance */
+.cursor-inverter::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  mix-blend-mode: difference;
+  
+  /* Performance optimization */
+  contain: layout paint;
+}
+
+/* Lightweight pulse animation - disabled by default for performance */
+@keyframes cursor-pulse {
+  0%, 100% {
+    transform: scale(1) translate3d(var(--x, 0), var(--y, 0), 0);
+  }
+  50% {
+    transform: scale(1.02) translate3d(var(--x, 0), var(--y, 0), 0);
+  }
+}
+
+.cursor-inverter.pulse {
+  animation: cursor-pulse 3s ease-in-out infinite;
+}
+
+/* Hide cursor inverter on touch devices where there's no mouse cursor */
+@media (hover: none) and (pointer: coarse) {
+  .cursor-inverter {
+    display: none !important;
+  }
+  
+  body {
+    cursor: auto !important;
+  }
+}
+
+/* Additional effects for different blend modes (you can experiment with these) */
+.cursor-inverter.exclusion {
+  mix-blend-mode: exclusion;
+  background-color: #ff00ff;
+}
+
+.cursor-inverter.multiply {
+  mix-blend-mode: multiply;
+  background-color: #00ffff;
+}
+
+.cursor-inverter.screen {
+  mix-blend-mode: screen;
+  background-color: #000000;
+}
+
+/* Smooth entry animation */
+.cursor-inverter.active {
+  opacity: 1;
+  transition: opacity 0.3s ease, transform 0.1s ease;
+}
+
+/* Active state with better performance */
+.cursor-inverter.active {
+  opacity: 1;
+  /* Remove transition on transform for smoother movement */
+  transition: opacity 0.2s ease-out;
+}
+
+/* Performance boost for low-end devices */
+@media (prefers-reduced-motion: reduce) {
+  .cursor-inverter {
+    display: none !important;
+  }
+}
+
+/* CPU/GPU performance optimizations */
+.cursor-inverter {
+  /* Composite on its own layer */
+  isolation: isolate;
+  
+  /* Optimize rendering */
+  image-rendering: optimizeSpeed;
+  image-rendering: -webkit-optimize-contrast;
+  
+  /* Minimize layout thrashing */
+  contain: strict;
+}

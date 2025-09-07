@@ -4,48 +4,91 @@ import Download from '../../assets/download.svg'
 import Pink from '../../assets/Party.svg'
 import Skills from '../skills/skills'
 import { Link } from 'react-scroll'
+import { useEffect, useState } from 'react'
+import { CMSStorage, AboutData } from '../../cms/apiStorage'
 
 const AboutMe = () => {
+  const [aboutData, setAboutData] = useState<AboutData>({
+    description: '',
+    imageURL: 'myface.jpeg'
+  });
+
+  useEffect(() => {
+    const fetchAboutData = async () => {
+      try {
+        const data = await CMSStorage.getAbout();
+        setAboutData(data);
+      } catch (error) {
+        console.error('Error fetching about data:', error);
+        // Fallback to default data
+        setAboutData({
+          description: 'Loading...',
+          imageURL: 'myface.jpeg'
+        });
+      }
+    };
+    
+    fetchAboutData();
+  }, []);
+
   return (
-    <section id='aboutme'>
-        <img src={Pink} alt="spin me ight round baby right round" className='absolute motion-safe:animate-spin'/>
-            <div className="hero pt-10 bg-base">
-                <div className="hero-content flex-col md:gap-10 lg:flex-row-reverse">
-                            <img src={Me} className="max-w-xs md:max-w-4xl rounded-lg shadow-2xl mask mask-hexagon-2" />
-                            <div className="hero-content text-left text-gray-900">
-                                <div className="max-w-2xl">
-                                    <h1 className="mb-10 text-5xl md:text-8xl font-bold underline underline-offset-8 decoration-wavy decoration-sky-400">About Me</h1>
-                                    <p className="text-md md:text-xl font-regular">
-                                        Well, name’s Valentino Yudhistira Jehaut (A.k.a Valen) and nice to know you! <br/><br/>
-                                        I’m 20 years old now and currently living in Bali, Indonesia. I just graduated from SMK TI Bali Global Denpasar majoring in Software Engineering and currently pursuing Double Bachelor's Degree in Information Systems (ITB Stikom Bali) & Information Technology (HELP University)<br/><br/>
-                                        I’ve had experience as a web developer for more than 2.5 years now and as a UI/UX Designer for more than a year. At that time, i'm always curious and open to trying new technologies just to enhance my skills so that i didn't miss out on the current trends.<br/><br/>
-                                        Now, i'm currently as a UI/UX Designer & Part-time Web Developer at &nbsp;
-                                        <span className='underline underline-offset-2 decoration-red-600 tooltip' data-tip="Click to Open">
-                                            <a href='https://www.bendega.id' target="_blank" rel="noreferrer">Bendega.id</a>
-                                        </span>, a Web Developer at &nbsp;
-                                        <span className='underline underline-offset-2 decoration-red-600 tooltip' data-tip="Click to Open">
-                                            <a href='https://www.balimountainretreat.com' target="_blank" rel="noreferrer">Bali Mountain Retreat</a>
-                                        </span> and&nbsp;
-                                        <span className='underline underline-offset-2 decoration-red-600 tooltip' data-tip="Click to Open">
-                                            <a href='https://mashup-tokyo.myshopify.com' target="_blank" rel="noreferrer">Mashup R Japan</a>
-                                        </span>.<br/><br/>
-                                    </p>
-                                    <div className="row">
-                                        <Link className="btn btn-primary shadow-2xl mb-2" activeClass="active" to="portfolio" spy={true} smooth={true} offset={-100} duration={500}>
-                                            <img src={Down} alt='Down' className='w-8'/> &nbsp; See My Portfolios! 
-                                        </Link>
-                                        &nbsp;
-                                        <a href="/Valen-Jehaut.pdf" target="_self" rel="noreferrer" className="btn btn-warning shadow-2xl">
-                                            <img src={Download} alt='Down' className='w-8'/> &nbsp; Download CV 
-                                        </a>
-                                    </div>
-                                
-                                </div>
-                    </div>
-                </div>
-            </div> &nbsp;
+    <div>
+      <img src={Pink} alt="decorative spin animation" className='absolute top-4 right-4 w-6 h-6 sm:w-8 sm:h-8 motion-safe:animate-spin z-10'/>
+      <div className="mt-8 sm:mt-12 lg:mt-16 py-6 px-4 sm:py-12 sm:px-6 lg:py-12 lg:px-12 max-w-7xl mx-auto">
+        <div className="hero-content flex-col gap-6 lg:gap-10 lg:flex-row-reverse">
+          <div className="flex-1 md:grid md:place-items-center">
+            <img 
+              src={aboutData.imageURL.startsWith('http') ? aboutData.imageURL : (aboutData.imageURL.startsWith('/') ? aboutData.imageURL : `/src/assets/${aboutData.imageURL}`)}
+              className="w-48 h-48 sm:w-64 sm:h-64 md:w-96 md:h-80 lg:w-full lg:h-96            object-cover rounded-2xl shadow-2xl mask mask-hexagon-2            mx-auto md:mx-0" 
+              alt="Valentino Jehaut"
+              onError={(e) => { e.currentTarget.src = Me; }}
+            />
+          </div>
+          <div className="flex-1 text-left">
+            <div className="max-w-2xl">
+              <h1 className="mb-6 sm:mb-8 lg:mb-10 text-2xl sm:text-3xl md:text-5xl lg:text-7xl font-bold underline underline-offset-4 sm:underline-offset-8 decoration-wavy decoration-info">
+                About Me
+              </h1>
+              <div className="text-sm sm:text-base md:text-md lg:text-xl font-regular mb-4 sm:mb-6 leading-relaxed">
+                {aboutData.description.split('\n').map((paragraph, index) => (
+                  paragraph.trim() && (
+                    <p key={index} className="mb-4">
+                      {paragraph}
+                    </p>
+                  )
+                ))}
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <Link 
+                  className="btn btn-info btn-sm sm:btn-md shadow-xl gap-2" 
+                  activeClass="active" 
+                  to="portfolio" 
+                  spy={true} 
+                  smooth={true} 
+                  offset={-100} 
+                  duration={500}
+                >
+                  <img src={Down} alt='Down' className='w-4 h-4 sm:w-5 sm:h-5'/>
+                  See My Portfolios!
+                </Link>
+                <a 
+                  href="/Valen-Jehaut.pdf" 
+                  target="_self" 
+                  rel="noreferrer" 
+                  className="btn btn-outline btn-warning btn-sm sm:btn-md shadow-xl gap-2"
+                >
+                  <img src={Download} alt='Download' className='w-4 h-4 sm:w-5 sm:h-5'/>
+                  Download CV
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="mt-8 sm:mt-12 lg:mt-16 bg-blue-800 rounded-2xl py-6 px-4 sm:py-12 sm:px-6 lg:py-12 lg:px-12 max-w-7xl mx-auto">
         <Skills/>
-    </section>
+      </div>
+    </div>
   )
 }
 

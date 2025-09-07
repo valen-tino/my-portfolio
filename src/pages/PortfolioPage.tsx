@@ -6,9 +6,16 @@ import Portfolio from '../sections/portfolios/portfolio';
 const PortfolioPage: React.FC = () => {
   return (
     <div className="App">
-      <Navbar/>
-      <Portfolio/>
-      <Footer/>
+      <Navbar />
+      
+      {/* Portfolio Section */}
+      <section className="section bg-base-100 pt-24 pb-24">
+        <div className="section-container">
+          <Portfolio />
+        </div>
+      </section>
+      
+      <Footer />
     </div>
   );
 };

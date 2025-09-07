@@ -7,16 +7,21 @@ interface Props {
 }
 
 const LogoCard = ({ title, imageURL, kunci }: Props) => {
-  const imageLink = "images/logos/" + imageURL;
+  // Use imageURL directly since CMS now provides full URLs
+  const imageLink = imageURL;
+  const titleAlt = title + ' logo';
 
   return (
     <div
-      className="tooltip tooltip-bottom w-24 md:w-48 mx-auto rounded-2xl md:shadow-lg object-center transform transition duration-500 hover:scale-110"
-      key={kunci}
+      className="tooltip tooltip-bottom block rounded-2xl shadow-lg transform transition duration-300 hover:scale-110 bg-white/10 backdrop-blur-sm"
       data-tip={title}
     >
-      <div className="py-5 w-fit m-auto">
-        <img src={imageLink} className="w-28 " alt={title} />
+      <div className="aspect-square w-20 h-20 md:w-24 md:h-24 flex items-center justify-center p-3 bg-white rounded-2xl mx-auto">
+        <img
+          className="max-w-full max-h-full object-contain filter drop-shadow-sm"
+          alt={titleAlt}
+          src={imageLink}
+        />
       </div>
     </div>
   );

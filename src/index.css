@@ -4,6 +4,40 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Marquee animations for skills section */
+@keyframes marquee-left {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-33.333%);
+  }
+}
+
+@keyframes marquee-right {
+  0% {
+    transform: translateX(-33.333%);
+  }
+  100% {
+    transform: translateX(0%);
+  }
+}
+
+.animate-marquee-left {
+  animation: marquee-left 30s linear infinite;
+  width: fit-content;
+}
+
+.animate-marquee-right {
+  animation: marquee-right 25s linear infinite;
+  width: fit-content;
+}
+
+.animate-marquee-left:hover,
+.animate-marquee-right:hover {
+  animation-play-state: paused;
+}
+
 body {
   margin: 0;
   font-family: 'Sora', sans-serif;
@@ -15,4 +49,10 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+.btn{
+  cursor: pointer;
+  border-radius: 16px;
+  transition: all 0.3s ease;
 }

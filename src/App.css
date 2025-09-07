@@ -1,47 +1,81 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-#root {
-  text-align: center;
-  background-color: white;
+/* Custom global styles */
+.App {
+  @apply min-h-screen;
 }
 
-.btn {
-  @apply rounded-full;
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
 }
 
-.read-the-docs {
-  color: #888;
+/* Section spacing */
+.section {
+  @apply py-8 sm:py-12 md:py-16 lg:py-24;
 }
 
-.start{
-  @apply bg-home bg-fixed;
+.section-container {
+  @apply container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl;
 }
 
-.bg-home {
-  @apply bg-pexels bg-cover rounded-br-[10rem] md:rounded-br-[20rem];
+/* Custom animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.contain{
-  @apply m-8 rounded-2xl my-10
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
 }
 
-.about-me{
-  @apply my-10 mx-1 md:mx-5
+/* Portfolio section styling */
+.portfolio-section {
+  @apply py-8 sm:py-12 md:py-16 lg:py-24 bg-yellow-600;
 }
 
-.end{
-  @apply mx-1 md:px-5 py-5 md:py-10 rounded-2xl md:mx-5
+/* About section styling */
+.about-section {
+  @apply py-8 sm:py-12 md:py-16 lg:py-24;
 }
 
-.portfolio{
-  @apply bg-gray-800 px-5 md:px-10 py-10 md:py-20 rounded-2xl my-10 md:mx-10 mx-1
+/* Education section styling */
+.education-section {
+  @apply bg-base-100 py-8 sm:py-12 md:py-16 lg:py-24;
 }
 
-.footer-bg{
-  background-color: #003B55;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 1000'%3E%3Cg %3E%3Ccircle fill='%23003B55' cx='50' cy='0' r='50'/%3E%3Cg fill='%23013f65' %3E%3Ccircle cx='0' cy='50' r='50'/%3E%3Ccircle cx='100' cy='50' r='50'/%3E%3C/g%3E%3Ccircle fill='%23014272' cx='50' cy='100' r='50'/%3E%3Cg fill='%2302457e' %3E%3Ccircle cx='0' cy='150' r='50'/%3E%3Ccircle cx='100' cy='150' r='50'/%3E%3C/g%3E%3Ccircle fill='%23024889' cx='50' cy='200' r='50'/%3E%3Cg fill='%23024b93' %3E%3Ccircle cx='0' cy='250' r='50'/%3E%3Ccircle cx='100' cy='250' r='50'/%3E%3C/g%3E%3Ccircle fill='%23024e9d' cx='50' cy='300' r='50'/%3E%3Cg fill='%230251a6' %3E%3Ccircle cx='0' cy='350' r='50'/%3E%3Ccircle cx='100' cy='350' r='50'/%3E%3C/g%3E%3Ccircle fill='%230353ae' cx='50' cy='400' r='50'/%3E%3Cg fill='%230356b6' %3E%3Ccircle cx='0' cy='450' r='50'/%3E%3Ccircle cx='100' cy='450' r='50'/%3E%3C/g%3E%3Ccircle fill='%230358be' cx='50' cy='500' r='50'/%3E%3Cg fill='%23035bc6' %3E%3Ccircle cx='0' cy='550' r='50'/%3E%3Ccircle cx='100' cy='550' r='50'/%3E%3C/g%3E%3Ccircle fill='%23035dcd' cx='50' cy='600' r='50'/%3E%3Cg fill='%23035fd4' %3E%3Ccircle cx='0' cy='650' r='50'/%3E%3Ccircle cx='100' cy='650' r='50'/%3E%3C/g%3E%3Ccircle fill='%230362da' cx='50' cy='700' r='50'/%3E%3Cg fill='%230364e1' %3E%3Ccircle cx='0' cy='750' r='50'/%3E%3Ccircle cx='100' cy='750' r='50'/%3E%3C/g%3E%3Ccircle fill='%230466e7' cx='50' cy='800' r='50'/%3E%3Cg fill='%230468ed' %3E%3Ccircle cx='0' cy='850' r='50'/%3E%3Ccircle cx='100' cy='850' r='50'/%3E%3C/g%3E%3Ccircle fill='%23046af3' cx='50' cy='900' r='50'/%3E%3Cg fill='%23046cf9' %3E%3Ccircle cx='0' cy='950' r='50'/%3E%3Ccircle cx='100' cy='950' r='50'/%3E%3C/g%3E%3Ccircle fill='%23046EFF' cx='50' cy='1000' r='50'/%3E%3C/g%3E%3C/svg%3E");
-  background-attachment: fixed;
-  background-size: contain;
+/* Contact section styling */
+.contact-section {
+  @apply bg-base-200 py-8 sm:py-12 md:py-16 lg:py-24;
+}
+
+/* Footer styling with gradient */
+.footer-gradient {
+  background: linear-gradient(135deg, hsl(var(--p)) 0%, hsl(var(--s)) 100%);
+}
+
+/* Utility classes */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Mobile-first responsive text */
+@media (max-width: 640px) {
+  .text-responsive {
+    @apply text-sm;
+  }
 }

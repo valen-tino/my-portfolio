@@ -6,27 +6,49 @@ import Hero from '../sections/hero/hero';
 import Navbar from '../sections/nav/nav';
 import Portfolio from '../sections/portfolios/portfolio';
 import EducationSection from '../sections/education/education';
+import ExperienceSection from '../sections/experience/experience';
 
 const Home: React.FC = () => {
   return (
     <div className="App">
-      <div className='start'>
-        <Navbar/>
-        <Hero/>
-      </div>
-      <div className='about-me'>
-        <AboutMe/>
-      </div>
-      <div className='education'>
-        <EducationSection/>
-      </div>
-      <div className='portfolio'>
-        <Portfolio limit={4}/>
-      </div>
-      <div className='end'>
-        <Contact/>
-        <Footer/>
-      </div>
+      <Navbar />
+      
+      {/* Hero Section */}
+      <Hero />
+      
+      {/* About Me Section */}
+      <section id="aboutme" className="about-section">
+        <div className="section-container">
+          <AboutMe />
+        </div>
+      </section>
+      
+      {/* Education Section */}
+      <section id="education" className="education-section">
+        <div className="section-container">
+          <EducationSection />
+        </div>
+      </section>
+      
+      {/* Portfolio Section */}
+      <section id="portfolio" className="portfolio-section">
+        <div className="section-container">
+          <Portfolio limit={3} />
+        </div>
+      </section>
+      
+      {/* Experience Section */}
+      <ExperienceSection />
+      
+      {/* Contact Section */}
+      <section id="contact" className="contact-section">
+        <div className="section-container">
+          <Contact />
+        </div>
+      </section>
+      
+      {/* Footer */}
+      <Footer />
     </div>
   );
 };
