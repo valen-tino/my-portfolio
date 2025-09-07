@@ -7,8 +7,21 @@ require('dotenv').config();
 const app = express();
 
 // Middleware
+const allowedOrigins = [
+  process.env.VITE_APP_URL,
+  process.env.APP_URL,
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:3001'
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.VITE_APP_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(null, false);
+  },
   credentials: true
 }));
 app.use(express.json());
@@ -60,7 +73,6 @@ app.use((err, req, res, next) => {
     error: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error'
   });
 });
-
 
 const PORT = process.env.PORT || 5000;
 

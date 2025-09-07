@@ -53,31 +53,48 @@ async function connectToDatabase() {
   }
 }
 
-// Middleware - More permissive CORS for Vercel deployment
-app.use(cors({
-  origin: true, // Allow all origins for now
+// Middleware - CORS using VITE_APP_URL for allowed origins
+const allowedOrigins = [
+  process.env.VITE_APP_URL,
+  process.env.APP_URL,
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:3001'
+].filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(null, false);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   optionsSuccessStatus: 200
-}));
+};
+app.use(cors(corsOptions));
 
-// Handle preflight requests
-app.options('*', cors());
+// Handle preflight requests with the same CORS options
+app.options('*', cors(corsOptions));
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Additional CORS middleware to ensure headers are set
+// Mirror CORS headers for allowed origins
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
+  const origin = req.headers.origin;
+  if (!origin) return next();
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Vary', 'Origin');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
   if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-    return;
+    return res.sendStatus(200);
   }
   next();
 });
@@ -118,6 +135,12 @@ app.get('/api/health', async (req, res) => {
       message: 'API is running',
       environment: process.env.NODE_ENV,
       timestamp: new Date().toISOString(),
+      api: {
+        baseUrl: process.env.VITE_API_URL || 'relative:/api',
+      },
+      app: {
+        url: process.env.VITE_APP_URL || 'not set'
+      },
       database: {
         status: dbStatusText,
         mongoUri: process.env.MONGODB_URI ? 'Set' : 'Not set'
@@ -126,7 +149,9 @@ app.get('/api/health', async (req, res) => {
         hasMongoUri: !!process.env.MONGODB_URI,
         hasJwtSecret: !!process.env.JWT_SECRET,
         hasAdminEmail: !!process.env.ADMIN_EMAIL,
-        hasCloudinaryName: !!process.env.CLOUDINARY_CLOUD_NAME
+        hasCloudinaryName: !!process.env.CLOUDINARY_CLOUD_NAME,
+        hasViteApiUrl: !!process.env.VITE_API_URL,
+        hasViteAppUrl: !!process.env.VITE_APP_URL
       }
     });
   } catch (error) {

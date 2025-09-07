@@ -39,7 +39,12 @@ class ApiService {
           localStorage.removeItem('cms-auth-token');
           localStorage.removeItem('cms-user');
           if (window.location.pathname.startsWith('/cms/') && window.location.pathname !== '/cms/login') {
-            window.location.href = '/cms/login';
+            const appUrl = import.meta.env.VITE_APP_URL as string | undefined;
+            if (appUrl) {
+              window.location.href = `${appUrl.replace(/\/$/, '')}/cms/login`;
+            } else {
+              window.location.href = '/cms/login';
+            }
           }
         }
         return Promise.reject(error);
