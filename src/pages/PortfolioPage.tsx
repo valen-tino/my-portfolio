@@ -9,13 +9,14 @@ const PortfolioPage: React.FC = () => {
       <Navbar />
       
       {/* Portfolio Section */}
-      <section className="section bg-base-100 pt-24 pb-24">
+      <section className="section bg-base-100 pt-24 pb-24 min-h-screen">
         <div className="section-container">
           <Portfolio />
         </div>
       </section>
       
-      <Footer />
+      
+        <Footer />
     </div>
   );
 };

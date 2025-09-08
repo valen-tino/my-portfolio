@@ -28,9 +28,9 @@ const EducationSection: React.FC = () => {
   }, []);
 
   return (
-    <div className='mt-8 rounded-2xl py-8 px-4 sm:py-12 sm:px-8 lg:py-16 lg:px-12 max-w-7xl mx-auto'>
+    <div className='mt-8 rounded-2xl py-8 px-4 sm:py-12 sm:px-8 lg:py-8 lg:px-2 max-w-7xl mx-auto'>
       <div className="text-center">
-        <h3 className="mt-8 mb-12 text-3xl md:text-6xl font-bold text-gray-900 text-center">
+        <h3 className="mt-8 mb-8 text-3xl md:text-6xl font-bold text-gray-900 text-center">
           My Educational <span className='text-info'>Background</span>
         </h3>
         

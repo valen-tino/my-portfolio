@@ -109,9 +109,10 @@ const Portfolio: React.FC<Props> = ({ limit }) => {
 
   return (
     <div className="text-center">
-      <h3 className="mt-12 mb-12 text-3xl md:text-6xl font-bold  text-gray-900 text-center">
+      <h3 className="mt-12 mb-4 text-3xl md:text-6xl font-bold  text-gray-900 text-center">
         My <span className='text-info'>Works</span>
       </h3>
+      <p className="text-xl text-base-content/70 max-w-2xl mx-auto">These are my works, from my university assignments to my work projects.</p>
       
       {/* Filters - Horizontal Bar */}
       {!limit && (availableTechs.length > 0 || allRoleNames.length > 0) && (
@@ -275,7 +276,7 @@ const Portfolio: React.FC<Props> = ({ limit }) => {
           </div>
         </div>
       )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 sm:gap-8 lg:gap-10 justify-items-center mt-4 sm:mt-8 lg:mt-12 py-6 px-4 sm:py-8 sm:px-6 lg:py-8 lg:px-12 max-w-7xl mx-auto">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 sm:gap-8 lg:gap-10 justify-items-center mt-4 sm:mt-8 lg:mt-12 py-6 px-4 sm:py-8 sm:px-6 lg:py-2 lg:px-2 max-w-7xl mx-auto">
         <PortfolioCard items={items} />
       </div>
       {limit && (

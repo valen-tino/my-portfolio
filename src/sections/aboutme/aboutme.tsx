@@ -34,12 +34,12 @@ const AboutMe = () => {
   return (
     <div>
       <img src={Pink} alt="decorative spin animation" className='absolute top-4 right-4 w-6 h-6 sm:w-8 sm:h-8 motion-safe:animate-spin z-10'/>
-      <div className="mt-8 sm:mt-12 lg:mt-16 py-6 px-4 sm:py-12 sm:px-6 lg:py-12 lg:px-12 max-w-7xl mx-auto">
+      <div className="mt-8 sm:mt-12 lg:mt-16 py-6 px-4 sm:py-12 sm:px-6 lg:py-12 lg:px-2 max-w-7xl mx-auto">
         <div className="hero-content flex-col gap-6 lg:gap-10 lg:flex-row-reverse">
           <div className="flex-1 md:grid md:place-items-center">
             <img 
               src={aboutData.imageURL.startsWith('http') ? aboutData.imageURL : (aboutData.imageURL.startsWith('/') ? aboutData.imageURL : `/src/assets/${aboutData.imageURL}`)}
-              className="w-48 h-48 sm:w-64 sm:h-64 md:w-96 md:h-80 lg:w-full lg:h-96            object-cover rounded-2xl shadow-2xl mask mask-hexagon-2            mx-auto md:mx-0" 
+              className="w-48 h-48 sm:w-64 sm:h-64 md:w-96 md:h-80 lg:w-full lg:h-full            object-cover rounded-2xl shadow-2xl mask mask-hexagon-2            mx-auto md:mx-0" 
               alt="Valentino Jehaut"
               onError={(e) => { e.currentTarget.src = Me; }}
             />

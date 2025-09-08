@@ -37,7 +37,7 @@ const PortfolioDetail: React.FC = () => {
     return (
       <div className="App">
         <Navbar />
-        <section className="section pt-24">
+        <section className="section pt-24 min-h-screen">
           <div className="section-container">
             <div className="text-center">
               <div className="loading loading-spinner loading-lg"></div>
@@ -54,7 +54,7 @@ const PortfolioDetail: React.FC = () => {
     return (
       <div className="App">
         <Navbar />
-        <section className="section pt-24">
+        <section className="section pt-24 min-h-screen">
           <div className="section-container">
             <div className="text-center">
               <h1 className="text-3xl font-bold mb-4">Portfolio Not Found</h1>
