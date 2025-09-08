@@ -40,13 +40,8 @@ const Login: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <div className="mx-auto w-24 h-24 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-full flex items-center justify-center mb-4">
-            <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Portfolio CMS</h1>
+        <div className="text-center mb-8">          
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Valen's Portfolio CMS</h1>
           <p className="text-gray-600">Sign in to manage your portfolio content</p>
         </div>
 
@@ -94,7 +89,7 @@ const Login: React.FC = () => {
 
               <button
                 type="submit"
-                className={`btn btn-primary w-full text-white ${loading ? 'loading' : ''}`}
+                className={`btn btn-info w-full text-white ${loading ? 'loading' : ''}`}
                 disabled={loading}
               >
                 {loading ? 'Signing In...' : 'Sign In'}
