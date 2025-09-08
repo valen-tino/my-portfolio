@@ -28,11 +28,14 @@ const EducationSection: React.FC = () => {
   }, []);
 
   return (
-    <div className='mt-8 rounded-2xl py-8 px-4 sm:py-12 sm:px-8 lg:py-8 lg:px-2 max-w-7xl mx-auto'>
+    <div className='mt-8 rounded-2xl py-8 px-4 sm:py-12 sm:px-8 lg:py-8 lg:px-2 max-w-7xl mx-auto '>
       <div className="text-center">
-        <h3 className="mt-8 mb-8 text-3xl md:text-6xl font-bold text-gray-900 text-center">
-          My Educational <span className='text-info'>Background</span>
-        </h3>
+        <h2 className="mt-8 mb-4 text-3xl md:text-6xl font-bold text-gray-900 text-center">
+          My Educational Background
+        </h2>
+        <p className="text-xl text-base-content/70 max-w-2xl mx-auto mb-4">
+          Here are some of the <span className='text-info'>institutions</span> and <span className='text-secondary'>courses</span> that have shaped my knowledge and skills.
+          </p>
         
         {/* Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">

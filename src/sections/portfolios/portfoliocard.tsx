@@ -25,7 +25,7 @@ const PortfolioCard: React.FC<Props> = ({ items }) => {
             <h2 className="card-title text-base sm:text-lg font-bold line-clamp-2">
               {item.title}
             </h2>
-            <p className='text-xs sm:text-sm text-left text-base-content/70 line-clamp-3 leading-relaxed'>
+            <p className='text-xs sm:text-sm text-left text-base-content/70 line-clamp-2 leading-relaxed'>
               {item.desc}
             </p>
             <div className="my-2 flex flex-wrap gap-1">
