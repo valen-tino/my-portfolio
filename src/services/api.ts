@@ -50,10 +50,22 @@ class ApiService {
     this.api.interceptors.response.use(
       (response) => response,
       (error) => {
-        if (error.response?.status === 401) {
-          // Token expired or invalid
+        // Handle JWT signature errors and other auth-related issues
+        if (error.response?.status === 401 || 
+            error.response?.data?.message?.includes('Invalid token') ||
+            error.response?.data?.message?.includes('JsonWebTokenError') ||
+            error.response?.data?.message?.includes('invalid signature')) {
+          
+          console.log('Authentication error detected, clearing tokens:', error.response?.data?.message);
+          
+          // Clear all potential auth tokens
           localStorage.removeItem('cms-auth-token');
           localStorage.removeItem('cms-user');
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('token');
+          localStorage.removeItem('jwt');
+          
+          // Only redirect to login if we're in the CMS area
           if (window.location.pathname.startsWith('/cms/') && window.location.pathname !== '/cms/login') {
             if (APP_URL) {
               window.location.href = `${APP_URL.replace(/\/$/, '')}/cms/login`;

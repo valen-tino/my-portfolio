@@ -74,4 +74,19 @@ export class AuthService {
       return false;
     }
   }
+
+  static clearInvalidTokens(): void {
+    try {
+      // Clear all authentication-related items from localStorage
+      localStorage.removeItem('cms-auth-token');
+      localStorage.removeItem('cms-user');
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('token');
+      localStorage.removeItem('jwt');
+      
+      console.log('Invalid tokens cleared from localStorage');
+    } catch (error) {
+      console.error('Error clearing tokens:', error);
+    }
+  }
 }
