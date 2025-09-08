@@ -84,7 +84,6 @@ export class AuthService {
       localStorage.removeItem('token');
       localStorage.removeItem('jwt');
       
-      console.log('Invalid tokens cleared from localStorage');
     } catch (error) {
       console.error('Error clearing tokens:', error);
     }

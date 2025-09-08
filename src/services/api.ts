@@ -56,7 +56,6 @@ class ApiService {
             error.response?.data?.message?.includes('JsonWebTokenError') ||
             error.response?.data?.message?.includes('invalid signature')) {
           
-          console.log('Authentication error detected, clearing tokens:', error.response?.data?.message);
           
           // Clear all potential auth tokens
           localStorage.removeItem('cms-auth-token');

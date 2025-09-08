@@ -61,7 +61,6 @@ app.use(async (req, res, next) => {
         const existing = await User.findOne({ email: adminEmail.toLowerCase() });
         if (!existing) {
           await User.create({ email: adminEmail.toLowerCase(), password: adminPassword, role: 'admin', isActive: true });
-          console.log('✅ Admin user bootstrapped');
         }
       }
       adminBootstrapped = true;
@@ -75,7 +74,7 @@ app.use(async (req, res, next) => {
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)
-.then(() => console.log('✅ Connected to MongoDB'))
+.then(() => {})
 .catch((err) => console.error('❌ MongoDB connection error:', err));
 
 // Import routes
@@ -120,6 +119,4 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📡 API available at http://localhost:${PORT}/api`);
 });

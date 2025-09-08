@@ -189,8 +189,6 @@ const Portfolio: React.FC<Props> = ({ limit }) => {
                         className="btn btn-sm btn-outline btn-info"
                         onClick={(e) => {
                           e.stopPropagation();
-                          console.log('Dropdown button clicked, current state:', techDropdownOpen);
-                          console.log('Available techs:', availableTechs);
                           setTechDropdownOpen(!techDropdownOpen);
                         }}
                       >
@@ -214,7 +212,6 @@ const Portfolio: React.FC<Props> = ({ limit }) => {
                                     key={tech}
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      console.log('Tech selected:', tech);
                                       handleTechToggle(tech);
                                       // Keep dropdown open for multiple selections
                                     }}

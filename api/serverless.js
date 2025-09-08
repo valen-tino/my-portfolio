@@ -44,7 +44,6 @@ async function connectToDatabase() {
     });
     
     cachedDb = connection;
-    console.log('MongoDB connected successfully');
     return connection;
   } catch (error) {
     console.error('MongoDB connection error:', error.message);
@@ -125,7 +124,6 @@ app.use(async (req, res, next) => {
           const existing = await User.findOne({ email: adminEmail.toLowerCase() });
           if (!existing) {
             await User.create({ email: adminEmail.toLowerCase(), password: adminPassword, role: 'admin', isActive: true });
-            console.log('Admin user bootstrapped');
           }
           adminBootstrapped = true;
         } catch (bootErr) {
