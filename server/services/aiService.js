@@ -26,20 +26,59 @@ class AIService {
     try {
       const prompt = `You are a professional technical writer helping to improve project documentation. 
 
-Please rewrite the following project details to make them much clearer, more professional, and more engaging while maintaining all the technical information. The project is titled "${projectTitle}".
+        Please rewrite the following project details to make them much clearer, more professional, and more engaging while maintaining all the technical information. The project is titled "${projectTitle}".
 
-Current project details:
-${projectDetails}
+        Current project details:
+        ${projectDetails}
 
-Requirements:
-1. Make the content clearer and more engaging
-2. Maintain all technical details and specifications
-3. Use proper markdown formatting
-4. Keep the same general structure but improve readability
-5. Add appropriate headings and bullet points where helpful
-6. Make it sound more professional and polished
+        Please structure the content with these key sections:
 
-Return only the rewritten project details in markdown format.`;
+        1. Project Background & Context
+       - Project motivation and business need
+       - Target users/stakeholders 
+       - Project scope and objectives
+
+        2. Development Process
+       - Planning and requirements gathering
+       - Technical approach and architecture
+       - Key challenges and solutions
+       - Development methodology used
+
+        3. Implementation Details  
+       - Core features and functionality
+       - Technologies and tools utilized
+       - Technical specifications
+       - Notable achievements
+
+        4. Team Structure
+       - Project roles and responsibilities
+       - Team composition (if applicable)
+       - Collaboration approach
+
+        5. Outcomes & Impact
+       - Project results and deliverables
+       - Metrics and improvements achieved
+       - User/stakeholder feedback
+       - Lessons learned
+
+        Requirements:
+        1. Highlight Valentino Jehaut's specific contributions and roles in the project.
+        2. Use proper markdown formatting with headings, bullet points, and sections where appropriate.
+        3. Keep the description concise but informative, ideally between 200-400 words.
+        4. Avoid overly technical jargon; make it accessible to a broader audience while retaining necessary technical details.
+        5. Ensure the tone is professional and polished, suitable for a portfolio.
+        6. Maintain factual accuracy while improving clarity and engagement
+
+        Please follow these rules:
+        1. Make the content clearer and more engaging
+        2. Maintain all technical details and specifications 
+        3. Use proper markdown formatting
+        4. Keep the same general structure but improve readability
+        5. Add appropriate headings and bullet points where helpful
+        6. Make it sound more professional and polished
+        7. Include information about team members and roles, even if only roles are available
+
+        Return only the rewritten project details in markdown format.`;
 
       const completion = await this.openai.chat.completions.create({
         messages: [
@@ -54,7 +93,7 @@ Return only the rewritten project details in markdown format.`;
         ],
         model: "deepseek-chat",
         temperature: 0.7,
-        max_tokens: 2000,
+        max_tokens: 8192,
       }, {
         timeout: 120000 // 2 minutes timeout
       });
@@ -91,35 +130,69 @@ Return only the rewritten project details in markdown format.`;
    */
   async createPortfolioFromText(textDescription, availableTechTools = [], availableRoles = []) {
     try {
-      const prompt = `You are an AI assistant that helps extract structured project information from text descriptions.
+      const prompt = `Analyze this project description and create a structured portfolio item in JSON format.
 
-Please analyze the following project description and create a structured portfolio item. Extract all relevant information and match technologies and roles from the provided lists when possible.
+        Project description:
+        ${textDescription}
 
-Project description:
-${textDescription}
+        Available technologies: ${availableTechTools.join(", ")}
+        Available roles: ${availableRoles.join(", ")}
 
-Available technologies: ${availableTechTools.join(", ")}
-Available roles: ${availableRoles.join(", ")}
+        Return a JSON object with:
+        {
+          "title": "Clear, professional project title",
+          "desc": "2-3 sentence overview",
+          "projectDetails": "Detailed markdown description",
+          "linkTo": "Project URL or empty string", 
+          "tech": ["matching technologies"],
+          "roles": ["matching roles"]
+        }
 
-Please return a JSON object with the following structure:
-{
-  "title": "Project Title",
-  "desc": "Brief description (2-3 sentences max)",
-  "projectDetails": "Detailed project description in markdown format",
-  "linkTo": "Project URL if mentioned (or empty string)",
-  "tech": ["Array", "of", "technologies", "used"],
-  "roles": ["Array", "of", "roles", "applicable"]
-}
+        Guidelines:
+        - Match technologies with available list, include others if mentioned
+        - Only use roles from provided list
+        - Keep description concise and engaging
+        - Structure markdown with headers, bullet points
+        
+        For the projectDetails, include these sections:
+        1. Background & Context
+       - Project motivation/business need
+       - Target users/stakeholders
+       - Project scope and objectives
+        
+        2. Development Process
+       - Planning and requirements gathering
+       - Technical approach and architecture
+       - Key challenges and solutions
+       - Development methodology used
+        
+        3. Implementation Details
+       - Core features and functionality
+       - Technologies and tools utilized
+       - Your specific contributions and role
+       - Notable technical achievements
 
-Rules:
-1. For "tech": Use technologies from the available list when they match the project. You can also add other technologies mentioned in the description even if they're not in the available list.
-2. For "roles": Only use roles from the available roles list that are applicable to this project.
-3. For "desc": Keep it concise and engaging, suitable for a portfolio card preview.
-4. For "projectDetails": Create a comprehensive markdown description with proper sections, bullet points, and formatting.
-5. If no project URL is mentioned, use an empty string for "linkTo".
-6. Make sure the title is professional and descriptive.
+        4. Team Structure
+       - Project roles and team composition (list team members if known, otherwise list roles)
+       - Collaboration approach and team dynamics
+       - Team size and organization
+        
+        5. Outcomes & Impact
+       - Project results and deliverables
+       - Metrics and improvements achieved
+       - User/stakeholder feedback
+       - Lessons learned
 
-Return only the JSON object, no additional text.`;
+        Additional requirements:
+        - Highlight Valentino Jehaut's contributions throughout
+        - Focus on clarity and professionalism 
+        - Keep technical details accurate but accessible
+        - Use proper markdown formatting with headers and bullet points
+        - Aim for 200-400 words total in projectDetails
+        - Maintain engaging but professional tone
+        - Include team information even if only roles are available
+
+        Return only valid JSON, no additional text.`;
 
       const completion = await this.openai.chat.completions.create({
         messages: [
@@ -134,7 +207,7 @@ Return only the JSON object, no additional text.`;
         ],
         model: "deepseek-reasoner",
         temperature: 0.3,
-        max_tokens: 4000,
+        max_tokens: 8192,
       }, {
         timeout: 180000 // 3 minutes timeout for reasoner model
       });
