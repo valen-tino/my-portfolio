@@ -88,7 +88,15 @@ const Portfolio: React.FC<Props> = ({ limit }) => {
     setFilteredItems(filtered);
   }, [selectedTechs, selectedRole, portfolioItems]);
 
-  const items = limit ? filteredItems.slice(0, limit) : filteredItems;
+  // For homepage (when limit is set), prioritize pinned items
+  const items = limit ? (() => {
+    const pinnedItems = filteredItems.filter(item => item.isPinned);
+    const regularItems = filteredItems.filter(item => !item.isPinned);
+    
+    // Show pinned items first, then fill remaining slots with regular items
+    const combinedItems = [...pinnedItems, ...regularItems];
+    return combinedItems.slice(0, limit);
+  })() : filteredItems;
 
   const handleTechToggle = (tech: string) => {
     setSelectedTechs(prev => 

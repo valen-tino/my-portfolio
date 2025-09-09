@@ -44,6 +44,21 @@ const portfolioSchema = new mongoose.Schema({
   isPublished: {
     type: Boolean,
     default: true
+  },
+  // Password protection
+  isPasswordProtected: {
+    type: Boolean,
+    default: false
+  },
+  password: {
+    type: String,
+    default: null,
+    trim: true
+  },
+  // Pinning feature
+  isPinned: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true

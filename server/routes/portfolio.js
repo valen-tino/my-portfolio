@@ -57,12 +57,19 @@ router.get('/:id', async (req, res) => {
 // @access  Private
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { title, desc, projectDetails, linkTo, imageURL, imageCloudinaryId, tech, roles, order, isPublished } = req.body;
+    const { title, desc, projectDetails, linkTo, imageURL, imageCloudinaryId, tech, roles, order, isPublished, isPasswordProtected, password, isPinned } = req.body;
 
     if (!title || !desc || !imageURL) {
       return res.status(400).json({
         success: false,
         message: 'Title, description, and image URL are required'
+      });
+    }
+
+    if (isPasswordProtected && (!password || !password.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password is required when enabling password protection'
       });
     }
 
@@ -76,7 +83,11 @@ router.post('/', authMiddleware, async (req, res) => {
       tech: tech || [],
       roles: roles || [],
       order: order || 0,
-      isPublished: isPublished !== undefined ? isPublished : true
+      isPublished: isPublished !== undefined ? isPublished : true,
+      // New fields
+      isPasswordProtected: !!isPasswordProtected,
+      password: isPasswordProtected ? (password || null) : null,
+      isPinned: !!isPinned
     });
 
     await portfolio.save();
@@ -100,7 +111,7 @@ router.post('/', authMiddleware, async (req, res) => {
 // @access  Private
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const { title, desc, projectDetails, linkTo, imageURL, imageCloudinaryId, tech, roles, order, isPublished } = req.body;
+    const { title, desc, projectDetails, linkTo, imageURL, imageCloudinaryId, tech, roles, order, isPublished, isPasswordProtected, password, isPinned } = req.body;
     
     const portfolio = await Portfolio.findById(req.params.id);
     if (!portfolio) {
@@ -110,8 +121,19 @@ router.put('/:id', authMiddleware, async (req, res) => {
       });
     }
 
+    // If enabling password protection, ensure a password exists (either provided or already set)
+    if (isPasswordProtected === true) {
+      const pwdToUse = typeof password !== 'undefined' ? password : portfolio.password;
+      if (!pwdToUse || !String(pwdToUse).trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password is required when enabling password protection'
+        });
+      }
+    }
+
     // Delete old image if new image is provided
-    if (imageURL !== portfolio.imageURL && portfolio.imageCloudinaryId) {
+    if (imageURL !== undefined && imageURL !== portfolio.imageURL && portfolio.imageCloudinaryId) {
       try {
         await deleteImage(portfolio.imageCloudinaryId);
       } catch (deleteError) {
@@ -129,6 +151,23 @@ router.put('/:id', authMiddleware, async (req, res) => {
     portfolio.roles = roles || portfolio.roles;
     portfolio.order = order !== undefined ? order : portfolio.order;
     portfolio.isPublished = isPublished !== undefined ? isPublished : portfolio.isPublished;
+
+    // New fields
+    if (typeof isPinned !== 'undefined') {
+      portfolio.isPinned = isPinned;
+    }
+    if (typeof isPasswordProtected !== 'undefined') {
+      portfolio.isPasswordProtected = isPasswordProtected;
+      if (!isPasswordProtected) {
+        portfolio.password = null;
+      }
+    }
+    if (typeof password !== 'undefined') {
+      // Only set password if protection is enabled (either via this request or already enabled)
+      if (portfolio.isPasswordProtected) {
+        portfolio.password = password;
+      }
+    }
 
     await portfolio.save();
 

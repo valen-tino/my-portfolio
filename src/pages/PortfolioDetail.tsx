@@ -4,12 +4,15 @@ import { CMSStorage, PortfolioItem, Role } from '../cms/apiStorage';
 import Navbar from '../sections/nav/nav';
 import Footer from '../sections/footer/footer';
 import MDEditor from '@uiw/react-md-editor';
+import PasswordProtectionModal from '../components/PasswordProtectionModal';
 
 const PortfolioDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [portfolio, setPortfolio] = useState<PortfolioItem | null>(null);
   const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
     const fetchPortfolio = async () => {
@@ -32,6 +35,20 @@ const PortfolioDetail: React.FC = () => {
     
     fetchPortfolio();
   }, [id]);
+
+  const handlePasswordSubmit = (password: string) => {
+    if (!portfolio) return;
+    
+    if (password === portfolio.password) {
+      setIsUnlocked(true);
+      setPasswordError('');
+    } else {
+      setPasswordError('Incorrect password. Please try again.');
+    }
+  };
+
+  // Check if portfolio is password protected and not unlocked
+  const isProtected = portfolio?.isPasswordProtected && !isUnlocked;
 
   if (loading) {
     return (
@@ -65,6 +82,54 @@ const PortfolioDetail: React.FC = () => {
             </div>
           </div>
         </section>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Show password protection screen if portfolio is protected and not unlocked
+  if (isProtected) {
+    return (
+      <div className="App">
+        <Navbar />
+        <section className="section pt-24 min-h-screen">
+          <div className="section-container">
+            <div className="text-center max-w-md mx-auto">
+              <div className="mb-8">
+                <div className="w-24 h-24 mx-auto mb-6 bg-red-100 rounded-full flex items-center justify-center">
+                  <svg className="w-12 h-12 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <h1 className="text-3xl font-bold mb-4">Protected Portfolio</h1>
+                <h2 className="text-xl text-base-content/80 mb-4">{portfolio.title}</h2>
+                <p className="text-base-content/70 mb-8">This portfolio is password protected. Please enter the password to view the details.</p>
+                <button
+                  onClick={() => setPasswordError('')} // This will trigger the modal to show
+                  className="btn btn-primary mb-4"
+                >
+                  🔒 Enter Password
+                </button>
+              </div>
+              <Link to="/portfolio" className="btn btn-outline btn-info">
+                Back to Portfolio
+              </Link>
+            </div>
+          </div>
+        </section>
+        
+        {/* Password Modal */}
+        <PasswordProtectionModal
+          isOpen={true}
+          onClose={() => {
+            // Don't allow closing - redirect back to portfolio page instead
+            window.location.href = '/portfolio';
+          }}
+          onSubmit={handlePasswordSubmit}
+          portfolioTitle={portfolio.title}
+          error={passwordError}
+        />
+        
         <Footer />
       </div>
     );

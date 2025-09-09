@@ -40,6 +40,10 @@ export interface PortfolioItem {
   roles: string[];
   order?: number;
   isPublished?: boolean;
+  // New fields for password protection and pinning
+  isPasswordProtected?: boolean;
+  password?: string | null;
+  isPinned?: boolean;
 }
 
 export interface ContactEntry {

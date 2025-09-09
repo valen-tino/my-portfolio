@@ -198,6 +198,10 @@ class ApiService {
     roles?: string[];
     order?: number;
     isPublished?: boolean;
+    // New fields
+    isPasswordProtected?: boolean;
+    password?: string | null;
+    isPinned?: boolean;
   }) {
     const response = await this.api.post('/portfolio', data);
     return response.data;
@@ -214,6 +218,10 @@ class ApiService {
     roles?: string[];
     order?: number;
     isPublished?: boolean;
+    // New fields
+    isPasswordProtected?: boolean;
+    password?: string | null;
+    isPinned?: boolean;
   }) {
     const response = await this.api.put(`/portfolio/${id}`, data);
     return response.data;

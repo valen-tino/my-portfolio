@@ -108,12 +108,17 @@ const PortfolioManagement: React.FC = () => {
   };
 
   const handleEdit = (item: PortfolioItem) => {
-    // Ensure roles array exists
-    const itemWithRoles = {
+    // Ensure all fields exist with proper defaults
+    const itemWithDefaults = {
       ...item,
-      roles: item.roles || []
+      roles: item.roles || [],
+      // Initialize new fields with defaults if they don't exist
+      isPasswordProtected: item.isPasswordProtected || false,
+      password: item.password || '',
+      isPinned: item.isPinned || false,
+      isPublished: item.isPublished !== undefined ? item.isPublished : true
     };
-    setEditingItem(itemWithRoles);
+    setEditingItem(itemWithDefaults);
     setIsAddingNew(false);
     setTechInput(''); // Clear custom tech input when editing existing item
   };
@@ -123,6 +128,15 @@ const PortfolioManagement: React.FC = () => {
       setMessage({
         type: 'error',
         text: 'Please provide at least title and description.'
+      });
+      return;
+    }
+
+    // Validate password protection
+    if (editingItem.isPasswordProtected && (!editingItem.password || !editingItem.password.trim())) {
+      setMessage({
+        type: 'error',
+        text: 'Please provide a password for password-protected portfolio.'
       });
       return;
     }
@@ -387,6 +401,94 @@ const PortfolioManagement: React.FC = () => {
                       value={editingItem.linkTo}
                       onChange={(e) => setEditingItem({ ...editingItem, linkTo: e.target.value })}
                     />
+                  </div>
+
+                  {/* Portfolio Settings */}
+                  <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                    <h3 className="text-sm font-medium text-gray-700">Portfolio Settings</h3>
+                    
+                    {/* Pin Portfolio */}
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        id="pinned"
+                        checked={editingItem.isPinned || false}
+                        onChange={(e) => setEditingItem({ ...editingItem, isPinned: e.target.checked })}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div>
+                        <label htmlFor="pinned" className="text-sm font-medium text-gray-700">
+                          📌 Pin to Landing Page
+                        </label>
+                        <p className="text-xs text-gray-500">
+                          Show this portfolio on the homepage regardless of date. Max 3 pinned items.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Password Protection */}
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          id="passwordProtected"
+                          checked={editingItem.isPasswordProtected || false}
+                          onChange={(e) => {
+                            setEditingItem({ 
+                              ...editingItem, 
+                              isPasswordProtected: e.target.checked,
+                              password: e.target.checked ? (editingItem.password || '') : ''
+                            });
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <div>
+                          <label htmlFor="passwordProtected" className="text-sm font-medium text-gray-700">
+                            🔒 Password Protection
+                          </label>
+                          <p className="text-xs text-gray-500">
+                            Require a password to view this portfolio item
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {editingItem.isPasswordProtected && (
+                        <div className="ml-6">
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            Portfolio Password *
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Enter password for this portfolio"
+                            value={editingItem.password || ''}
+                            onChange={(e) => setEditingItem({ ...editingItem, password: e.target.value })}
+                          />
+                          <p className="text-xs text-orange-600 mt-1">
+                            ⚠️ Users will need this password to view the portfolio details
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Publish Status */}
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        id="published"
+                        checked={editingItem.isPublished !== false} // Default to true if undefined
+                        onChange={(e) => setEditingItem({ ...editingItem, isPublished: e.target.checked })}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div>
+                        <label htmlFor="published" className="text-sm font-medium text-gray-700">
+                          🌐 Published
+                        </label>
+                        <p className="text-xs text-gray-500">
+                          Make this portfolio visible to public visitors
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
                   <div>
@@ -661,9 +763,28 @@ const PortfolioManagement: React.FC = () => {
 
                     {/* Project Info */}
                     <div className="p-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                        {item.title}
-                      </h3>
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 flex-1">
+                          {item.title}
+                        </h3>
+                        <div className="flex space-x-1 ml-2 flex-shrink-0">
+                          {item.isPinned && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800" title="Pinned to landing page">
+                              📌
+                            </span>
+                          )}
+                          {item.isPasswordProtected && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800" title="Password protected">
+                              🔒
+                            </span>
+                          )}
+                          {item.isPublished === false && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800" title="Unpublished">
+                              🚫
+                            </span>
+                          )}
+                        </div>
+                      </div>
                       <p className="text-gray-600 text-sm mb-3 line-clamp-3">
                         {item.desc}
                       </p>
