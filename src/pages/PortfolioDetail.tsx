@@ -80,7 +80,7 @@ const PortfolioDetail: React.FC = () => {
           <div className="section-container">
             <div className="max-w-4xl mx-auto px-4 sm:px-16">
               {/* Breadcrumb */}
-              <div className="breadcrumbs text-sm mb-8">
+              <div className="breadcrumbs text-sm mb-8 overflow-hidden">
                 <ul>
                   <li><Link to="/">Home</Link></li>
                   <li><Link to="/portfolio">Portfolio</Link></li>

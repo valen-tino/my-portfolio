@@ -26,7 +26,7 @@ const EducationCard: React.FC<Props> = ({ item }) => {
             </h5>
           </a>
         ) : (
-          <h5 className="mb-2 text-xl font-semibold tracking-tight text-accent">
+          <h5 className="mb-2 text-xl font-semibold tracking-tight text-yellow-600">
             {item.title}
           </h5>
         )}

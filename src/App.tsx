@@ -29,9 +29,9 @@ function App() {
   
   // State for cursor inverter
   const [cursorEnabled, setCursorEnabled] = useState(() => {
-    // Get initial state from localStorage or default to true
+    // Get initial state from localStorage or default to false
     const saved = localStorage.getItem('cursorInverterEnabled');
-    return saved !== null ? JSON.parse(saved) : true;
+    return saved !== null ? JSON.parse(saved) : false;
   });
 
   // Save cursor preference to localStorage

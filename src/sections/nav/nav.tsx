@@ -40,10 +40,10 @@ const Navbar = () => {
 
   return (
     <div className={classFunc(
-      'navbar fixed top-0 z-50 w-full min-h-16 px-2 sm:px-4 transition-all duration-300',
+      'navbar fixed top-0 z-50 min-h-16 sm:px-4 transition-all duration-300 px-2',
       scrollPosition > 0 || isPortfolioPage
-        ? 'bg-base-100 shadow-lg border-b border-base-300 text-base-content' 
-        : 'bg-transparent text-base-100'
+        ? 'bg-base-100 shadow-lg border-b border-base-300 text-base-content w-full' 
+        : 'bg-transparent text-base-100 xl:px-16'
     )}>
       <div className="navbar-start">
         {/* Mobile menu dropdown */}
@@ -60,7 +60,7 @@ const Navbar = () => {
         
         {/* Logo */}
         <RouterLink to="/" className="btn btn-ghost btn-sm text-lg ml-1">
-          <svg width="24" height="24" viewBox="0 0 136 100" fill="none">
+          <svg width="24" height="32" viewBox="0 0 136 100" fill="none">
             <path 
               d="M11 10V137L126 10V137H71.2973V101.639" 
               stroke="currentColor" 

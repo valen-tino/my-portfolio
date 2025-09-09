@@ -8,12 +8,12 @@ const Hero = () => {
   return (
     <section 
       id="home" 
-      className="min-h-screen bg-cover bg-center bg-no-repeat relative rounded-br-[250px]"
+      className="min-h-[48vh] bg-cover bg-center bg-no-repeat relative lg:mx-0 xl:mx-8 rounded-b-3xl shadow-2xl"
       style={{
         backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6)), url('/pexels.jpg')`,
       }}
     >
-      <div className="hero min-h-screen pt-16">
+      <div className="hero pt-16 sm:pt-24 lg:pt-32 pb-16 sm:pb-24 lg:pb-32">
         <div className="hero-content flex-col lg:flex-row-reverse max-w-6xl mx-auto px-4 py-8 relative z-10">
           <div className="flex-1 mb-8 lg:mb-0">
             <img 
