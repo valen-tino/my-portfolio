@@ -39,7 +39,7 @@ const AboutMe = () => {
           <div className="flex-1 md:grid md:place-items-center">
             <img 
               src={aboutData.imageURL.startsWith('http') ? aboutData.imageURL : (aboutData.imageURL.startsWith('/') ? aboutData.imageURL : `/src/assets/${aboutData.imageURL}`)}
-              className="w-48 h-48 sm:w-64 sm:h-64 md:w-96 md:h-80 lg:w-full lg:h-full            object-cover rounded-2xl shadow-2xl mask mask-hexagon-2            mx-auto md:mx-0" 
+              className="w-72 h-72 md:w-96 md:h-80 lg:w-full lg:h-full object-cover rounded-2xl shadow-2xl mask mask-hexagon-2 mx-auto md:mx-0" 
               alt="Valentino Jehaut"
               onError={(e) => { e.currentTarget.src = Me; }}
             />

@@ -9,6 +9,6 @@ export const Greeting: React.FC = () => {
   else if (hours >= 12 && hours <= 17) greet = 'afternoon';
   else greet = 'evening';
 
-  return <h1 className="mb-5 text-5xl md:text-8xl font-bold">Good {greet}!</h1>;
+  return <h1 className="mb-5 text-5xl md:text-8xl font-bold text-center">Good {greet}!</h1>;
 };
 
