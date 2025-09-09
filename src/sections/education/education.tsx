@@ -34,7 +34,7 @@ const EducationSection: React.FC = () => {
           My Educational Background
         </h2>
         <p className="text-xl text-base-content/70 max-w-2xl mx-auto mb-4">
-          Here are some of the <span className='text-info'>institutions</span> and <span className='text-secondary'>courses</span> that have shaped my knowledge and skills.
+          Here are some of the <span className='text-accent'>institutions</span> and <span className='text-secondary'>courses</span> that have shaped my knowledge and skills.
           </p>
         
         {/* Cards Grid */}

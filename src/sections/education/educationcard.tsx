@@ -21,12 +21,12 @@ const EducationCard: React.FC<Props> = ({ item }) => {
       <div className="mb-4">
         {item.link ? (
           <a href={item.link} target="_blank" rel="noreferrer">
-            <h5 className="mb-2 text-xl font-semibold tracking-tight hover:text-info transition-colors text-secondary">
+            <h5 className="mb-2 text-xl font-semibold tracking-tight transition-colors text-secondary">
               {item.title}
             </h5>
           </a>
         ) : (
-          <h5 className="mb-2 text-xl font-semibold tracking-tight text-info">
+          <h5 className="mb-2 text-xl font-semibold tracking-tight text-accent">
             {item.title}
           </h5>
         )}
