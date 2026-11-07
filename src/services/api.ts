@@ -295,7 +295,67 @@ class ApiService {
     return response.data;
   }
 
+  private optimizeCloudinaryVideoUrl(url: string): string {
+    if (!url || typeof url !== 'string') return url;
+    if (url.includes('res.cloudinary.com') && url.includes('/video/upload/') && !url.includes('q_auto')) {
+      return url.replace('/video/upload/', '/video/upload/q_auto,f_auto,w_1920,c_limit/');
+    }
+    return url;
+  }
+
+  async getUploadSignature(folder = 'portfolio-videos') {
+    const response = await this.api.get('/upload/signature', {
+      params: { folder },
+    });
+    return response.data;
+  }
+
   async uploadPortfolioVideo(file: File) {
+    try {
+      const sigResponse = await this.getUploadSignature('portfolio-videos');
+      if (sigResponse?.success && sigResponse.data) {
+        const { signature, timestamp, apiKey, cloudName, folder } = sigResponse.data;
+        const directFormData = new FormData();
+        directFormData.append('file', file);
+        directFormData.append('api_key', apiKey);
+        directFormData.append('timestamp', String(timestamp));
+        directFormData.append('signature', signature);
+        directFormData.append('folder', folder);
+
+        const cloudinaryResponse = await axios.post(
+          `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`,
+          directFormData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+            timeout: 300000,
+          }
+        );
+
+        const rawUrl = cloudinaryResponse.data.secure_url || cloudinaryResponse.data.url;
+        return {
+          success: true,
+          message: 'Portfolio video uploaded and optimized successfully',
+          data: {
+            videoURL: this.optimizeCloudinaryVideoUrl(rawUrl),
+            videoCloudinaryId: cloudinaryResponse.data.public_id,
+          },
+        };
+      }
+    } catch (directUploadError) {
+      if (
+        axios.isAxiosError(directUploadError) &&
+        directUploadError.response?.status &&
+        directUploadError.response.status >= 400 &&
+        directUploadError.response.status < 500 &&
+        directUploadError.config?.url?.includes('cloudinary.com')
+      ) {
+        throw directUploadError;
+      }
+      console.warn('Direct Cloudinary upload unavailable, falling back to server upload:', directUploadError);
+    }
+
     const formData = new FormData();
     formData.append('video', file);
     const response = await this.api.post('/upload/portfolio-video', formData, {

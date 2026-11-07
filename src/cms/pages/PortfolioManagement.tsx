@@ -328,6 +328,16 @@ const PortfolioManagement: React.FC = () => {
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && editingItem) {
+      const maxSizeBytes = 100 * 1024 * 1024; // 100MB limit
+      if (file.size > maxSizeBytes) {
+        setMessage({
+          type: 'error',
+          text: 'Video file is too large. Maximum file size is 100MB.'
+        });
+        e.target.value = '';
+        return;
+      }
+
       setVideoUploading(true);
       try {
         const uploadResult = await CMSStorage.uploadPortfolioVideo(file);
@@ -340,11 +350,18 @@ const PortfolioManagement: React.FC = () => {
           type: 'success',
           text: 'Portfolio video uploaded and web-optimized successfully!'
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Video upload error:', error);
+        const status = error?.response?.status;
+        const errorMessage =
+          status === 413
+            ? 'Video file is too large for the server. Maximum file size is 100MB.'
+            : error?.response?.data?.error?.message ||
+              error?.response?.data?.message ||
+              'Failed to upload video. Please try again.';
         setMessage({
           type: 'error',
-          text: 'Failed to upload video. Please try again.'
+          text: errorMessage
         });
       } finally {
         setVideoUploading(false);

@@ -36,7 +36,7 @@ html {
 
 /* Portfolio section styling */
 .portfolio-section {
-  @apply py-8 sm:py-12 md:py-16 lg:py-24 bg-yellow-600;
+  @apply py-8 sm:py-12 md:py-16 lg:py-24 bg-white;
 }
 
 /* About section styling */

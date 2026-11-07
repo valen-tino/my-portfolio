@@ -1,6 +1,7 @@
 const express = require('express');
 const { authMiddleware } = require('../middleware/auth');
 const {
+  cloudinary,
   uploadProfile,
   uploadPortfolio,
   uploadPortfolioVideo,
@@ -10,6 +11,54 @@ const {
   optimizeVideoUrl
 } = require('../config/cloudinary');
 const router = express.Router();
+
+// @route   GET /api/upload/signature
+// @desc    Generate signed Cloudinary upload parameters for direct browser uploads
+// @access  Private
+router.get('/signature', authMiddleware, (req, res) => {
+  try {
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+    if (!cloudName || !apiKey || !apiSecret) {
+      return res.status(500).json({
+        success: false,
+        message: 'Cloudinary credentials are not configured on the server'
+      });
+    }
+
+    const requestedFolder = req.query.folder || 'portfolio-videos';
+    const folder = requestedFolder.startsWith('portfolio-cms/')
+      ? requestedFolder
+      : `portfolio-cms/${requestedFolder}`;
+    const timestamp = Math.round(new Date().getTime() / 1000);
+
+    const paramsToSign = {
+      folder,
+      timestamp
+    };
+
+    const signature = cloudinary.utils.api_sign_request(paramsToSign, apiSecret);
+
+    res.json({
+      success: true,
+      data: {
+        signature,
+        timestamp,
+        apiKey,
+        cloudName,
+        folder
+      }
+    });
+  } catch (error) {
+    console.error('Error generating upload signature:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate upload signature'
+    });
+  }
+});
 
 // @route   POST /api/upload/profile
 // @desc    Upload profile image
@@ -76,6 +125,12 @@ router.post('/portfolio-video', authMiddleware, (req, res) => {
   uploadPortfolioVideo.single('video')(req, res, (uploadErr) => {
     if (uploadErr) {
       console.error('Upload portfolio video error:', uploadErr);
+      if (uploadErr.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({
+          success: false,
+          message: 'Video file exceeds the 100MB limit'
+        });
+      }
       return res.status(400).json({
         success: false,
         message: uploadErr.message || 'Error uploading video'

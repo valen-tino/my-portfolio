@@ -2,7 +2,6 @@ import Me from '../../assets/myface.jpeg'
 import Down from '../../assets/down.svg'
 import Download from '../../assets/download.svg'
 import Pink from '../../assets/Party.svg'
-import Skills from '../skills/skills'
 import { Link } from 'react-scroll'
 import { useEffect, useState } from 'react'
 import { CMSStorage, AboutData } from '../../cms/apiStorage'
@@ -84,9 +83,6 @@ const AboutMe = () => {
             </div>
           </div>
         </div>
-      </div>
-      <div className="mt-8 sm:mt-12 lg:mt-16 bg-blue-800 rounded-2xl py-6 px-4 sm:py-12 sm:px-6 lg:py-12 lg:px-12 max-w-7xl mx-auto">
-        <Skills/>
       </div>
     </div>
   )

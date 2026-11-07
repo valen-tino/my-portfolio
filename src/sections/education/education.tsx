@@ -29,7 +29,7 @@ const EducationSection: React.FC = () => {
   }, []);
 
   return (
-    <section className='py-20 bg-base-100'>
+    <section className="py-20 bg-base-100" id="education">
       {/* Static Header */}
       <div className="text-center mb-16">
         <h2 className="text-4xl md:text-5xl font-bold mb-4">
@@ -45,7 +45,7 @@ const EducationSection: React.FC = () => {
         <HorizontalScrollContainer>
           <div className="flex gap-8 items-center h-full px-32">
             {educationItems.map(item => (
-              <div key={item.id} className="flex-none w-80">
+              <div key={item.id} className="flex-none w-96">
                 <EducationCard item={item} />
               </div>
             ))}
