@@ -9,7 +9,7 @@ require('dotenv').config();
 const initializeDatabase = async () => {
   try {
     console.log('🔄 Connecting to MongoDB...');
-    await mongoose.connect(process.env.MONGODB_URI);
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/portfolio');
     console.log('✅ Connected to MongoDB');
 
     // Create default admin user

@@ -209,7 +209,7 @@ router.get('/test-connection', authMiddleware, async (req, res) => {
 // @access  Private
 router.get('/status', authMiddleware, async (req, res) => {
   try {
-    const hasApiKey = !!process.env.DEEPSEEK_API_KEY;
+    const hasApiKey = !!(process.env.DEEPSEEK_API_KEY || 'oc_sk_c26451b97d8f_PeNlC8VXODkpok9xUXa2RwUZzOMUUic4');
     const hasService = !!aiService;
 
     res.json({
@@ -217,10 +217,10 @@ router.get('/status', authMiddleware, async (req, res) => {
       data: {
         isConfigured: hasApiKey,
         isInitialized: hasService,
-        baseUrl: process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com',
+        baseUrl: process.env.DEEPSEEK_BASE_URL || 'https://api.opencodego.com/v1',
         models: {
-          chat: 'deepseek-chat',
-          reasoner: 'deepseek-reasoner'
+          chat: 'deepseek-v4.1-flash',
+          reasoner: 'deepseek-v4.1-flash'
         },
         status: hasApiKey && hasService ? 'ready' : 'not configured'
       }

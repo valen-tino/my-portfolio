@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import MDEditor from '@uiw/react-md-editor';
 import CMSLayout from '../components/CMSLayout';
+import WYSIWYGEditor from '../components/WYSIWYGEditor';
 import { CMSStorage, PortfolioItem, TechTool, Role } from '../apiStorage';
 import AIPortfolioModal from '../components/AIPortfolioModal';
 import aiService from '../../services/ai';
@@ -10,6 +10,7 @@ import {
   isContentSignificantlyDifferent,
   sanitizeTextForAI
 } from '../../utils/aiHelpers';
+import { migrateContentToHtml, optimizeCloudinaryVideoUrl } from '../../utils/contentMigration';
 
 const PortfolioManagement: React.FC = () => {
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
@@ -17,8 +18,10 @@ const PortfolioManagement: React.FC = () => {
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [techInput, setTechInput] = useState('');
+  const [techSearch, setTechSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
+  const [videoUploading, setVideoUploading] = useState(false);
   const [availableTechTools, setAvailableTechTools] = useState<TechTool[]>([]);
   const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
   // AI-related state
@@ -63,6 +66,19 @@ const PortfolioManagement: React.FC = () => {
     }
   };
 
+  // Keyboard shortcut listener: Cmd+S / Ctrl+S to save portfolio changes
+  useEffect(() => {
+    if (!editingItem) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editingItem]);
+
   const savePortfolioItem = async (item: PortfolioItem, isNew: boolean = false) => {
     setLoading(true);
     try {
@@ -105,13 +121,17 @@ const PortfolioManagement: React.FC = () => {
     setEditingItem(newItem);
     setIsAddingNew(true);
     setTechInput('');
+    setTechSearch('');
   };
 
   const handleEdit = (item: PortfolioItem) => {
-    // Ensure all fields exist with proper defaults
+    // Ensure all fields exist with proper defaults and migrate legacy markdown to WYSIWYG HTML
     const itemWithDefaults = {
       ...item,
+      projectDetails: migrateContentToHtml(item.projectDetails || '', item.title),
       roles: item.roles || [],
+      videoURL: item.videoURL || null,
+      videoCloudinaryId: item.videoCloudinaryId || null,
       // Initialize new fields with defaults if they don't exist
       isPasswordProtected: item.isPasswordProtected || false,
       password: item.password || '',
@@ -121,6 +141,7 @@ const PortfolioManagement: React.FC = () => {
     setEditingItem(itemWithDefaults);
     setIsAddingNew(false);
     setTechInput(''); // Clear custom tech input when editing existing item
+    setTechSearch('');
   };
 
   const handleSave = async () => {
@@ -152,6 +173,7 @@ const PortfolioManagement: React.FC = () => {
 
     const updatedItem = {
       ...editingItem,
+      projectDetails: migrateContentToHtml(editingItem.projectDetails || ''),
       tech: allTechTools,
       roles: editingItem.roles || [] // Ensure roles array exists
     };
@@ -303,6 +325,42 @@ const PortfolioManagement: React.FC = () => {
     }
   };
 
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && editingItem) {
+      setVideoUploading(true);
+      try {
+        const uploadResult = await CMSStorage.uploadPortfolioVideo(file);
+        setEditingItem({
+          ...editingItem,
+          videoURL: uploadResult.videoURL,
+          videoCloudinaryId: uploadResult.videoCloudinaryId
+        });
+        setMessage({
+          type: 'success',
+          text: 'Portfolio video uploaded and web-optimized successfully!'
+        });
+      } catch (error) {
+        console.error('Video upload error:', error);
+        setMessage({
+          type: 'error',
+          text: 'Failed to upload video. Please try again.'
+        });
+      } finally {
+        setVideoUploading(false);
+      }
+    }
+  };
+
+  const handleRemoveVideo = () => {
+    if (!editingItem) return;
+    setEditingItem({
+      ...editingItem,
+      videoURL: null,
+      videoCloudinaryId: null
+    });
+  };
+
   return (
     <CMSLayout>
       <div className="max-w-7xl mx-auto space-y-6">
@@ -355,363 +413,508 @@ const PortfolioManagement: React.FC = () => {
 
         {/* Edit/Add Form */}
         {editingItem && (
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                {isAddingNew ? 'Add New Portfolio Item' : 'Edit Portfolio Item'}
-              </h2>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Left Column */}
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Project Title *
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="e.g., E-commerce Website, Mobile App"
-                      value={editingItem.title}
-                      onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Short Description *
-                    </label>
-                    <textarea
-                      rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Brief description that appears on portfolio cards"
-                      value={editingItem.desc}
-                      onChange={(e) => setEditingItem({ ...editingItem, desc: e.target.value })}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Project Link (optional)
-                    </label>
-                    <input
-                      type="url"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="https://example.com"
-                      value={editingItem.linkTo}
-                      onChange={(e) => setEditingItem({ ...editingItem, linkTo: e.target.value })}
-                    />
-                  </div>
-
-                  {/* Portfolio Settings */}
-                  <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-                    <h3 className="text-sm font-medium text-gray-700">Portfolio Settings</h3>
-                    
-                    {/* Pin Portfolio */}
-                    <div className="flex items-center space-x-3">
-                      <input
-                        type="checkbox"
-                        id="pinned"
-                        checked={editingItem.isPinned || false}
-                        onChange={(e) => setEditingItem({ ...editingItem, isPinned: e.target.checked })}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <div>
-                        <label htmlFor="pinned" className="text-sm font-medium text-gray-700">
-                          📌 Pin to Landing Page
-                        </label>
-                        <p className="text-xs text-gray-500">
-                          Show this portfolio on the homepage regardless of date. Max 3 pinned items.
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Password Protection */}
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-3">
-                        <input
-                          type="checkbox"
-                          id="passwordProtected"
-                          checked={editingItem.isPasswordProtected || false}
-                          onChange={(e) => {
-                            setEditingItem({ 
-                              ...editingItem, 
-                              isPasswordProtected: e.target.checked,
-                              password: e.target.checked ? (editingItem.password || '') : ''
-                            });
-                          }}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <div>
-                          <label htmlFor="passwordProtected" className="text-sm font-medium text-gray-700">
-                            🔒 Password Protection
-                          </label>
-                          <p className="text-xs text-gray-500">
-                            Require a password to view this portfolio item
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {editingItem.isPasswordProtected && (
-                        <div className="ml-6">
-                          <label className="block text-xs font-medium text-gray-600 mb-1">
-                            Portfolio Password *
-                          </label>
-                          <input
-                            type="text"
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Enter password for this portfolio"
-                            value={editingItem.password || ''}
-                            onChange={(e) => setEditingItem({ ...editingItem, password: e.target.value })}
-                          />
-                          <p className="text-xs text-orange-600 mt-1">
-                            ⚠️ Users will need this password to view the portfolio details
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Publish Status */}
-                    <div className="flex items-center space-x-3">
-                      <input
-                        type="checkbox"
-                        id="published"
-                        checked={editingItem.isPublished !== false} // Default to true if undefined
-                        onChange={(e) => setEditingItem({ ...editingItem, isPublished: e.target.checked })}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <div>
-                        <label htmlFor="published" className="text-sm font-medium text-gray-700">
-                          🌐 Published
-                        </label>
-                        <p className="text-xs text-gray-500">
-                          Make this portfolio visible to public visitors
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Technologies Used
-                    </label>
-                    {availableTechTools.length > 0 ? (
-                      <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-300 rounded-md p-3">
-                        {availableTechTools.map((tool) => (
-                          <label key={tool.id} className="flex items-center space-x-2 text-sm">
-                            <input
-                              type="checkbox"
-                              checked={(editingItem.tech || []).includes(tool.title)}
-                              onChange={(e) => {
-                                const currentTech = editingItem.tech || [];
-                                if (e.target.checked) {
-                                  setEditingItem({
-                                    ...editingItem,
-                                    tech: [...currentTech, tool.title]
-                                  });
-                                } else {
-                                  setEditingItem({
-                                    ...editingItem,
-                                    tech: currentTech.filter(t => t !== tool.title)
-                                  });
-                                }
-                              }}
-                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            <img src={tool.imageURL} alt={tool.title} className="w-5 h-5 object-contain" />
-                            <span>{tool.title}</span>
-                          </label>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-4 border border-gray-300 rounded-md bg-gray-50">
-                        <p className="text-gray-500 text-sm">No tech tools available.</p>
-                        <p className="text-gray-400 text-xs mt-1">Add some tech tools first in the Tech Tools management section.</p>
-                      </div>
-                    )}
-                    <p className="text-xs text-gray-500 mt-2">Select the technologies used in this project</p>
-                    
-                    {/* Fallback text input for custom tech */}
-                    <div className="mt-3">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Custom Technologies (comma-separated)
-                        {techInput && (
-                          <span className="ml-1 text-orange-600 font-normal">
-                            AI-populated
-                          </span>
-                        )}
-                      </label>
-                      <input
-                        type="text"
-                        className={`w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${
-                          techInput ? 'border-orange-300 bg-orange-50' : 'border-gray-300'
-                        }`}
-                        placeholder="Any additional technologies not listed above"
-                        value={techInput}
-                        onChange={(e) => setTechInput(e.target.value)}
-                      />
-                      {techInput && (
-                        <p className="text-xs text-orange-600 mt-1">
-                          These technologies were suggested by AI and will be added to your project
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Professional Roles
-                    </label>
-                    {availableRoles.length > 0 ? (
-                      <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-300 rounded-md p-3">
-                        {availableRoles.map((role) => (
-                          <label key={role.id} className="flex items-center space-x-2 text-sm">
-                            <input
-                              type="checkbox"
-                              checked={(editingItem.roles || []).includes(role.title)}
-                              onChange={(e) => {
-                                const currentRoles = editingItem.roles || [];
-                                if (e.target.checked) {
-                                  setEditingItem({
-                                    ...editingItem,
-                                    roles: [...currentRoles, role.title]
-                                  });
-                                } else {
-                                  setEditingItem({
-                                    ...editingItem,
-                                    roles: currentRoles.filter(r => r !== role.title)
-                                  });
-                                }
-                              }}
-                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            <div className={`badge badge-${role.color || 'info'} badge-sm`}>
-                              {role.title}
-                            </div>
-                          </label>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-4 border border-gray-300 rounded-md bg-gray-50">
-                        <p className="text-gray-500 text-sm">No roles available.</p>
-                        <p className="text-gray-400 text-xs mt-1">Add some roles first in the Roles management section.</p>
-                      </div>
-                    )}
-                    <p className="text-xs text-gray-500 mt-2">Select the roles that apply to this project</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Project Image
-                    </label>
-                    
-                    {editingItem.imageURL && (
-                      <div className="mb-4">
-                        <img
-                          src={editingItem.imageURL}
-                          alt="Project preview"
-                          className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-200"
-                        />
-                        <p className="text-sm text-gray-500 mt-1">Current image</p>
-                      </div>
-                    )}
-                    
-                    <div className="relative">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${imageUploading ? 'opacity-50' : ''}`}
-                        onChange={handleImageUpload}
-                        disabled={imageUploading}
-                      />
-                      {imageUploading && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 rounded-md">
-                          <div className="text-sm text-gray-600">Uploading image...</div>
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">Upload a project screenshot or mockup (PNG, JPG, GIF)</p>
-                  </div>
-                </div>
-
-                {/* Right Column */}
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden" data-testid="portfolio-edit-card">
+            {/* Sticky Action Header */}
+            <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-200 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="btn btn-ghost btn-sm text-gray-600 hover:text-gray-900 gap-1"
+                >
+                  ← Back
+                </button>
+                <div className="h-4 w-px bg-gray-300" />
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Project Details (Markdown)
-                  </label>
-                  <div data-color-mode="light">
-                    <MDEditor
-                      value={editingItem.projectDetails}
-                      onChange={(val) => setEditingItem({ ...editingItem, projectDetails: val || '' })}
-                      preview="edit"
-                      hideToolbar={false}
-                      height={400}
-                    />
-                  </div>
-                  
-                  {/* AI Rewrite Button */}
-                  <div className="mt-3 flex items-center justify-between">
-                    <p className="text-xs text-gray-500">
-                      Use Markdown formatting to create rich project descriptions
-                    </p>
-                    <button
-                      onClick={handleRewriteWithAI}
-                      disabled={isRewriting || !editingItem.projectDetails?.trim()}
-                      className={`px-3 py-1 text-sm rounded-md font-medium ${
-                        isRewriting || !editingItem.projectDetails?.trim()
-                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                          : 'bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-300'
-                      }`}
-                    >
-                      {isRewriting ? (
-                        <div className="flex items-center">
-                          <svg className="w-3 h-3 mr-1 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                          Rewriting...
-                        </div>
-                      ) : (
-                        <>✨ Rewrite using AI</>
-                      )}
-                    </button>
-                  </div>
-                  
-                  {/* AI Error Display */}
-                  {aiError && (
-                    <div className="mt-2 bg-red-50 border border-red-200 rounded-md p-2">
-                      <div className="flex">
-                        <svg className="w-4 h-4 text-red-400 mr-1 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                        </svg>
-                        <p className="text-xs text-red-700">{aiError}</p>
-                        <button
-                          onClick={() => setAiError('')}
-                          className="ml-auto text-red-400 hover:text-red-600"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    {isAddingNew ? 'Add New Portfolio Item' : `Editing: ${editingItem.title || 'Untitled Project'}`}
+                    {editingItem.isPublished !== false ? (
+                      <span className="badge badge-success badge-sm text-white">Published</span>
+                    ) : (
+                      <span className="badge badge-ghost badge-sm">Draft</span>
+                    )}
+                    {editingItem.isPinned && (
+                      <span className="badge badge-warning badge-sm">Pinned</span>
+                    )}
+                  </h2>
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-4 mt-8">
+              <div className="flex items-center gap-3">
                 <button
+                  type="button"
                   onClick={handleCancel}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                  className="btn btn-ghost btn-sm text-gray-600"
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={handleSave}
-                  disabled={loading || imageUploading}
-                  className={`px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 ${(loading || imageUploading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={loading || imageUploading || videoUploading}
+                  className={`btn btn-primary btn-sm gap-2 shadow-sm ${
+                    (loading || imageUploading || videoUploading) ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  title="Save changes (⌘S / Ctrl+S)"
                 >
-                  {loading ? 'Saving...' : (isAddingNew ? 'Add Project' : 'Save Changes')}
+                  {loading ? (
+                    <span className="loading loading-spinner loading-xs"></span>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                  {isAddingNew ? 'Add Project' : 'Save Changes'}
+                  <span className="text-[10px] opacity-70 hidden sm:inline">(⌘S)</span>
                 </button>
+              </div>
+            </div>
+
+            {/* Two-Column Layout: Left Column 40% & Right Column 60% */}
+            <div className="p-6 lg:p-8 flex flex-col lg:flex-row gap-8 items-start">
+              {/* Left Column (40% width): Project Metadata, Settings & Media */}
+              <div className="w-full lg:w-[40%] flex-shrink-0 space-y-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+                    Project Title *
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-3.5 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
+                    placeholder="e.g., E-commerce Website, Mobile App"
+                    value={editingItem.title}
+                    onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+                    Short Description *
+                  </label>
+                  <textarea
+                    rows={4}
+                    className="w-full px-3.5 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    placeholder="Brief description that appears on portfolio cards (2-3 sentences)"
+                    value={editingItem.desc}
+                    onChange={(e) => setEditingItem({ ...editingItem, desc: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+                    Project Link (optional)
+                  </label>
+                  <input
+                    type="url"
+                    className="w-full px-3.5 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    placeholder="https://example.com"
+                    value={editingItem.linkTo}
+                    onChange={(e) => setEditingItem({ ...editingItem, linkTo: e.target.value })}
+                  />
+                </div>
+
+                {/* Portfolio Settings Card */}
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-4">
+                  <h3 className="text-sm font-semibold text-gray-800">Portfolio Settings</h3>
+
+                  {/* Pin Portfolio */}
+                  <div className="flex items-start space-x-3">
+                    <input
+                      type="checkbox"
+                      id="pinned"
+                      checked={editingItem.isPinned || false}
+                      onChange={(e) => setEditingItem({ ...editingItem, isPinned: e.target.checked })}
+                      className="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <div>
+                      <label htmlFor="pinned" className="text-sm font-medium text-gray-700 cursor-pointer">
+                        📌 Pin to Landing Page
+                      </label>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Show on homepage hero section (Max 3 pinned items).
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Password Protection */}
+                  <div className="space-y-3">
+                    <div className="flex items-start space-x-3">
+                      <input
+                        type="checkbox"
+                        id="passwordProtected"
+                        checked={editingItem.isPasswordProtected || false}
+                        onChange={(e) => {
+                          setEditingItem({
+                            ...editingItem,
+                            isPasswordProtected: e.target.checked,
+                            password: e.target.checked ? (editingItem.password || '') : ''
+                          });
+                        }}
+                        className="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div>
+                        <label htmlFor="passwordProtected" className="text-sm font-medium text-gray-700 cursor-pointer">
+                          🔒 Password Protection
+                        </label>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Require a password to view this portfolio item
+                        </p>
+                      </div>
+                    </div>
+
+                    {editingItem.isPasswordProtected && (
+                      <div className="ml-7 pt-1">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                          Portfolio Password *
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          placeholder="Enter password for this portfolio"
+                          value={editingItem.password || ''}
+                          onChange={(e) => setEditingItem({ ...editingItem, password: e.target.value })}
+                        />
+                        <p className="text-xs text-orange-600 mt-1">
+                          ⚠️ Visitors must enter this password to view details
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Publish Status */}
+                  <div className="flex items-start space-x-3">
+                    <input
+                      type="checkbox"
+                      id="published"
+                      checked={editingItem.isPublished !== false}
+                      onChange={(e) => setEditingItem({ ...editingItem, isPublished: e.target.checked })}
+                      className="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <div>
+                      <label htmlFor="published" className="text-sm font-medium text-gray-700 cursor-pointer">
+                        🌐 Published Status
+                      </label>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Visible to public visitors when enabled
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Technologies Card */}
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-semibold text-gray-800">
+                      Technologies Used ({editingItem.tech?.length || 0})
+                    </label>
+                    {editingItem.tech && editingItem.tech.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingItem({ ...editingItem, tech: [] })}
+                        className="text-xs text-red-600 hover:text-red-800 font-medium"
+                      >
+                        Clear all
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Selected Tech Chips */}
+                  {editingItem.tech && editingItem.tech.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 p-2 bg-white border border-gray-200 rounded-lg max-h-24 overflow-y-auto">
+                      {editingItem.tech.map((toolTitle) => (
+                        <span key={toolTitle} className="badge badge-info badge-sm gap-1 text-white py-2">
+                          {toolTitle}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingItem({
+                                ...editingItem,
+                                tech: (editingItem.tech || []).filter((t) => t !== toolTitle)
+                              });
+                            }}
+                            className="hover:opacity-75 font-bold ml-0.5"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Search Filter for Technologies */}
+                  <input
+                    type="text"
+                    value={techSearch}
+                    onChange={(e) => setTechSearch(e.target.value)}
+                    placeholder="Search technologies..."
+                    className="w-full px-3 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                  />
+
+                  {/* Filtered Tool Checkboxes */}
+                  {availableTechTools.length > 0 ? (
+                    <div className="space-y-1 max-h-36 overflow-y-auto border border-gray-200 rounded-md p-2 bg-white">
+                      {availableTechTools
+                        .filter((tool) => tool.title.toLowerCase().includes(techSearch.toLowerCase()))
+                        .map((tool) => {
+                          const isChecked = (editingItem.tech || []).includes(tool.title);
+                          return (
+                            <label
+                              key={tool.id}
+                              className={`flex items-center space-x-2 text-xs p-1.5 rounded cursor-pointer transition-colors ${
+                                isChecked ? 'bg-blue-50 text-blue-900 font-medium' : 'hover:bg-gray-50 text-gray-700'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  const currentTech = editingItem.tech || [];
+                                  if (e.target.checked) {
+                                    setEditingItem({
+                                      ...editingItem,
+                                      tech: [...currentTech, tool.title]
+                                    });
+                                  } else {
+                                    setEditingItem({
+                                      ...editingItem,
+                                      tech: currentTech.filter((t) => t !== tool.title)
+                                    });
+                                  }
+                                }}
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              <img src={tool.imageURL} alt={tool.title} className="w-4 h-4 object-contain" />
+                              <span>{tool.title}</span>
+                            </label>
+                          );
+                        })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-2 bg-white rounded border border-gray-200 text-xs text-gray-400">
+                      No tech tools available
+                    </div>
+                  )}
+
+                  {/* Custom tech input */}
+                  <div>
+                    <input
+                      type="text"
+                      className={`w-full px-2.5 py-1.5 text-xs border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                        techInput ? 'border-orange-300 bg-orange-50' : 'border-gray-300 bg-white'
+                      }`}
+                      placeholder="Additional custom technologies (comma-separated)"
+                      value={techInput}
+                      onChange={(e) => setTechInput(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Professional Roles Card */}
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3">
+                  <label className="block text-sm font-semibold text-gray-800">
+                    Professional Roles ({editingItem.roles?.length || 0})
+                  </label>
+                  {availableRoles.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {availableRoles.map((role) => {
+                        const isSelected = (editingItem.roles || []).includes(role.title);
+                        return (
+                          <button
+                            key={role.id}
+                            type="button"
+                            onClick={() => {
+                              const currentRoles = editingItem.roles || [];
+                              if (isSelected) {
+                                setEditingItem({
+                                  ...editingItem,
+                                  roles: currentRoles.filter((r) => r !== role.title)
+                                });
+                              } else {
+                                setEditingItem({
+                                  ...editingItem,
+                                  roles: [...currentRoles, role.title]
+                                });
+                              }
+                            }}
+                            className={`badge badge-${role.color || 'info'} badge-md cursor-pointer transition-all ${
+                              isSelected ? 'opacity-100 ring-2 ring-offset-1 ring-blue-500 shadow-xs' : 'badge-outline opacity-60 hover:opacity-100'
+                            }`}
+                          >
+                            {isSelected ? '✓ ' : '+ '}
+                            {role.title}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-400">No roles configured</p>
+                  )}
+                </div>
+
+                {/* Card Thumbnail Image */}
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3">
+                  <label className="block text-sm font-semibold text-gray-800">
+                    Project Card Image (Thumbnail)
+                  </label>
+                  {editingItem.imageURL && (
+                    <div className="relative rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
+                      <img
+                        src={editingItem.imageURL}
+                        alt="Project preview"
+                        className="w-full h-40 object-cover"
+                      />
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className={`w-full px-3 py-2 text-xs border border-gray-300 rounded-md bg-white focus:outline-none ${imageUploading ? 'opacity-50' : ''}`}
+                    onChange={handleImageUpload}
+                    disabled={imageUploading}
+                  />
+                  {imageUploading && (
+                    <p className="text-xs text-blue-600 flex items-center gap-1">
+                      <span className="loading loading-spinner loading-xs"></span> Uploading image...
+                    </p>
+                  )}
+                </div>
+
+                {/* Hero Video */}
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-semibold text-gray-800">
+                      Project Video
+                    </label>
+                    <span className="badge badge-primary badge-outline badge-xs">Web Optimized</span>
+                  </div>
+                  {editingItem.videoURL && (
+                    <div className="space-y-1.5">
+                      <video
+                        src={optimizeCloudinaryVideoUrl(editingItem.videoURL)}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        className="w-full aspect-video object-cover rounded-lg border border-gray-200 bg-black"
+                      />
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-400">Cloudinary (f_auto, q_auto)</span>
+                        <button
+                          type="button"
+                          onClick={handleRemoveVideo}
+                          className="text-xs text-red-600 hover:text-red-800 font-medium"
+                        >
+                          Remove Video
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="video/mp4,video/webm,video/quicktime,video/*"
+                    className={`w-full px-3 py-2 text-xs border border-gray-300 rounded-md bg-white focus:outline-none ${videoUploading ? 'opacity-50' : ''}`}
+                    onChange={handleVideoUpload}
+                    disabled={videoUploading}
+                  />
+                  {videoUploading && (
+                    <p className="text-xs text-blue-600 flex items-center gap-1">
+                      <span className="loading loading-spinner loading-xs"></span> Uploading & optimizing video...
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Column (60% width): Project Details WYSIWYG Editor Focus */}
+              <div className="w-full lg:w-[60%] flex-grow min-w-0 flex flex-col space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-gradient-to-r from-blue-50/70 to-indigo-50/70 border border-blue-100 rounded-xl">
+                  <div>
+                    <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                      <span>Project Details</span>
+                      <span className="badge badge-primary badge-outline badge-xs">WYSIWYG</span>
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Case study narrative with section titles, Cloudinary media and responsive gallery
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleRewriteWithAI}
+                    disabled={isRewriting || !editingItem.projectDetails?.trim()}
+                    className={`btn btn-sm text-xs font-semibold rounded-lg gap-1.5 ${
+                      isRewriting || !editingItem.projectDetails?.trim()
+                        ? 'btn-disabled opacity-50'
+                        : 'bg-purple-600 hover:bg-purple-700 text-white shadow-xs'
+                    }`}
+                    title="Rewrite case study with AI using standard section titles"
+                  >
+                    {isRewriting ? (
+                      <>
+                        <span className="loading loading-spinner loading-xs"></span>
+                        Rewriting...
+                      </>
+                    ) : (
+                      <>✨ Rewrite with AI</>
+                    )}
+                  </button>
+                </div>
+
+                {/* AI Error Display */}
+                {aiError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-2.5 flex items-center justify-between text-xs text-red-700">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold">⚠️</span>
+                      <span>{aiError}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAiError('')}
+                      className="text-red-500 hover:text-red-700 font-bold px-1"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+
+                {/* Full-width WYSIWYG Editor */}
+                <div className="flex-grow">
+                  <WYSIWYGEditor
+                    value={editingItem.projectDetails}
+                    onChange={(html) => setEditingItem({ ...editingItem, projectDetails: html })}
+                  />
+                </div>
+
+                {/* Bottom Action Controls */}
+                <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+                  <span className="text-xs text-gray-400">
+                    Pro-tip: Press <kbd className="kbd kbd-xs">⌘S</kbd> to save anytime
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleCancel}
+                      className="btn btn-ghost btn-sm text-gray-600"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSave}
+                      disabled={loading || imageUploading || videoUploading}
+                      className={`btn btn-primary btn-sm gap-2 shadow-sm ${
+                        (loading || imageUploading || videoUploading) ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      {loading ? (
+                        <span className="loading loading-spinner loading-xs"></span>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                      {isAddingNew ? 'Add Project' : 'Save Changes'}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { CMSStorage, PortfolioItem, Role } from '../cms/apiStorage';
 import Navbar from '../sections/nav/nav';
 import Footer from '../sections/footer/footer';
-import MDEditor from '@uiw/react-md-editor';
 import PasswordProtectionModal from '../components/PasswordProtectionModal';
+import ImageLightboxModal, { LightboxImageItem } from '../components/ImageLightboxModal';
+import ScrollProgressBar from '../components/ScrollProgressBar';
+import { migrateContentToHtml, optimizeCloudinaryVideoUrl } from '../utils/contentMigration';
 
 const PortfolioDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -13,6 +15,40 @@ const PortfolioDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [passwordError, setPasswordError] = useState('');
+  const [lightboxImages, setLightboxImages] = useState<LightboxImageItem[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState<number>(0);
+  const [lightboxOpen, setLightboxOpen] = useState<boolean>(false);
+  const rightScrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleDetailsClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const figureEl = target.closest('figure.gallery-item[data-media-type="image"], figure.gallery-image-clickable');
+    const imgEl = (figureEl ? figureEl.querySelector('img') : target.closest('img')) as HTMLImageElement | null;
+
+    if (!imgEl || !imgEl.src) return;
+
+    const galleryContainer = imgEl.closest('.portfolio-gallery');
+    if (galleryContainer) {
+      const allImgs = Array.from(galleryContainer.querySelectorAll('img'));
+      const items: LightboxImageItem[] = allImgs.map((img) => ({
+        src: img.getAttribute('src') || img.src,
+        alt: img.getAttribute('alt') || 'Gallery image'
+      }));
+      const clickedIdx = allImgs.indexOf(imgEl);
+      setLightboxImages(items);
+      setLightboxIndex(clickedIdx >= 0 ? clickedIdx : 0);
+      setLightboxOpen(true);
+    } else {
+      setLightboxImages([
+        {
+          src: imgEl.getAttribute('src') || imgEl.src,
+          alt: imgEl.getAttribute('alt') || portfolio?.title || 'Project image'
+        }
+      ]);
+      setLightboxIndex(0);
+      setLightboxOpen(true);
+    }
+  };
 
   useEffect(() => {
     const fetchPortfolio = async () => {
@@ -135,6 +171,37 @@ const PortfolioDetail: React.FC = () => {
     );
   }
 
+  const resolvedImageUrl = portfolio.imageURL
+    ? portfolio.imageURL.startsWith('http')
+      ? portfolio.imageURL
+      : '/images/portfolios/' + portfolio.imageURL
+    : undefined;
+
+  const renderHeroMedia = (mediaClassName: string) => {
+    if (portfolio.videoURL) {
+      return (
+        <video
+          src={optimizeCloudinaryVideoUrl(portfolio.videoURL)}
+          poster={resolvedImageUrl}
+          controls
+          playsInline
+          preload="metadata"
+          className={`${mediaClassName} aspect-video object-cover bg-black`}
+          data-testid="portfolio-hero-video"
+        />
+      );
+    }
+
+    return (
+      <img
+        src={resolvedImageUrl}
+        alt={portfolio.title}
+        className={mediaClassName}
+        data-testid="portfolio-hero-image"
+      />
+    );
+  };
+
   return (
     <div className="App">
       <Navbar />
@@ -158,13 +225,9 @@ const PortfolioDetail: React.FC = () => {
                 <h1 className="text-3xl md:text-5xl font-bold mb-4">{portfolio.title}</h1>
               </div>
               
-              {/* Project Image */}
+              {/* Project Media (Video or Image) */}
               <div className="mb-8">
-                <img 
-                  src={portfolio.imageURL.startsWith('http') ? portfolio.imageURL : "/images/portfolios/" + portfolio.imageURL} 
-                  alt={portfolio.title} 
-                  className="w-full rounded-2xl shadow-2xl"
-                />
+                {renderHeroMedia('w-full rounded-2xl shadow-2xl')}
               </div>
               
               {/* Roles */}
@@ -201,17 +264,29 @@ const PortfolioDetail: React.FC = () => {
                 </div>
               )}
               
+              {/* Option B: Sticky Reading Progress Bar for Mobile Case Study View */}
+              <ScrollProgressBar defaultLabel={portfolio.title} />
+
               {/* Project Description */}
-              <div className="prose lg:prose-xl mx-auto mb-8 portfolio-markdown">
-                <p className="text-lg leading-relaxed">
-                  {portfolio.desc}
-                </p>
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold mb-6">Project Overview</h2>
+                <div className="prose lg:prose-xl max-w-none portfolio-markdown">
+                  <p className="text-lg leading-relaxed">
+                    {portfolio.desc}
+                  </p>
+                </div>
               </div>
               
-              {/* Project Details (Markdown) */}
+              {/* Project Details (WYSIWYG HTML / Migrated Markdown) */}
               {portfolio.projectDetails && (
-                <div className="prose lg:prose-xl mx-auto mb-12 portfolio-markdown" data-color-mode="light">
-                  <MDEditor.Markdown source={portfolio.projectDetails} />
+                <div className="mb-12">
+                  <h2 className="text-2xl font-bold mb-6">Project Details</h2>
+                  <div
+                    className="prose lg:prose-xl max-w-none portfolio-markdown"
+                    data-color-mode="light"
+                    onClick={handleDetailsClick}
+                    dangerouslySetInnerHTML={{ __html: migrateContentToHtml(portfolio.projectDetails, portfolio.title) }}
+                  />
                 </div>
               )}
               
@@ -222,7 +297,7 @@ const PortfolioDetail: React.FC = () => {
                     href={portfolio.linkTo} 
                     target="_blank" 
                     rel="noreferrer" 
-                    className="btn btn-outline btn-lg gap-2 text-white"
+                    className="btn btn-info btn-lg gap-2 text-white shadow-md hover:shadow-lg transition-all"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -257,13 +332,9 @@ const PortfolioDetail: React.FC = () => {
                 <h1 className="text-3xl xl:text-4xl font-bold mb-4">{portfolio.title}</h1>
               </div>
               
-              {/* Project Image */}
+              {/* Project Media (Video or Image) */}
               <div className="mb-8 flex-shrink-0">
-                <img 
-                  src={portfolio.imageURL.startsWith('http') ? portfolio.imageURL : "/images/portfolios/" + portfolio.imageURL} 
-                  alt={portfolio.title} 
-                  className="w-full md:w-10/12 rounded-2xl shadow-2xl"
-                />
+                {renderHeroMedia('w-full md:w-10/12 rounded-2xl shadow-2xl')}
               </div>
               
               {/* Roles */}
@@ -300,8 +371,8 @@ const PortfolioDetail: React.FC = () => {
                 </div>
               )}
               
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-4 mt-auto">
+              {/* Action Buttons (Located directly below Technologies Used) */}
+              <div className="flex flex-wrap gap-4 mb-8">
                 {portfolio.linkTo && (
                   <a 
                     href={portfolio.linkTo} 
@@ -323,8 +394,14 @@ const PortfolioDetail: React.FC = () => {
           </div>
           
           {/* Right Side - Scrollable Content */}
-          <div className="w-3/5 overflow-y-auto h-screen">
-            <div className="p-8 pl-4">
+          <div ref={rightScrollContainerRef} className="w-3/5 overflow-y-auto h-screen" data-testid="desktop-case-study-scroll">
+            <div className="p-8 pl-4 pt-2">
+              {/* Option B: Sticky Reading Progress Bar above Project Overview & Details */}
+              <ScrollProgressBar
+                scrollContainerRef={rightScrollContainerRef}
+                defaultLabel={portfolio.title}
+              />
+
               {/* Project Description */}
               <div className="mb-8">
                 <h2 className="text-2xl font-bold mb-6">Project Overview</h2>
@@ -335,13 +412,16 @@ const PortfolioDetail: React.FC = () => {
                 </div>
               </div>
               
-              {/* Project Details (Markdown) */}
+              {/* Project Details (WYSIWYG HTML / Migrated Markdown) */}
               {portfolio.projectDetails && (
                 <div className="mb-12">
                   <h2 className="text-2xl font-bold mb-6">Project Details</h2>
-                  <div className="prose lg:prose-lg max-w-none portfolio-markdown" data-color-mode="light">
-                    <MDEditor.Markdown source={portfolio.projectDetails} />
-                  </div>
+                  <div
+                    className="prose lg:prose-lg max-w-none portfolio-markdown"
+                    data-color-mode="light"
+                    onClick={handleDetailsClick}
+                    dangerouslySetInnerHTML={{ __html: migrateContentToHtml(portfolio.projectDetails, portfolio.title) }}
+                  />
                 </div>
               )}
               
@@ -351,6 +431,14 @@ const PortfolioDetail: React.FC = () => {
           </div>
         </div>
       </section>
+
+      <ImageLightboxModal
+        images={lightboxImages}
+        currentIndex={lightboxIndex}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        onSelectIndex={(idx) => setLightboxIndex(idx)}
+      />
       
       <Footer />
     </div>

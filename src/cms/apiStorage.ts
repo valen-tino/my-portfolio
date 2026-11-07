@@ -36,6 +36,8 @@ export interface PortfolioItem {
   linkTo: string;
   imageURL: string;
   imageCloudinaryId?: string;
+  videoURL?: string | null;
+  videoCloudinaryId?: string | null;
   tech: string[];
   roles: string[];
   order?: number;
@@ -513,6 +515,45 @@ export class CMSStorage {
       throw new Error(response.message || 'Failed to upload portfolio image');
     } catch (error) {
       console.error('Error uploading portfolio image:', error);
+      throw error;
+    }
+  }
+
+  static async uploadPortfolioVideo(file: File): Promise<{ videoURL: string; videoCloudinaryId: string }> {
+    try {
+      const response = await apiService.uploadPortfolioVideo(file);
+      if (response.success) {
+        return response.data;
+      }
+      throw new Error(response.message || 'Failed to upload portfolio video');
+    } catch (error) {
+      console.error('Error uploading portfolio video:', error);
+      throw error;
+    }
+  }
+
+  static async uploadEditorMedia(file: File): Promise<{ url: string; cloudinaryId: string; mediaType: 'image' | 'video' }> {
+    try {
+      const response = await apiService.uploadEditorMedia(file);
+      if (response.success) {
+        return response.data;
+      }
+      throw new Error(response.message || 'Failed to upload media');
+    } catch (error) {
+      console.error('Error uploading editor media:', error);
+      throw error;
+    }
+  }
+
+  static async uploadEditorGallery(files: File[]): Promise<Array<{ url: string; cloudinaryId: string; mediaType: 'image' | 'video' }>> {
+    try {
+      const response = await apiService.uploadEditorGallery(files);
+      if (response.success) {
+        return response.data;
+      }
+      throw new Error(response.message || 'Failed to upload gallery media');
+    } catch (error) {
+      console.error('Error uploading gallery media:', error);
       throw error;
     }
   }

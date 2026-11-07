@@ -1,4 +1,14 @@
 import { PortfolioItem, TechTool, Role } from '../cms/apiStorage';
+import { migrateContentToHtml } from './contentMigration';
+
+export const AI_MODEL_CONFIG = {
+  provider: 'opencode-go',
+  apiKey: 'oc_sk_c26451b97d8f_PeNlC8VXODkpok9xUXa2RwUZzOMUUic4',
+  model: 'deepseek-v4.1-flash',
+  maxTokens: 8192,
+  envKeyName: 'DEEPSEEK_API_KEY',
+  envBaseUrlName: 'DEEPSEEK_BASE_URL'
+} as const;
 
 export interface ParsedPortfolioData {
   title: string;
@@ -16,14 +26,15 @@ export function validateProjectDetailsForRewriting(projectDetails: string): {
   isValid: boolean;
   message?: string;
 } {
-  if (!projectDetails || projectDetails.trim().length === 0) {
+  const plainText = (projectDetails || '').replace(/<[^>]*>/g, '').trim();
+  if (!plainText || plainText.length === 0) {
     return {
       isValid: false,
       message: "Project details are empty. Please add some content first."
     };
   }
 
-  if (projectDetails.trim().length < 20) {
+  if (plainText.length < 20) {
     return {
       isValid: false,
       message: "Project details are too short. Please add more content to get meaningful AI improvements."
@@ -112,7 +123,7 @@ export function createPortfolioItemFromAI(parsedData: ParsedPortfolioData): Omit
   return {
     title: parsedData.title,
     desc: parsedData.desc,
-    projectDetails: parsedData.projectDetails,
+    projectDetails: migrateContentToHtml(parsedData.projectDetails, parsedData.title),
     linkTo: parsedData.linkTo,
     imageURL: '', // Will be set when user uploads image
     tech: parsedData.tech,

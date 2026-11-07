@@ -23,6 +23,7 @@ html {
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -85,11 +86,20 @@ html {
   font-family: 'Sora', sans-serif !important;
 }
 
-.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
   font-family: 'Sora', sans-serif !important;
 }
 
-.prose p, .prose li, .prose blockquote, .prose strong, .prose em {
+.prose p,
+.prose li,
+.prose blockquote,
+.prose strong,
+.prose em {
   font-family: 'Sora', sans-serif !important;
 }
 
@@ -119,19 +129,19 @@ html {
   font-family: 'Sora', sans-serif !important;
 }
 
-.portfolio-markdown h1, 
-.portfolio-markdown h2, 
-.portfolio-markdown h3, 
-.portfolio-markdown h4, 
-.portfolio-markdown h5, 
+.portfolio-markdown h1,
+.portfolio-markdown h2,
+.portfolio-markdown h3,
+.portfolio-markdown h4,
+.portfolio-markdown h5,
 .portfolio-markdown h6 {
   font-family: 'Sora', sans-serif !important;
 }
 
-.portfolio-markdown p, 
-.portfolio-markdown li, 
-.portfolio-markdown blockquote, 
-.portfolio-markdown strong, 
+.portfolio-markdown p,
+.portfolio-markdown li,
+.portfolio-markdown blockquote,
+.portfolio-markdown strong,
 .portfolio-markdown em,
 .portfolio-markdown span,
 .portfolio-markdown div {
@@ -144,4 +154,197 @@ html {
 
 .portfolio-markdown pre {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace !important;
+}
+
+/* WYSIWYG Portfolio Gallery Responsive Layout */
+.portfolio-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.portfolio-gallery .gallery-item,
+figure.gallery-image-clickable,
+figure.gallery-item {
+  position: relative !important;
+}
+
+/* Click to view image badge inside galleries and single media */
+.gallery-zoom-badge {
+  position: absolute !important;
+  color: #ffffff !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  border-radius: 9999px !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
+}
+
+/* Desktop View (> 1024px): Hidden by default, appears on cursor hover */
+@media (min-width: 1025px) {
+  .gallery-zoom-badge {
+    bottom: 0.75rem !important;
+    right: 0.75rem !important;
+    left: auto !important;
+    top: auto !important;
+    transform: translateY(4px) !important;
+    background: rgba(17, 24, 39, 0.85) !important;
+    backdrop-filter: blur(4px) !important;
+    padding: 0.25rem 0.65rem !important;
+    opacity: 0 !important;
+    transition: opacity 0.2s ease, transform 0.2s ease !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+    display: inline-block !important;
+  }
+
+  .gallery-item:hover .gallery-zoom-badge,
+  figure:hover .gallery-zoom-badge,
+  .gallery-image-clickable:hover .gallery-zoom-badge,
+  .group\/img:hover .gallery-zoom-badge,
+  .group\/gal:hover .gallery-zoom-badge {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+  }
+}
+
+/* Tablet & Mobile View (<= 1024px): Centered badge & darker filter on image */
+@media (max-width: 1024px) {
+
+  .gallery-image-clickable img,
+  .gallery-item[data-media-type="image"] img,
+  .group\/img img,
+  .group\/gal img {
+    filter: brightness(0.72) contrast(1.05) !important;
+    transition: filter 0.2s ease !important;
+  }
+
+  .gallery-zoom-badge {
+    top: 50% !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: translate(-50%, -50%) !important;
+    opacity: 1 !important;
+    background: rgba(15, 23, 42, 0.75) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    backdrop-filter: blur(4px) !important;
+    padding: 0.35rem 0.75rem !important;
+    font-size: 0.75rem !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+    display: inline-block !important;
+  }
+}
+
+/* Tablet View (641px to 1024px): 2-Column Grid Layout */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .portfolio-gallery {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 1rem !important;
+  }
+
+  .portfolio-gallery .gallery-item {
+    width: 100% !important;
+    flex: none !important;
+  }
+}
+
+/* Mobile View (<= 640px): Horizontal Touch/Swipe Carousel */
+@media (max-width: 640px) {
+  .portfolio-gallery {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    -webkit-overflow-scrolling: touch;
+    gap: 0.875rem !important;
+    padding-bottom: 0.75rem !important;
+    scrollbar-width: thin;
+  }
+
+  .portfolio-gallery .gallery-item {
+    width: 85% !important;
+    flex: 0 0 85% !important;
+    scroll-snap-align: center !important;
+  }
+
+  .portfolio-gallery .gallery-item:only-child {
+    width: 100% !important;
+    flex: 0 0 100% !important;
+  }
+}
+
+/* WYSIWYG Case Study Section Title & Content Styling */
+.portfolio-section-title,
+.portfolio-markdown h2.portfolio-section-title,
+.ProseMirror h2.portfolio-section-title {
+  font-family: 'Sora', sans-serif !important;
+  font-size: 1.375rem !important;
+  line-height: 1.75rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  margin-top: 2.25rem !important;
+  margin-bottom: 1rem !important;
+  padding-bottom: 0.5rem !important;
+  border-bottom: 1px solid rgba(156, 163, 175, 0.3) !important;
+}
+
+.portfolio-markdown>.portfolio-section-title:first-child,
+.ProseMirror>.portfolio-section-title:first-child {
+  margin-top: 0.5rem !important;
+}
+
+.portfolio-markdown p,
+.ProseMirror p {
+  font-size: 1rem;
+  line-height: 1.75;
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.portfolio-markdown strong,
+.ProseMirror strong {
+  font-weight: 700 !important;
+}
+
+.portfolio-markdown ul,
+.ProseMirror ul {
+  list-style-type: disc !important;
+  list-style-position: outside !important;
+  padding-left: 1.5rem !important;
+  margin-top: 0.25rem !important;
+  margin-bottom: 1.25rem !important;
+}
+
+.portfolio-markdown ol,
+.ProseMirror ol {
+  list-style-type: decimal !important;
+  list-style-position: outside !important;
+  padding-left: 1.5rem !important;
+  margin-top: 0.25rem !important;
+  margin-bottom: 1.25rem !important;
+}
+
+.portfolio-markdown li,
+.ProseMirror li {
+  display: list-item !important;
+  margin-bottom: 0.35rem !important;
+  line-height: 1.65 !important;
+}
+
+.portfolio-markdown li>p,
+.ProseMirror li>p {
+  margin: 0 !important;
+}
+
+.portfolio-markdown a,
+.ProseMirror a {
+  color: #3b82f6;
+  text-decoration: underline;
+  word-break: break-word;
 }

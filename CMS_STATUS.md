@@ -53,17 +53,17 @@ Browser ──► API Service ──► Server Routes ──► AI Service ─�
 
 #### 1. **Project Details Rewriting** ✅
 - **Endpoint**: `POST /api/ai/rewrite-project-details`
-- **Model**: deepseek-chat
-- **Purpose**: Improve clarity and professionalism
+- **Model**: deepseek-v4.1-flash (via Opencode Go gateway)
+- **Purpose**: Restructures case studies into 5 standardized chapters (`1. Project Background & Context`, `2. Development Process`, `3. Implementation Details`, `4. Team Structure & Roles`, `5. Outcomes & Impact`) with bold inline field labels
 - **Timeout**: 2 minutes
-- **Max Tokens**: 2,000
+- **Max Tokens**: 8,192
 
 #### 2. **Portfolio Generation from Text** ✅
 - **Endpoint**: `POST /api/ai/create-portfolio-from-text`  
-- **Model**: deepseek-reasoner
-- **Purpose**: Extract structured portfolio data
-- **Timeout**: 3.5 minutes (reasoner model is slower)
-- **Max Tokens**: 4,000
+- **Model**: deepseek-v4.1-flash
+- **Purpose**: Extract structured portfolio data and format project details with standardized chapters
+- **Timeout**: 3.5 minutes
+- **Max Tokens**: 8,192
 - **Smart Tech Matching**: Automatically separates matched vs unmatched technologies
 
 #### 3. **AI Service Status & Testing** ✅
@@ -72,35 +72,42 @@ Browser ──► API Service ──► Server Routes ──► AI Service ─�
   - `GET /api/ai/test-connection` - Connection test
 - **Test Page**: `/cms/ai-test` - Comprehensive testing interface
 
+#### 4. **TipTap WYSIWYG Editor with Media & Gallery Controls** ✅
+- **Component**: `src/cms/components/WYSIWYGEditor.tsx`
+- **Toolbar**: Heading 2, Heading 3, Bold, Italic, Bullet List, Ordered List, Quote, Link
+- **Section Creator**: Presets for 5 case study chapters + custom title insertion
+- **Single Media Node**: Cloudinary image/video with size (25%–100%), aspect ratio, and alignment controls
+- **Multi-Media Gallery Node**: Responsive gallery with individual item resizing and per-image Lightbox preview
+
 ## 📁 File Structure
 
 ```
 my-portfolio/
 ├── src/
-│   ├── components/         # Reusable UI components
-│   ├── pages/             # Public pages (Home, Portfolio, etc.)
+│   ├── components/         # Reusable UI components (Lightbox, ScrollProgressBar)
+│   ├── pages/             # Public pages (Home, Portfolio, PortfolioDetail)
 │   ├── cms/               # CMS-specific components
 │   │   ├── pages/         # CMS management pages
-│   │   │   ├── PortfolioManagement.tsx  # Main portfolio editor
+│   │   │   ├── PortfolioManagement.tsx  # Redesigned 40%/60% portfolio editor
 │   │   │   ├── AITest.tsx              # AI testing interface
 │   │   │   └── ...
 │   │   └── components/    # CMS-specific components
+│   │       ├── WYSIWYGEditor.tsx       # TipTap WYSIWYG case study editor
 │   │       ├── AIPortfolioModal.tsx    # AI portfolio creation modal
 │   │       └── CMSLayout.tsx           # CMS navigation
 │   ├── services/          # API communication
 │   │   ├── api.ts        # Main API service
 │   │   └── ai.ts         # AI service wrapper
 │   └── utils/
-│       └── aiHelpers.ts  # AI utility functions
+│       ├── aiHelpers.ts        # AI utility functions
+│       └── contentMigration.ts # Markdown to semantic HTML converter
 ├── server/
 │   ├── models/           # MongoDB schemas
-│   ├── routes/           # API endpoints
-│   │   ├── ai.js        # AI-specific routes
-│   │   └── ...
-│   ├── services/         # Server-side services
-│   │   └── aiService.js # Deepseek API integration
+│   ├── routes/           # API endpoints (portfolio, upload, ai, auth)
+│   ├── services/         # Server-side services (aiService.js)
+│   ├── config/           # Cloudinary storage engine (cloudinary.js)
 │   ├── middleware/       # Authentication, etc.
-│   └── index.js         # Server entry point
+│   └── index.js         # Server entry point (Port 5001)
 └── .env                 # Environment variables
 ```
 
@@ -109,18 +116,18 @@ my-portfolio/
 ### **Environment Variables** ✅
 ```bash
 # Database
-MONGODB_URI=mongodb+srv://... (Connected)
+MONGODB_URI=mongodb://127.0.0.1:27017/portfolio (Local) / MongoDB Atlas (Production)
 
-# Cloudinary (File uploads)
+# Cloudinary (Image & Video uploads)
 CLOUDINARY_CLOUD_NAME=dzdiaslf9 (Configured)
 CLOUDINARY_API_KEY=944437584612852 (Active)
 
-# Deepseek AI
-DEEPSEEK_API_KEY=sk-3a72ccd8db7c46e4ba60d3ca57db523e (Active)
-DEEPSEEK_BASE_URL=https://api.deepseek.com (Default)
+# Deepseek / Opencode Go AI
+DEEPSEEK_API_KEY=oc_sk_... (Active)
+DEEPSEEK_BASE_URL=https://api.opencode.go.id/v1 (or https://api.deepseek.com)
 
 # Server
-PORT=5000 (Running)
+PORT=5001 (Configured to prevent macOS AirPlay conflict)
 ```
 
 ### **Dependencies Installed** ✅

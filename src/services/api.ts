@@ -17,7 +17,7 @@ const API_BASE_URL = (
   (APP_ENV === 'preview' && (import.meta.env.VITE_API_URL_PREVIEW as string | undefined)) ||
   (APP_ENV === 'development' && (import.meta.env.VITE_API_URL_DEV as string | undefined)) ||
   (import.meta.env.VITE_API_URL as string | undefined) ||
-  (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api')
+  (import.meta.env.PROD ? '/api' : 'http://localhost:5001/api')
 );
 
 class ApiService {
@@ -194,6 +194,8 @@ class ApiService {
     linkTo?: string;
     imageURL: string;
     imageCloudinaryId?: string;
+    videoURL?: string | null;
+    videoCloudinaryId?: string | null;
     tech?: string[];
     roles?: string[];
     order?: number;
@@ -214,6 +216,8 @@ class ApiService {
     linkTo?: string;
     imageURL?: string;
     imageCloudinaryId?: string;
+    videoURL?: string | null;
+    videoCloudinaryId?: string | null;
     tech?: string[];
     roles?: string[];
     order?: number;
@@ -287,6 +291,42 @@ class ApiService {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+    });
+    return response.data;
+  }
+
+  async uploadPortfolioVideo(file: File) {
+    const formData = new FormData();
+    formData.append('video', file);
+    const response = await this.api.post('/upload/portfolio-video', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 300000, // 5 minutes for video uploads
+    });
+    return response.data;
+  }
+
+  async uploadEditorMedia(file: File) {
+    const formData = new FormData();
+    formData.append('media', file);
+    const response = await this.api.post('/upload/editor-media', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 300000,
+    });
+    return response.data;
+  }
+
+  async uploadEditorGallery(files: File[]) {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('media', file));
+    const response = await this.api.post('/upload/editor-gallery', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 300000,
     });
     return response.data;
   }

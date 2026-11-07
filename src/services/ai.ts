@@ -6,10 +6,17 @@ export interface AIResponse {
   error?: string;
 }
 
+export const OPENCODE_AI_CONFIG = {
+  apiKey: 'oc_sk_c26451b97d8f_PeNlC8VXODkpok9xUXa2RwUZzOMUUic4',
+  model: 'deepseek-v4.1-flash',
+  maxTokens: 8192,
+  baseUrl: 'https://api.opencodego.com/v1'
+} as const;
+
 class AIService {
   /**
-   * Rewrite project details using deepseek-chat model
-   * @param projectDetails - Current project details in markdown
+   * Rewrite project details using deepseek-v4.1-flash model (max option)
+   * @param projectDetails - Current project details in HTML or markdown
    * @param projectTitle - Title of the project for context
    * @returns Rewritten project details
    */
@@ -45,7 +52,7 @@ class AIService {
   }
 
   /**
-   * Create a portfolio item from text description using deepseek-reasoner model
+   * Create a portfolio item from text description using deepseek-v4.1-flash model (max option)
    * @param textDescription - User's text description of the project
    * @param availableTechTools - List of available tech tools
    * @param availableRoles - List of available roles

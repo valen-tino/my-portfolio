@@ -40,7 +40,7 @@ const PortfolioCard: React.FC<Props> = ({ items }) => {
         
         return (
           <div 
-            className={`card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 w-full max-w-sm mx-auto relative ${isProtected ? 'cursor-pointer' : ''}`} 
+            className={`card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 w-full max-w-sm mx-auto h-full flex flex-col justify-between relative ${isProtected ? 'cursor-pointer' : ''}`} 
             key={item.id}
             onClick={() => handleProtectedClick(item)}
           >
@@ -62,7 +62,7 @@ const PortfolioCard: React.FC<Props> = ({ items }) => {
               </div>
             )}
             
-            <figure className="aspect-video overflow-hidden">
+            <figure className="aspect-video overflow-hidden flex-shrink-0">
               <img 
                 src={item.imageURL.startsWith('http') ? item.imageURL : "images/portfolios/" + item.imageURL} 
                 alt={item.title} 
@@ -82,25 +82,43 @@ const PortfolioCard: React.FC<Props> = ({ items }) => {
               )}
             </figure>
             
-            <div className={`card-body p-4 sm:p-6 ${isProtected ? 'blur-sm' : ''}`}>
-              <h2 className="card-title text-base sm:text-lg font-bold line-clamp-2">
-                {isProtected ? '••••••••••••••••' : item.title}
-              </h2>
-              <p className='text-xs sm:text-sm text-left text-base-content/70 line-clamp-2 leading-relaxed'>
-                {isProtected ? 'This portfolio is password protected. Click to enter password and view details.' : item.desc}
-              </p>
-              <div className="my-2 flex flex-wrap gap-1">
-                {isProtected ? (
-                  <div className="badge badge-outline badge-sm">Protected Content</div>
-                ) : (
-                  item.tech.map((tech, index) => (
-                    <div key={index} className="badge badge-outline badge-sm">
-                      {tech}
-                    </div>
-                  ))
-                )}
+            <div className={`card-body p-4 sm:p-6 flex-1 flex flex-col justify-between ${isProtected ? 'blur-sm' : ''}`}>
+              <div>
+                <h2 
+                  className="card-title text-base sm:text-lg font-bold line-clamp-2 text-left"
+                  title={isProtected ? 'Protected Portfolio' : item.title}
+                >
+                  {isProtected ? '••••••••••••••••' : item.title}
+                </h2>
+                <p 
+                  className='text-xs sm:text-sm text-left text-base-content/70 line-clamp-3 leading-relaxed mt-1 min-h-[3.75rem]'
+                  title={isProtected ? 'This portfolio is password protected. Click to enter password and view details.' : item.desc}
+                >
+                  {isProtected ? 'This portfolio is password protected. Click to enter password and view details.' : item.desc}
+                </p>
+                <div className="my-3 flex flex-wrap gap-1">
+                  {isProtected ? (
+                    <div className="badge badge-outline badge-sm">Protected Content</div>
+                  ) : (
+                    <>
+                      {item.tech.slice(0, 4).map((tech, index) => (
+                        <div key={index} className="badge badge-outline badge-sm">
+                          {tech}
+                        </div>
+                      ))}
+                      {item.tech.length > 4 && (
+                        <div 
+                          className="badge badge-ghost badge-sm"
+                          title={item.tech.slice(4).join(', ')}
+                        >
+                          +{item.tech.length - 4} more
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="card-actions justify-end gap-2 flex-wrap">
+              <div className="card-actions justify-end gap-2 flex-wrap mt-auto pt-2">
                 {isProtected ? (
                   <button className="btn btn-outline btn-error btn-sm flex-1">
                     🔒 Enter Password

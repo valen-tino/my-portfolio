@@ -1,6 +1,14 @@
 const express = require('express');
 const { authMiddleware } = require('../middleware/auth');
-const { uploadProfile, uploadPortfolio, uploadTechTool, deleteImage } = require('../config/cloudinary');
+const {
+  uploadProfile,
+  uploadPortfolio,
+  uploadPortfolioVideo,
+  uploadEditorMedia,
+  uploadTechTool,
+  deleteImage,
+  optimizeVideoUrl
+} = require('../config/cloudinary');
 const router = express.Router();
 
 // @route   POST /api/upload/profile
@@ -59,6 +67,133 @@ router.post('/portfolio', authMiddleware, uploadPortfolio.single('image'), async
       message: 'Server error during image upload'
     });
   }
+});
+
+// @route   POST /api/upload/portfolio-video
+// @desc    Upload web-optimized portfolio video
+// @access  Private
+router.post('/portfolio-video', authMiddleware, (req, res) => {
+  uploadPortfolioVideo.single('video')(req, res, (uploadErr) => {
+    if (uploadErr) {
+      console.error('Upload portfolio video error:', uploadErr);
+      return res.status(400).json({
+        success: false,
+        message: uploadErr.message || 'Error uploading video'
+      });
+    }
+
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No video file uploaded'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Portfolio video uploaded and optimized successfully',
+        data: {
+          videoURL: optimizeVideoUrl(req.file.path),
+          videoCloudinaryId: req.file.filename
+        }
+      });
+    } catch (error) {
+      console.error('Upload portfolio video error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error during video upload'
+      });
+    }
+  });
+});
+
+// @route   POST /api/upload/editor-media
+// @desc    Upload single media file (image or video) for WYSIWYG editor
+// @access  Private
+router.post('/editor-media', authMiddleware, (req, res) => {
+  uploadEditorMedia.single('media')(req, res, (uploadErr) => {
+    if (uploadErr) {
+      console.error('Upload editor media error:', uploadErr);
+      return res.status(400).json({
+        success: false,
+        message: uploadErr.message || 'Error uploading media'
+      });
+    }
+
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No media file uploaded'
+        });
+      }
+
+      const isVideo = req.file.mimetype && req.file.mimetype.startsWith('video/');
+      const url = isVideo ? optimizeVideoUrl(req.file.path) : req.file.path;
+
+      res.json({
+        success: true,
+        message: 'Editor media uploaded successfully',
+        data: {
+          url,
+          cloudinaryId: req.file.filename,
+          mediaType: isVideo ? 'video' : 'image'
+        }
+      });
+    } catch (error) {
+      console.error('Upload editor media error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error during media upload'
+      });
+    }
+  });
+});
+
+// @route   POST /api/upload/editor-gallery
+// @desc    Upload multiple media files (images/videos) for WYSIWYG gallery
+// @access  Private
+router.post('/editor-gallery', authMiddleware, (req, res) => {
+  uploadEditorMedia.array('media', 20)(req, res, (uploadErr) => {
+    if (uploadErr) {
+      console.error('Upload editor gallery error:', uploadErr);
+      return res.status(400).json({
+        success: false,
+        message: uploadErr.message || 'Error uploading gallery media'
+      });
+    }
+
+    try {
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'No media files uploaded'
+        });
+      }
+
+      const items = req.files.map((file) => {
+        const isVideo = file.mimetype && file.mimetype.startsWith('video/');
+        return {
+          url: isVideo ? optimizeVideoUrl(file.path) : file.path,
+          cloudinaryId: file.filename,
+          mediaType: isVideo ? 'video' : 'image'
+        };
+      });
+
+      res.json({
+        success: true,
+        message: 'Gallery media uploaded successfully',
+        data: items
+      });
+    } catch (error) {
+      console.error('Upload editor gallery error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error during gallery upload'
+      });
+    }
+  });
 });
 
 // @route   POST /api/upload/tech-tool

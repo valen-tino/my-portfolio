@@ -57,12 +57,12 @@ router.get('/:id', async (req, res) => {
 // @access  Private
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { title, desc, projectDetails, linkTo, imageURL, imageCloudinaryId, tech, roles, order, isPublished, isPasswordProtected, password, isPinned } = req.body;
+    const { title, desc, projectDetails, linkTo, imageURL, imageCloudinaryId, videoURL, videoCloudinaryId, tech, roles, order, isPublished, isPasswordProtected, password, isPinned } = req.body;
 
-    if (!title || !desc || !imageURL) {
+    if (!title || !desc || (!imageURL && !videoURL)) {
       return res.status(400).json({
         success: false,
-        message: 'Title, description, and image URL are required'
+        message: 'Title, description, and either image URL or video URL are required'
       });
     }
 
@@ -78,8 +78,10 @@ router.post('/', authMiddleware, async (req, res) => {
       desc,
       projectDetails: projectDetails || '',
       linkTo: linkTo || '',
-      imageURL,
-      imageCloudinaryId,
+      imageURL: imageURL || '',
+      imageCloudinaryId: imageCloudinaryId || null,
+      videoURL: videoURL || null,
+      videoCloudinaryId: videoCloudinaryId || null,
       tech: tech || [],
       roles: roles || [],
       order: order || 0,
@@ -111,7 +113,7 @@ router.post('/', authMiddleware, async (req, res) => {
 // @access  Private
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const { title, desc, projectDetails, linkTo, imageURL, imageCloudinaryId, tech, roles, order, isPublished, isPasswordProtected, password, isPinned } = req.body;
+    const { title, desc, projectDetails, linkTo, imageURL, imageCloudinaryId, videoURL, videoCloudinaryId, tech, roles, order, isPublished, isPasswordProtected, password, isPinned } = req.body;
     
     const portfolio = await Portfolio.findById(req.params.id);
     if (!portfolio) {
@@ -141,12 +143,23 @@ router.put('/:id', authMiddleware, async (req, res) => {
       }
     }
 
+    // Delete old video if new video is provided or removed
+    if (videoURL !== undefined && videoURL !== portfolio.videoURL && portfolio.videoCloudinaryId) {
+      try {
+        await deleteImage(portfolio.videoCloudinaryId, 'video');
+      } catch (deleteError) {
+        console.error('Error deleting old video:', deleteError);
+      }
+    }
+
     portfolio.title = title || portfolio.title;
     portfolio.desc = desc || portfolio.desc;
     portfolio.projectDetails = projectDetails !== undefined ? projectDetails : portfolio.projectDetails;
     portfolio.linkTo = linkTo !== undefined ? linkTo : portfolio.linkTo;
-    portfolio.imageURL = imageURL || portfolio.imageURL;
-    portfolio.imageCloudinaryId = imageCloudinaryId || portfolio.imageCloudinaryId;
+    portfolio.imageURL = imageURL !== undefined ? imageURL : portfolio.imageURL;
+    portfolio.imageCloudinaryId = imageCloudinaryId !== undefined ? imageCloudinaryId : portfolio.imageCloudinaryId;
+    portfolio.videoURL = videoURL !== undefined ? videoURL : portfolio.videoURL;
+    portfolio.videoCloudinaryId = videoCloudinaryId !== undefined ? videoCloudinaryId : portfolio.videoCloudinaryId;
     portfolio.tech = tech || portfolio.tech;
     portfolio.roles = roles || portfolio.roles;
     portfolio.order = order !== undefined ? order : portfolio.order;
@@ -204,6 +217,15 @@ router.delete('/:id', authMiddleware, async (req, res) => {
         await deleteImage(portfolio.imageCloudinaryId);
       } catch (deleteError) {
         console.error('Error deleting image:', deleteError);
+      }
+    }
+
+    // Delete video from Cloudinary
+    if (portfolio.videoCloudinaryId) {
+      try {
+        await deleteImage(portfolio.videoCloudinaryId, 'video');
+      } catch (deleteError) {
+        console.error('Error deleting video:', deleteError);
       }
     }
 

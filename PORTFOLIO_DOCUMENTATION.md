@@ -307,12 +307,28 @@ my-portfolio/
 
 ##### Portfolio Management
 - CRUD operations for projects
-- Image upload with preview
-- Technology tagging system
-- Role assignment
-- Publish/draft status
-- Drag-and-drop ordering
-- AI-powered content generation
+- Image and web-optimized video uploads (`mp4`, `webm`, `mov`, `mkv`)
+- Redesigned 40% (Metadata) / 60% (Project Details) split-screen workspace with `⌘S` quick save
+- Integrated TipTap WYSIWYG editor with rich formatting
+- Case Study "Section Title" generator with 5 standard presets:
+  1. `1. Project Background & Context`
+  2. `2. Development Process`
+  3. `3. Implementation Details`
+  4. `4. Team Structure & Roles`
+  5. `5. Outcomes & Impact`
+- Single media node with custom width (25%–100%), aspect ratio (16:9, 4:3, 1:1), and alignment controls
+- Multi-media gallery node with per-item sizing, batch upload, and instant Lightbox preview
+- Technology tagging system and role assignment
+- Publish/draft status and password protection
+- AI-powered content generation and rewriting using `deepseek-v4.1-flash` (Opencode Go)
+
+##### Public Case Study & Portfolio Detail UX
+- Consistent `Project Overview` and `Project Details` heading hierarchy on desktop and mobile
+- Sticky Case Study Reading Progress Bar (`ScrollProgressBar`) tracking scroll percentage and active chapter title
+- Responsive gallery layouts: mobile horizontal swipe carousel (85% card width + snap), tablet 2-column grid, desktop custom flex
+- Lightbox image viewer (`ImageLightboxModal`) with arrow keys, escape shortcut, and image counter
+- "Click to view image" badge with desktop cursor hover trigger and mobile/tablet centered badge with dark filter
+- Direct placement of "Visit Project" (high-contrast `btn-info`) and "Back to Portfolio" action buttons below Technologies Used
 
 ##### Experience Management
 - Job history management

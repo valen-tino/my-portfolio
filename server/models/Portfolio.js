@@ -23,9 +23,17 @@ const portfolioSchema = new mongoose.Schema({
   },
   imageURL: {
     type: String,
-    required: true
+    default: ''
   },
   imageCloudinaryId: {
+    type: String,
+    default: null
+  },
+  videoURL: {
+    type: String,
+    default: null
+  },
+  videoCloudinaryId: {
     type: String,
     default: null
   },

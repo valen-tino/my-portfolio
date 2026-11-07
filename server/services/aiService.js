@@ -1,8 +1,10 @@
 const OpenAI = require('openai');
 
-// Deepseek API configuration
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
-const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
+// Opencode Go / Deepseek API configuration (aligned with Vercel DEEPSEEK_API_KEY & DEEPSEEK_BASE_URL)
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'oc_sk_c26451b97d8f_PeNlC8VXODkpok9xUXa2RwUZzOMUUic4';
+const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL || 'https://api.opencodego.com/v1';
+const AI_MODEL = 'deepseek-v4.1-flash';
+const MAX_TOKENS = 8192;
 
 class AIService {
   constructor() {
@@ -17,8 +19,8 @@ class AIService {
   }
 
   /**
-   * Rewrite project details using deepseek-chat model
-   * @param {string} projectDetails - Current project details in markdown
+   * Rewrite project details using deepseek-v4.1-flash model
+   * @param {string} projectDetails - Current project details in HTML or markdown
    * @param {string} projectTitle - Title of the project for context
    * @returns {Promise<{success: boolean, data?: string, error?: string}>}
    */
@@ -31,35 +33,32 @@ class AIService {
         Current project details:
         ${projectDetails}
 
-        Please structure the content with these key sections:
+        Please structure the content with these exact 5 standard section titles (using Markdown H2: ##) and bold inline field labels:
 
-        1. Project Background & Context
-       - Project motivation and business need
-       - Target users/stakeholders 
-       - Project scope and objectives
+        ## 1. Project Background & Context
+        - Overview paragraph explaining project motivation and business need
+        - **Target Users:** Describe target users/stakeholders
+        - **Objectives:** Describe project scope and objectives
 
-        2. Development Process
-       - Planning and requirements gathering
-       - Technical approach and architecture
-       - Key challenges and solutions
-       - Development methodology used
+        ## 2. Development Process
+        - Overview paragraph of research, planning, and requirements gathering
+        - **Technical Approach:** Architecture and methodology used
+        - **Key Challenges:** Challenges faced and solutions implemented
 
-        3. Implementation Details  
-       - Core features and functionality
-       - Technologies and tools utilized
-       - Technical specifications
-       - Notable achievements
+        ## 3. Implementation Details
+        - **Core Features:** (followed by a clean bullet list of features)
+        - **Technologies:** Comma-separated list of technologies and tools utilized
+        - **Notable Achievements:** Specific milestones, metrics, and Valentino Jehaut's key technical contributions
 
-        4. Team Structure
-       - Project roles and responsibilities
-       - Team composition (if applicable)
-       - Collaboration approach
+        ## 4. Team Structure & Roles
+        - Valentino Jehaut's specific role and responsibilities (bullet list)
+        - **Project Team:** Team composition and collaboration approach
 
-        5. Outcomes & Impact
-       - Project results and deliverables
-       - Metrics and improvements achieved
-       - User/stakeholder feedback
-       - Lessons learned
+        ## 5. Outcomes & Impact
+        - **Deliverables:** Final project deliverables
+        - **Key Improvements:** Bullet list of measurable improvements achieved
+        - **User Feedback:** Stakeholder/user reception
+        - **Lessons Learned:** Key takeaways
 
         Requirements:
         1. Highlight Valentino Jehaut's specific contributions and roles in the project.
@@ -91,9 +90,9 @@ class AIService {
             content: prompt
           }
         ],
-        model: "deepseek-chat",
+        model: AI_MODEL,
         temperature: 0.7,
-        max_tokens: 8192,
+        max_tokens: MAX_TOKENS,
       }, {
         timeout: 120000 // 2 minutes timeout
       });
@@ -122,7 +121,7 @@ class AIService {
   }
 
   /**
-   * Create a portfolio item from text description using deepseek-reasoner model
+   * Create a portfolio item from text description using deepseek-v4.1-flash model
    * @param {string} textDescription - User's text description of the project
    * @param {string[]} availableTechTools - List of available tech tools
    * @param {string[]} availableRoles - List of available roles
@@ -154,34 +153,32 @@ class AIService {
         - Keep description concise and engaging
         - Structure markdown with headers, bullet points
         
-        For the projectDetails, include these sections:
-        1. Background & Context
-       - Project motivation/business need
-       - Target users/stakeholders
-       - Project scope and objectives
-        
-        2. Development Process
-       - Planning and requirements gathering
-       - Technical approach and architecture
-       - Key challenges and solutions
-       - Development methodology used
-        
-        3. Implementation Details
-       - Core features and functionality
-       - Technologies and tools utilized
-       - Your specific contributions and role
-       - Notable technical achievements
+        For the projectDetails, structure the content with these exact 5 standard section titles (using Markdown H2: ##) and bold inline field labels:
 
-        4. Team Structure
-       - Project roles and team composition (list team members if known, otherwise list roles)
-       - Collaboration approach and team dynamics
-       - Team size and organization
+        ## 1. Project Background & Context
+        - Overview paragraph explaining project motivation and business need
+        - **Target Users:** Describe target users and stakeholders
+        - **Objectives:** Describe project scope and objectives
         
-        5. Outcomes & Impact
-       - Project results and deliverables
-       - Metrics and improvements achieved
-       - User/stakeholder feedback
-       - Lessons learned
+        ## 2. Development Process
+        - Overview paragraph of research, planning, and requirements gathering
+        - **Technical Approach:** Architecture and development methodology used
+        - **Key Challenges:** Challenges faced and solutions implemented
+        
+        ## 3. Implementation Details
+        - **Core Features:** (followed by a clean bullet list of core features)
+        - **Technologies:** Comma-separated list of technologies and tools utilized
+        - **Notable Achievements:** Specific milestones, metrics, and Valentino Jehaut's technical contributions
+
+        ## 4. Team Structure & Roles
+        - Valentino Jehaut's specific role and responsibilities (bullet list)
+        - **Project Team:** Team composition and collaboration approach
+        
+        ## 5. Outcomes & Impact
+        - **Deliverables:** Final project deliverables
+        - **Key Improvements:** Bullet list of measurable improvements achieved
+        - **User Feedback:** User and stakeholder feedback
+        - **Lessons Learned:** Key takeaways
 
         Additional requirements:
         - Highlight Valentino Jehaut's contributions throughout
@@ -205,11 +202,11 @@ class AIService {
             content: prompt
           }
         ],
-        model: "deepseek-reasoner",
+        model: AI_MODEL,
         temperature: 0.3,
-        max_tokens: 8192,
+        max_tokens: MAX_TOKENS,
       }, {
-        timeout: 180000 // 3 minutes timeout for reasoner model
+        timeout: 180000 // 3 minutes timeout
       });
 
       const response = completion.choices[0]?.message?.content;
@@ -221,9 +218,10 @@ class AIService {
         };
       }
 
-      // Try to parse the JSON response
+      // Try to parse the JSON response (strip markdown fences if present)
       try {
-        const portfolioData = JSON.parse(response.trim());
+        const cleanedResponse = response.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+        const portfolioData = JSON.parse(cleanedResponse);
         
         // Validate required fields
         if (!portfolioData.title || !portfolioData.desc) {
@@ -273,8 +271,8 @@ class AIService {
             content: "Hello, please respond with 'Connection successful' if you can receive this message."
           }
         ],
-        model: "deepseek-chat",
-        max_tokens: 20,
+        model: AI_MODEL,
+        max_tokens: MAX_TOKENS,
       });
 
       const response = completion.choices[0]?.message?.content;
