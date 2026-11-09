@@ -1,8 +1,10 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
 import PortfolioPage from './pages/PortfolioPage';
 import PortfolioDetail from './pages/PortfolioDetail';
+import BlogPage from './pages/BlogPage';
+import BlogDetail from './pages/BlogDetail';
 
 // CMS imports
 import Login from './cms/pages/Login';
@@ -15,6 +17,7 @@ import PortfolioManagement from './cms/pages/PortfolioManagement';
 import ContactEntries from './cms/pages/ContactEntries';
 import AITest from './cms/pages/AITest';
 import ExperienceManagement from './cms/pages/ExperienceManagement';
+import BlogManagement from './cms/pages/BlogManagement';
 import ProtectedRoute from './cms/components/ProtectedRoute';
 
 function App() {
@@ -25,6 +28,10 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/portfolio" element={<PortfolioPage />} />
       <Route path="/portfolio/:id" element={<PortfolioDetail />} />
+      <Route path="/blogs" element={<BlogPage />} />
+      <Route path="/blog" element={<Navigate to="/blogs" replace />} />
+      <Route path="/blogs/:id" element={<BlogDetail />} />
+      <Route path="/blog/:id" element={<BlogDetail />} />
       
       {/* CMS Routes */}
       <Route path="/cms/login" element={<Login />} />
@@ -33,6 +40,14 @@ function App() {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/cms/blogs" 
+        element={
+          <ProtectedRoute>
+            <BlogManagement />
           </ProtectedRoute>
         } 
       />

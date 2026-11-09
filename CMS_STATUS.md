@@ -30,6 +30,7 @@ A full-stack portfolio Content Management System with AI integration using the D
 ├── Roles (Professional roles)
 ├── Education (Academic background)
 ├── Portfolio (Projects/Work)
+├── Blogs (Events, News & Personal commentary)
 └── Contacts (Contact form entries)
 ```
 
@@ -235,6 +236,12 @@ AI Integration:
 6. ✅ **Direct Signed Cloudinary Uploads**: Bypassed 4.5 MB serverless proxy limit for videos and multi-file galleries.
 7. ✅ **Public Visibility & Draft Hiding**: Portfolio edit section allows toggling visibility on the public website with airtight filtering and route guards.
 8. ✅ **Custom Technologies Tokenization**: Added interactive `+ Add` button, `Enter` / `,` keyboard listeners, catalog title normalization, duplicate suppression, and stale-closure-free pre-save synchronization.
+9. ✅ **Blog & News System**: Complete publication pipeline with rich WYSIWYG editor, category pills, year filters, tags dropdown, and dual ID/slug public reading views.
+10. ✅ **Tech Tools Auto-Provisioning & Draft Isolation**: Case-insensitive atomic detection of uncataloged skills with placeholder vector branding and draft isolation from the public skills marquee.
+11. ✅ **Portfolio Embed Widget**: Interactive ProseMirror node view enabling inline case study card attachments inside blog content with dedicated responsive layouts.
+12. ✅ **Blog Refinements & Skills Full Migration**: Dynamic category suppression for empty categories, homepage search/filter decoupling with "See More Blogs" CTA, canonical `/blogs` routing, flexbox scroll fixes for portfolio attachment popup, and automated portfolio skills migration.
+13. ✅ **Portfolio Embed Persistence & "My Works" Filter Redesign**: Eliminated TipTap attribute stripping on save, guaranteed crisp white text on "View Case Study" action button, and refactored portfolio filter into a modern two-row layout matching Blog & News with real-time search and 0-match empty states.
+14. ✅ **Portfolio Filter Z-Index Elevation & Color Badge Synchronization**: Elevated filter container stacking context (`z-30` vs grid `z-10`) preventing cards from rendering above the tech dropdown menu, applied brand cyan `#00BAFE` to active year pills, and synchronized role tab active/inactive outline styling with CMS badge colors.
 
 ### **Future Enhancements**
 - [ ] Add AI model selection (chat vs reasoner)

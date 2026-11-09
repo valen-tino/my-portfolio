@@ -8,7 +8,7 @@ import {
 } from '@tiptap/react';
 import { Node, mergeAttributes } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
-import { CMSStorage } from '../apiStorage';
+import { CMSStorage, PortfolioItem } from '../apiStorage';
 import { migrateContentToHtml, formatPublicDescription, optimizeCloudinaryVideoUrl, STANDARD_SECTION_TITLES } from '../../utils/contentMigration';
 import ImageLightboxModal, { LightboxImageItem } from '../../components/ImageLightboxModal';
 
@@ -642,12 +642,375 @@ export const PortfolioGalleryNode = Node.create({
   }
 });
 
+/**
+ * Safe Image URL Resolver for Portfolios
+ */
+export const resolvePortfolioImageUrl = (url?: string | null): string => {
+  if (!url || !url.trim()) return '/placeholder-tech.svg';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/')) {
+    return url;
+  }
+  return `/images/portfolios/${url}`;
+};
+
+/**
+ * Interactive React NodeView for Embedded Portfolio Cards inside TipTap Editor
+ */
+const PortfolioEmbedNodeView: React.FC<NodeViewProps> = ({ node, deleteNode, selected }) => {
+  const { portfolioId, title, desc, imageURL, tech, year, affiliation } = node.attrs as {
+    portfolioId: string;
+    title: string;
+    desc: string;
+    imageURL: string;
+    linkTo?: string;
+    tech: string[];
+    roles?: string[];
+    year?: string;
+    affiliation?: string;
+  };
+
+  const resolvedImage = resolvePortfolioImageUrl(imageURL);
+  const techList: string[] = Array.isArray(tech) ? tech : [];
+
+  return (
+    <NodeViewWrapper className="my-6 not-prose relative group" data-testid="portfolio-embed-node">
+      {/* Floating control bar */}
+      <div
+        className={`flex items-center justify-between p-2 mb-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg transition-opacity ${
+          selected ? 'opacity-100' : 'opacity-90 group-hover:opacity-100'
+        }`}
+      >
+        <span className="font-semibold text-gray-200 flex items-center gap-1.5 truncate">
+          <span>💼 Attached Portfolio:</span>
+          <span className="text-blue-400 truncate">{title || 'Untitled'}</span>
+        </span>
+        <button
+          type="button"
+          onClick={() => deleteNode()}
+          className="ml-2 px-2 py-0.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs shrink-0 cursor-pointer"
+          title="Remove portfolio card"
+          data-testid="remove-portfolio-embed-btn"
+        >
+          ✕ Remove
+        </button>
+      </div>
+
+      {/* Embedded Portfolio Card Preview */}
+      <div className="portfolio-embed-card p-4 sm:p-5 rounded-2xl bg-base-100 border border-base-300 shadow-md flex flex-col sm:flex-row gap-5 items-center">
+        <div className="w-full sm:w-48 aspect-video rounded-xl overflow-hidden shrink-0 bg-base-200">
+          <img
+            src={resolvedImage}
+            alt={title || 'Portfolio thumbnail'}
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div className="flex-1 text-left w-full">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className="badge badge-primary badge-sm font-semibold">💼 Case Study</span>
+            {year && <span className="text-xs text-base-content/60 font-medium">📅 {year}</span>}
+            {affiliation && <span className="badge badge-outline badge-sm text-xs">{affiliation}</span>}
+          </div>
+          <h4 className="text-lg font-bold text-base-content mb-1">{title || 'Untitled Project'}</h4>
+          <p className="text-sm text-base-content/70 line-clamp-2 mb-3 leading-relaxed">{desc || ''}</p>
+          <div className="flex flex-wrap gap-1 mb-3">
+            {techList.slice(0, 4).map((t, idx) => (
+              <span key={idx} className="badge badge-outline badge-xs sm:badge-sm mr-1">{t}</span>
+            ))}
+          </div>
+          <a
+            href={`/portfolio/${portfolioId}`}
+            onClick={(e) => e.preventDefault()}
+            className="btn btn-primary btn-xs sm:btn-sm gap-1 inline-flex items-center text-white !text-white !no-underline"
+          >
+            View Case Study ↗
+          </a>
+        </div>
+      </div>
+    </NodeViewWrapper>
+  );
+};
+
+/**
+ * Custom TipTap Node for Portfolio Embed
+ */
+export const PortfolioEmbedNode = Node.create({
+  name: 'portfolioEmbed',
+  group: 'block',
+  atom: true,
+  draggable: true,
+
+  addAttributes() {
+    return {
+      portfolioId: { default: '' },
+      title: { default: '' },
+      desc: { default: '' },
+      imageURL: { default: '' },
+      linkTo: { default: '' },
+      tech: { default: [] },
+      roles: { default: [] },
+      year: { default: '' },
+      affiliation: { default: '' }
+    };
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: 'div[data-portfolio-embed="true"]',
+        getAttrs: (dom) => {
+          const el = dom as HTMLElement;
+          let tech: string[] = [];
+          let roles: string[] = [];
+          try {
+            tech = JSON.parse(el.getAttribute('data-tech') || '[]');
+            roles = JSON.parse(el.getAttribute('data-roles') || '[]');
+          } catch (e) {}
+
+          return {
+            portfolioId: el.getAttribute('data-portfolio-id') || '',
+            title: el.getAttribute('data-title') || '',
+            desc: el.getAttribute('data-desc') || '',
+            imageURL: el.getAttribute('data-image-url') || '',
+            linkTo: el.getAttribute('data-link-to') || '',
+            tech: Array.isArray(tech) ? tech : [],
+            roles: Array.isArray(roles) ? roles : [],
+            year: el.getAttribute('data-year') || '',
+            affiliation: el.getAttribute('data-affiliation') || ''
+          };
+        }
+      }
+    ];
+  },
+
+  renderHTML({ node, HTMLAttributes }) {
+    const attrs = { ...HTMLAttributes, ...node?.attrs };
+    const portfolioId = String(attrs.portfolioId || '');
+    const title = attrs.title || '';
+    const desc = attrs.desc || '';
+    const imageURL = attrs.imageURL || '';
+    const linkTo = attrs.linkTo || '';
+    const techList: string[] = Array.isArray(attrs.tech) ? attrs.tech : [];
+    const rolesList: string[] = Array.isArray(attrs.roles) ? attrs.roles : [];
+    const year = attrs.year || '';
+    const affiliation = attrs.affiliation || '';
+
+    const techBadges = techList.slice(0, 4).map(t => [
+      'span',
+      { class: 'badge badge-outline badge-xs sm:badge-sm mr-1' },
+      t
+    ]);
+
+    const metaBadges: any[] = [
+      ['span', { class: 'badge badge-primary badge-sm font-semibold' }, '💼 Case Study']
+    ];
+    if (year) {
+      metaBadges.push(['span', { class: 'text-xs text-base-content/60 font-medium' }, `📅 ${year}`]);
+    }
+    if (affiliation) {
+      metaBadges.push(['span', { class: 'badge badge-outline badge-sm text-xs' }, affiliation]);
+    }
+
+    const resolvedImage = resolvePortfolioImageUrl(imageURL);
+
+    return [
+      'div',
+      mergeAttributes({
+        'data-portfolio-embed': 'true',
+        'data-portfolio-id': portfolioId,
+        'data-title': title,
+        'data-desc': desc,
+        'data-image-url': imageURL,
+        'data-link-to': linkTo,
+        'data-tech': JSON.stringify(techList),
+        'data-roles': JSON.stringify(rolesList),
+        'data-year': year,
+        'data-affiliation': affiliation,
+        class: 'portfolio-embed-card not-prose my-6 p-4 sm:p-5 rounded-2xl bg-base-100 border border-base-300 shadow-md flex flex-col sm:flex-row gap-5 items-center transition-all hover:shadow-xl'
+      }),
+      [
+        'div',
+        { class: 'w-full sm:w-48 aspect-video rounded-xl overflow-hidden shrink-0 bg-base-200' },
+        [
+          'img',
+          {
+            src: resolvedImage,
+            alt: title || 'Portfolio thumbnail',
+            class: 'w-full h-full object-cover'
+          }
+        ]
+      ],
+      [
+        'div',
+        { class: 'flex-1 text-left w-full' },
+        [
+          'div',
+          { class: 'flex items-center gap-2 mb-1 flex-wrap' },
+          ...metaBadges
+        ],
+        ['h4', { class: 'text-lg font-bold text-base-content mb-1' }, title || 'Untitled Project'],
+        ['p', { class: 'text-sm text-base-content/70 line-clamp-2 mb-3 leading-relaxed' }, desc || ''],
+        ['div', { class: 'flex flex-wrap gap-1 mb-3' }, ...techBadges],
+        [
+          'a',
+          {
+            href: `/portfolio/${portfolioId}`,
+            target: '_self',
+            class: 'btn btn-primary btn-xs sm:btn-sm gap-1 inline-flex items-center text-white !text-white !no-underline'
+          },
+          'View Case Study ↗'
+        ]
+      ]
+    ];
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(PortfolioEmbedNodeView);
+  }
+});
+
+export interface PortfolioSelectModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelect: (portfolio: PortfolioItem) => void;
+}
+
+export const PortfolioSelectModal: React.FC<PortfolioSelectModalProps> = ({
+  isOpen,
+  onClose,
+  onSelect
+}) => {
+  const [portfolios, setPortfolios] = useState<PortfolioItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setLoading(true);
+      CMSStorage.getPortfolios(true)
+        .then((data) => {
+          const list = Array.isArray(data) ? data : [];
+          // Defensive filter: strictly omit hidden / draft items
+          const publishedOnly = list.filter((p) => p.isPublished !== false);
+          setPortfolios(publishedOnly);
+        })
+        .catch((err) => {
+          console.error('Failed to load portfolios for embed modal:', err);
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const filtered = portfolios.filter((p) => {
+    if (p.isPublished === false) return false;
+    const q = search.toLowerCase();
+    const title = (p.title || '').toLowerCase();
+    const desc = (p.desc || '').toLowerCase();
+    const tech = Array.isArray(p.tech) ? p.tech.join(' ').toLowerCase() : '';
+    return title.includes(q) || desc.includes(q) || tech.includes(q);
+  });
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+      data-testid="portfolio-select-modal"
+    >
+      <div className="bg-white rounded-2xl max-w-3xl w-full h-[85vh] max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-gray-200">
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50 shrink-0">
+          <div>
+            <h3 className="text-lg font-bold text-gray-800">
+              Attach Portfolio Case Study ({filtered.length} available)
+            </h3>
+            <p className="text-xs text-gray-500">Select an existing portfolio item to embed as a rich interactive card.</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn btn-sm btn-ghost btn-circle text-gray-500 hover:text-gray-800"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="p-3 border-b border-gray-100 bg-white shrink-0">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search portfolios by title, description, or technology..."
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            data-testid="portfolio-search-input"
+            autoFocus
+          />
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 space-y-3">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12 text-gray-400 gap-2">
+              <span className="loading loading-spinner loading-md"></span>
+              <p className="text-sm">Loading portfolios...</p>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <p className="text-sm">No portfolios found matching your search.</p>
+            </div>
+          ) : (
+            filtered.map((item) => (
+              <div
+                key={item.id || item._id}
+                onClick={() => onSelect(item)}
+                className="p-3 border border-gray-200 hover:border-blue-500 rounded-xl flex items-center gap-4 cursor-pointer hover:bg-blue-50/50 transition-all group"
+                data-testid={`select-portfolio-item-${item.id || item._id}`}
+              >
+                <div className="w-20 h-14 bg-gray-100 rounded-lg overflow-hidden shrink-0 border border-gray-200">
+                  <img
+                    src={resolvePortfolioImageUrl(item.imageURL)}
+                    alt={item.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  />
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <h4 className="text-sm font-bold text-gray-800 truncate group-hover:text-blue-600 transition-colors">
+                      {item.title}
+                    </h4>
+                    {item.year && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-medium">
+                        {item.year}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 line-clamp-1">{item.desc}</p>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-xs btn-primary font-medium shrink-0"
+                >
+                  Attach
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="p-3 border-t border-gray-200 bg-gray-50 flex justify-end">
+          <button type="button" onClick={onClose} className="btn btn-sm btn-ghost">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export interface WYSIWYGEditorProps {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
   enableSectionPresets?: boolean;
   enableGalleries?: boolean;
+  enablePortfolioEmbed?: boolean;
   minHeight?: string;
 }
 
@@ -657,12 +1020,14 @@ const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({
   placeholder,
   enableSectionPresets = true,
   enableGalleries = true,
+  enablePortfolioEmbed = false,
   minHeight = '420px'
 }) => {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [showSectionMenu, setShowSectionMenu] = useState(false);
   const [customSectionTitle, setCustomSectionTitle] = useState('');
+  const [portfolioModalOpen, setPortfolioModalOpen] = useState(false);
   const singleFileInputRef = useRef<HTMLInputElement>(null);
   const galleryFileInputRef = useRef<HTMLInputElement>(null);
   const sectionMenuRef = useRef<HTMLDivElement>(null);
@@ -689,7 +1054,8 @@ const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({
         }
       }),
       PortfolioMediaNode,
-      PortfolioGalleryNode
+      PortfolioGalleryNode,
+      PortfolioEmbedNode
     ],
     content: initialHtml,
     onUpdate: ({ editor: ed }) => {
@@ -1076,6 +1442,57 @@ const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({
             >
               🖼️ Add Gallery Section
             </button>
+          </>
+        )}
+
+        {/* Portfolio Case Study Embed */}
+        {enablePortfolioEmbed && (
+          <>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setPortfolioModalOpen(true)}
+              className="px-2.5 py-1 text-xs font-medium rounded bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-1 cursor-pointer"
+              title="Attach existing portfolio case study"
+              data-testid="attach-portfolio-btn"
+            >
+              💼 Attach Portfolio
+            </button>
+            <PortfolioSelectModal
+              isOpen={portfolioModalOpen}
+              onClose={() => {
+                setPortfolioModalOpen(false);
+                editor?.commands.focus();
+              }}
+              onSelect={(item) => {
+                const affiliation = item.relatedExperienceCompany || item.relatedEducationInstitution || '';
+                editor
+                  ?.chain()
+                  .focus()
+                  .insertContent([
+                    {
+                      type: 'portfolioEmbed',
+                      attrs: {
+                        portfolioId: String(item.id || item._id || ''),
+                        title: item.title || '',
+                        desc: item.desc || '',
+                        imageURL: item.imageURL || '',
+                        linkTo: item.linkTo || '',
+                        tech: Array.isArray(item.tech) ? item.tech : [],
+                        roles: Array.isArray(item.roles) ? item.roles : [],
+                        year: item.year || '',
+                        affiliation
+                      }
+                    },
+                    {
+                      type: 'paragraph'
+                    }
+                  ])
+                  .run();
+                setPortfolioModalOpen(false);
+                editor?.commands.focus();
+              }}
+            />
           </>
         )}
       </div>

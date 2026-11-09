@@ -116,6 +116,7 @@ A full-stack portfolio website with an integrated Content Management System (CMS
                     │  Collections:                       │
                     │  - users                            │
                     │  - portfolios                       │
+                    │  - blogs                            │
                     │  - experiences                      │
                     │  - education                        │
                     │  - techtools                        │
@@ -183,26 +184,30 @@ my-portfolio/
 │   ├── pages/                # Page components
 │   │   ├── Home.tsx          # Landing page
 │   │   ├── PortfolioPage.tsx # Portfolio archive listing
-│   │   └── PortfolioDetail.tsx # Individual portfolio view
+│   │   ├── PortfolioDetail.tsx # Individual portfolio view
+│   │   ├── BlogPage.tsx      # Public blog archive (/blogs)
+│   │   └── BlogDetail.tsx    # Single blog article view
 │   │
 │   ├── sections/             # Major page sections
 │   │   ├── hero/             # Hero section
 │   │   ├── aboutme/          # About section
 │   │   ├── education/        # Education display
 │   │   ├── experience/       # Work experience
-│   │   ├── portfolios/       # Portfolio showcase & cards
+│   │   ├── portfolios/       # Portfolio showcase & multi-filter
+│   │   ├── blog/             # Blog & News showcase
 │   │   ├── skills/           # Tech tools & skills
 │   │   ├── nav/              # Navigation bar
 │   │   └── footer/           # Site footer
 │   │
 │   ├── cms/                  # Complete CMS system
-│   │   ├── components/       # CMS-specific components
-│   │   ├── pages/            # CMS pages (Dashboard, Portfolios, etc.)
+│   │   ├── components/       # CMS-specific components (CMSLayout, WYSIWYGEditor, etc.)
+│   │   ├── pages/            # CMS pages (Dashboard, Portfolios, Blogs, TechTools, etc.)
 │   │   ├── apiStorage.ts     # Client-side API storage helper
 │   │   └── auth.ts           # Authentication utilities
 │   │
 │   ├── components/           # Reusable UI components
-│   │   ├── CursorInverter/   # Cursor inversion effect
+│   │   ├── ScrollProgressBar.tsx       # Case study reading progress bar
+│   │   ├── ImageLightboxModal.tsx      # Gallery image viewer
 │   │   └── PasswordProtectionModal.tsx # Password modal
 │   │
 │   ├── services/             # API services
@@ -213,13 +218,14 @@ my-portfolio/
 │       └── aiHelpers.ts      # AI data formatting & validation
 │
 ├── server/                   # Express backend
-│   ├── config/               # Configuration (Cloudinary)
+│   ├── config/               # Configuration (Cloudinary, Database)
 │   ├── middleware/           # Auth middlewares
-│   ├── models/               # Mongoose schemas
+│   ├── models/               # Mongoose schemas (Portfolio, Blog, TechTool, etc.)
 │   ├── routes/               # Express route handlers
+│   ├── utils/                # Utility modules (skillMigration.js)
+│   ├── scripts/              # Seed & maintenance scripts (syncExistingPortfolioSkills.js)
 │   ├── services/             # Server services (aiService.js)
-│   ├── scripts/              # Database seed scripts
-│   └── index.js              # Server entry point
+│   └── index.js              # Server entry point (port 5001)
 │
 ├── api/                      # Vercel serverless integration
 │   ├── [...path].js          # Catch-all serverless handler
@@ -263,6 +269,31 @@ my-portfolio/
   isPasswordProtected: { type: Boolean, default: false },
   password: { type: String, default: null },
   isPinned: { type: Boolean, default: false },
+  year: { type: String, default: null },
+  relatedExperience: { type: mongoose.Schema.Types.ObjectId, ref: 'Experience', default: null },
+  relatedExperienceCompany: { type: String, default: null },
+  relatedEducation: { type: mongoose.Schema.Types.ObjectId, ref: 'Education', default: null },
+  relatedEducationInstitution: { type: String, default: null },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+}
+```
+
+### Blogs Collection
+```javascript
+{
+  title: { type: String, required: true },
+  slug: { type: String, required: true, unique: true },
+  summary: { type: String, required: true },
+  content: { type: String, required: true },
+  category: { type: String, enum: ['All', 'Event', 'News', 'Personal', 'Engineering', 'Update'], default: 'Personal' },
+  tags: [{ type: String }],
+  coverImage: { type: String, default: '' },
+  coverImagePublicId: { type: String, default: null },
+  attachedPortfolioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Portfolio', default: null },
+  isPublished: { type: Boolean, default: true },
+  readingTime: { type: Number, default: 3 },
+  publishedAt: { type: Date, default: Date.now },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 }
@@ -308,6 +339,7 @@ my-portfolio/
   imageURL: { type: String, required: true },
   imageCloudinaryId: { type: String },
   order: { type: Number, default: 0 },
+  isPublished: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now }
 }
 ```
@@ -360,10 +392,11 @@ my-portfolio/
 
 ### Content Management Endpoints
 - **About**: `GET /api/about`, `PUT /api/about`
-- **Tech Tools**: `GET /api/tech-tools`, `POST /api/tech-tools`, `PUT /api/tech-tools/:id`, `DELETE /api/tech-tools/:id`
+- **Blogs**: `GET /api/blogs` (supports `?category=...&search=...&published=true`), `POST /api/blogs`, `GET /api/blogs/:id`, `PUT /api/blogs/:id`, `DELETE /api/blogs/:id`
+- **Tech Tools**: `GET /api/tech-tools` (supports `?published=true`), `POST /api/tech-tools`, `POST /api/tech-tools/sync-from-portfolios` (auto-sync), `PUT /api/tech-tools/:id`, `DELETE /api/tech-tools/:id`
 - **Roles**: `GET /api/roles`, `POST /api/roles`, `PUT /api/roles/:id`, `DELETE /api/roles/:id`
 - **Education**: `GET /api/education`, `POST /api/education`, `PUT /api/education/:id`, `DELETE /api/education/:id`
-- **Portfolios**: `GET /api/portfolio`, `POST /api/portfolio`, `PUT /api/portfolio/:id`, `DELETE /api/portfolio/:id`
+- **Portfolios**: `GET /api/portfolio` (supports `?published=true`), `POST /api/portfolio`, `PUT /api/portfolio/:id`, `DELETE /api/portfolio/:id`
 - **Experiences**: `GET /api/experiences`, `POST /api/experiences`, `PUT /api/experiences/:id`, `DELETE /api/experiences/:id`
 - **Contacts**: `GET /api/contact`, `POST /api/contact`, `DELETE /api/contact/:id`
 

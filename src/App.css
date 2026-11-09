@@ -349,6 +349,15 @@ figure.gallery-item {
   word-break: break-word;
 }
 
+/* Portfolio Embed Card Action Button - Override prose & ProseMirror link colors */
+.portfolio-embed-card a.btn,
+.portfolio-embed-card a.btn-primary,
+[data-portfolio-embed] a.btn,
+[data-portfolio-embed] a.btn-primary {
+  color: #ffffff !important;
+  text-decoration: none !important;
+}
+
 /* WYSIWYG Content Public View Formatting */
 .wysiwyg-content {
   text-align: left;

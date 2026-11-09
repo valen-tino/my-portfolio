@@ -150,5 +150,105 @@ describe('Portfolio Component - Year Filtering', () => {
     // 3. Verify CMSStorage was invoked with publishedOnly = true
     expect(CMSStorage.getPortfolios).toHaveBeenCalledWith(true);
   });
+
+  it('filters portfolio cards by keyword search input and resets on Clear All', async () => {
+    render(
+      <MemoryRouter>
+        <Portfolio />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Project 2024 Alpha')).toBeInTheDocument();
+      expect(screen.getByText('Project 2023 Beta')).toBeInTheDocument();
+    });
+
+    const searchInput = screen.getByTestId('portfolio-search-input');
+    fireEvent.change(searchInput, { target: { value: 'Alpha' } });
+
+    await waitFor(() => {
+      expect(screen.getByText('Project 2024 Alpha')).toBeInTheDocument();
+      expect(screen.queryByText('Project 2023 Beta')).not.toBeInTheDocument();
+    });
+
+    // Clear via Clear All
+    const clearAllButton = screen.getByRole('button', { name: /clear all/i });
+    fireEvent.click(clearAllButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Project 2024 Alpha')).toBeInTheDocument();
+      expect(screen.getByText('Project 2023 Beta')).toBeInTheDocument();
+    });
+  });
+
+  it('renders a friendly empty state when 0 projects match filters, with reset button', async () => {
+    render(
+      <MemoryRouter>
+        <Portfolio />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Project 2024 Alpha')).toBeInTheDocument();
+    });
+
+    const searchInput = screen.getByTestId('portfolio-search-input');
+    fireEvent.change(searchInput, { target: { value: 'NonExistentProject123' } });
+
+    await waitFor(() => {
+      expect(screen.getByText('No projects match your current filter and search criteria.')).toBeInTheDocument();
+      expect(screen.getByTestId('reset-empty-portfolio-filters')).toBeInTheDocument();
+    });
+
+    // Reset via empty state button
+    fireEvent.click(screen.getByTestId('reset-empty-portfolio-filters'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Project 2024 Alpha')).toBeInTheDocument();
+      expect(screen.getByText('Project 2023 Beta')).toBeInTheDocument();
+    });
+  });
+
+  it('applies #00BAFE to selected year pill and reflects CMS badge colors on role tabs', async () => {
+    render(
+      <MemoryRouter>
+        <Portfolio />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Project 2024 Alpha')).toBeInTheDocument();
+    });
+
+    // Check year pill #00BAFE on default 'All'
+    const yearAll = screen.getByTestId('year-filter-All');
+    expect(yearAll.className).toContain('bg-[#00BAFE]');
+
+    // Click year 2024
+    const year2024 = screen.getByTestId('year-filter-2024');
+    fireEvent.click(year2024);
+    expect(year2024.className).toContain('bg-[#00BAFE]');
+    expect(yearAll.className).not.toContain('bg-[#00BAFE]');
+
+    // Check role tabs reflect CMS colors
+    // In mock: Frontend has color: 'info' -> #00BAFE border/text when inactive
+    // Backend has color: 'primary' -> btn-outline btn-primary when inactive
+    const roleFrontend = screen.getByTestId('role-filter-Frontend');
+    const roleBackend = screen.getByTestId('role-filter-Backend');
+    const roleAll = screen.getByTestId('role-filter-All');
+
+    // Role 'All' starts selected with #00BAFE
+    expect(roleAll.className).toContain('bg-[#00BAFE]');
+    // Role 'Backend' (primary) starts inactive
+    expect(roleBackend.className).toContain('btn-outline');
+    expect(roleBackend.className).toContain('btn-primary');
+
+    // Select Backend role
+    fireEvent.click(roleBackend);
+    expect(roleBackend.className).toContain('btn-primary');
+    expect(roleBackend.className).not.toContain('btn-outline');
+    // Role 'All' now inactive with border-[#00BAFE]
+    expect(roleAll.className).toContain('border-[#00BAFE]');
+  });
 });
 

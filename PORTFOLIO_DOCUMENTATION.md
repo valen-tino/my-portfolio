@@ -94,24 +94,27 @@ A full-stack portfolio website with an integrated Content Management System (CMS
 ## Technology Stack
 
 ### Frontend
-- **React 18.2.0**: Component-based UI framework
+- **React 19.1.1**: Component-based UI framework
 - **TypeScript**: Type-safe development
-- **React Router v6**: Client-side routing
-- **DaisyUI 3.9.4**: Component library built on Tailwind CSS
-- **Tailwind CSS 3.3.0**: Utility-first CSS framework
+- **Vite 7.1.4**: Next-generation frontend tooling and bundler
+- **React Router v7**: Client-side routing (`react-router-dom`)
+- **DaisyUI 5.1.7**: Component library built on Tailwind CSS
+- **Tailwind CSS 3.4.4**: Utility-first CSS framework
+- **TipTap / ProseMirror**: Rich WYSIWYG editor with custom node views
 - **Axios**: HTTP client for API communication
 
 ### Backend
 - **Node.js**: JavaScript runtime
-- **Express.js 4.18.2**: Web application framework
-- **MongoDB/Mongoose 7.6.3**: NoSQL database and ODM
+- **Express.js 5.1.0**: Web application framework
+- **MongoDB/Mongoose 8.18.0**: NoSQL database and ODM
 - **JWT**: JSON Web Tokens for authentication
 - **Bcrypt**: Password hashing
 - **Multer**: File upload handling
-- **Cloudinary**: Cloud-based image management
+- **Cloudinary**: Cloud-based image and web-optimized video management
 
 ### Development Tools
-- **Create React App**: Build configuration
+- **Vite**: Rapid HMR and production build bundling
+- **Vitest**: Unit and integration test runner
 - **ESLint**: Code linting
 - **Prettier**: Code formatting
 - **Nodemon**: Development server auto-restart
@@ -134,19 +137,22 @@ my-portfolio/
 │
 ├── src/                       # React application source
 │   ├── App.tsx               # Main application component
-│   ├── index.tsx             # Application entry point
+│   ├── main.tsx              # Application entry point
 │   │
 │   ├── pages/                # Page components
 │   │   ├── Home.tsx          # Landing page
 │   │   ├── PortfolioPage.tsx # Portfolio listing
-│   │   └── PortfolioDetail.tsx # Individual portfolio view
+│   │   ├── PortfolioDetail.tsx # Individual portfolio view
+│   │   ├── BlogPage.tsx      # Public blog archive (/blogs)
+│   │   └── BlogDetail.tsx    # Single blog article view
 │   │
 │   ├── sections/             # Major page sections
 │   │   ├── hero/            # Hero section
 │   │   ├── aboutme/         # About section
 │   │   ├── education/       # Education display
 │   │   ├── experience/      # Work experience
-│   │   ├── portfolios/      # Portfolio showcase
+│   │   ├── portfolios/      # Portfolio showcase & multi-filter
+│   │   ├── blog/            # Blog & News showcase
 │   │   ├── skills/          # Tech skills
 │   │   ├── contact/         # Contact form
 │   │   ├── nav/             # Navigation
@@ -158,6 +164,7 @@ my-portfolio/
 │   │   │   ├── Dashboard.tsx
 │   │   │   ├── AboutManagement.tsx
 │   │   │   ├── PortfolioManagement.tsx
+│   │   │   ├── BlogManagement.tsx
 │   │   │   ├── ExperienceManagement.tsx
 │   │   │   ├── EducationManagement.tsx
 │   │   │   ├── TechToolsManagement.tsx
@@ -167,6 +174,7 @@ my-portfolio/
 │   │   │
 │   │   ├── components/      # CMS components
 │   │   │   ├── CMSLayout.tsx
+│   │   │   ├── WYSIWYGEditor.tsx  # TipTap rich text & portfolio embed
 │   │   │   ├── ProtectedRoute.tsx
 │   │   │   └── AIPortfolioModal.tsx
 │   │   │
@@ -174,21 +182,25 @@ my-portfolio/
 │   │   └── auth.ts          # Authentication utilities
 │   │
 │   ├── components/          # Reusable components
-│   │   ├── CursorInverter/  # Cursor effect
+│   │   ├── ScrollProgressBar.tsx
+│   │   ├── ImageLightboxModal.tsx
+│   │   ├── PasswordProtectionModal.tsx
 │   │   └── ExperienceSection.tsx
 │   │
 │   ├── services/            # API services
 │   │   └── api.ts          # API client configuration
 │   │
 │   └── styles/             # Global styles
-│       └── index.css       # Main stylesheet
+│       ├── index.css       # Tailwind stylesheet
+│       └── App.css         # Custom overrides & embed styling
 │
 ├── server/                  # Backend server
-│   ├── index.js            # Server entry point
+│   ├── index.js            # Server entry point (port 5001)
 │   │
 │   ├── models/             # MongoDB schemas
 │   │   ├── User.js
 │   │   ├── Portfolio.js
+│   │   ├── Blog.js
 │   │   ├── Experience.js
 │   │   ├── Education.js
 │   │   ├── TechTool.js
@@ -200,13 +212,20 @@ my-portfolio/
 │   │   ├── auth.js         # Authentication endpoints
 │   │   ├── about.js        # About section CRUD
 │   │   ├── portfolios.js   # Portfolio CRUD
+│   │   ├── blog.js         # Blog CRUD
 │   │   ├── experiences.js  # Experience CRUD
 │   │   ├── education.js    # Education CRUD
-│   │   ├── techTools.js    # Tech tools CRUD
+│   │   ├── techTools.js    # Tech tools CRUD & sync
 │   │   ├── roles.js        # Roles CRUD
 │   │   ├── contacts.js     # Contact form handling
 │   │   ├── upload.js       # File upload handling
 │   │   └── ai.js           # AI integration
+│   │
+│   ├── utils/              # Server utilities
+│   │   └── skillMigration.js # Atomic uncataloged skills migration
+│   │
+│   ├── scripts/            # Standalone maintenance scripts
+│   │   └── syncExistingPortfolioSkills.js # Portfolio skills sync CLI
 │   │
 │   ├── middleware/         # Express middleware
 │   │   └── auth.js         # JWT authentication
@@ -262,18 +281,29 @@ my-portfolio/
 - Month/year date ranges
 
 #### Portfolio Projects
-- Grid/carousel display
-- Project thumbnails
-- Technology tags
-- Role badges
-- Detailed project views
-- Live demo links
+- Two-row partitioned filter bar:
+  - **Row 1**: Role pills with CMS badge color synchronization (filled when active, colored outline when inactive) and real-time keyword search.
+  - **Row 2**: Year pills (brand `#00BAFE` selected state), Technology dropdown popover, and clear all filters button.
+- Elevated stacking context (`relative z-30` filter vs `relative z-10` card grid) preventing dropdown occlusion.
+- Grid display with project cards, image preview, tech badges, and role badges.
+- Pinned project indicators (`📌 Pinned`).
+- Affiliation badges linking projects to related Experience companies or Education institutions.
+- Password-protected project modal.
+- Friendly 0-match empty state with instant filter reset.
+- Live demo links and rich Case Study reading views.
+
+#### Blog & News System
+- Event recaps, project announcements, and personal engineering commentary.
+- Dynamic category pills (`Event`, `News`, `Personal`, `Engineering`, `Update`) with automatic omission of empty categories.
+- Decoupled homepage section (`<BlogSection limit={3} />`) with "See More Blogs" CTA and automatic concealment when 0 blogs exist.
+- Dedicated Blog Archive Page (`/blogs`) featuring full keyword search and category filtering.
+- Public reading view (`/blogs/:id` or `/blogs/:slug`) with cover images, reading time estimates, formatted content, and back navigation.
+- Embedded interactive Case Study Cards linking directly to relevant portfolio projects.
 
 #### Skills Section
-- Technology icons
-- Categorized skills
-- Proficiency levels
-- Visual skill representation
+- Technology icons and marquee display.
+- Published-only filtering (`isPublished: true`), keeping auto-provisioned draft skills hidden from the public marquee until configured.
+- Resilient image fallback with `onError` placeholder handling.
 
 #### Contact Section
 - Contact form
@@ -330,6 +360,14 @@ my-portfolio/
 - "Click to view image" badge with desktop cursor hover trigger and mobile/tablet centered badge with dark filter
 - Direct placement of "Visit Project" (high-contrast `btn-info`) and "Back to Portfolio" action buttons below Technologies Used
 
+##### Blog Management
+- Full CRUD operations for blog posts and announcements.
+- WYSIWYG rich text editor with headings, lists, blockquotes, media alignment, and section generators.
+- "Attach Portfolio Case Study" interactive popup: lists published portfolios with real-time search, embedding rich interactive cards directly into article content.
+- Dynamic slug auto-generation from title with manual override capability.
+- Category selection (`Event`, `News`, `Personal`, `Engineering`, `Update`), tags, and Cloudinary cover image upload.
+- Estimated reading time calculator and publish/draft status toggles.
+
 ##### Experience Management
 - Job history management
 - Company logo uploads
@@ -346,14 +384,17 @@ my-portfolio/
 - Description fields
 
 ##### Tech Tools Management
-- Skills inventory
-- Icon/logo uploads
-- Categorization
+- Skills inventory and categorization
+- Icon/logo uploads and Cloudinary integration
+- "Sync Skills from Portfolios" one-click action triggering atomic bulk migration of uncataloged skills
+- Automatic draft provisioning (`isPublished: false`) with placeholder vector icon (`placeholder-tech.svg`)
+- Draft status badge (`Draft - Hidden from Public`) and publish toggle
 - Display ordering
 
 ##### Roles Management
 - Professional role definitions
-- Color coding
+- DaisyUI color selection (`primary`, `secondary`, `accent`, `info`, `success`, `warning`, `error`, `neutral`)
+- Direct badge color synchronization with public portfolio filter pills (solid active / colored outline inactive)
 - Description management
 
 ##### Contact Entries
@@ -425,6 +466,27 @@ my-portfolio/
 }
 ```
 
+#### blogs
+```javascript
+{
+  _id: ObjectId,
+  title: String (required),
+  slug: String (required, unique),
+  summary: String (required),
+  content: String (required),
+  category: String (enum: ['All', 'Event', 'News', 'Personal', 'Engineering', 'Update'], default: 'Personal'),
+  tags: [String],
+  coverImage: String,
+  coverImagePublicId: String,
+  attachedPortfolioId: ObjectId (ref: 'Portfolio', default: null),
+  isPublished: Boolean (default: true),
+  readingTime: Number (default: 3),
+  publishedAt: Date,
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
 #### experiences
 ```javascript
 {
@@ -468,6 +530,7 @@ my-portfolio/
   imageURL: String (required),
   imageCloudinaryId: String,
   order: Number (default: 0),
+  isPublished: Boolean (default: true),
   createdAt: Date,
   updatedAt: Date
 }
@@ -644,14 +707,42 @@ Delete education item.
 **GET /api/tech-tools**
 Get all tech tools.
 
+Query Parameters:
+- `published=true` - Get only published items for public marquee
+
 **POST /api/tech-tools** (Protected)
 Create tech tool.
+
+**POST /api/tech-tools/sync-from-portfolios** (Protected)
+Automatically scan all portfolio projects and insert uncataloged skills into Tech Tools as draft items (`isPublished: false`) with placeholder branding.
 
 **PUT /api/tech-tools/:id** (Protected)
 Update tech tool.
 
 **DELETE /api/tech-tools/:id** (Protected)
 Delete tech tool.
+
+#### Blog & News Management
+
+**GET /api/blogs**
+Get all blog posts.
+
+Query Parameters:
+- `published=true` - Return only published posts (for public blog page)
+- `category=...` - Filter by category (`Event`, `News`, `Personal`, `Engineering`, `Update`)
+- `search=...` - Case-insensitive keyword search in title, summary, or content
+
+**GET /api/blogs/:id**
+Get single blog post by MongoDB ObjectId or URL-friendly slug.
+
+**POST /api/blogs** (Protected)
+Create new blog post with optional portfolio case study attachment.
+
+**PUT /api/blogs/:id** (Protected)
+Update blog post details, content, cover image, or publication status.
+
+**DELETE /api/blogs/:id** (Protected)
+Delete blog post and delete associated Cloudinary cover image.
 
 #### Roles
 

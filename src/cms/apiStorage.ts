@@ -16,6 +16,30 @@ export interface TechTool {
   imageURL: string;
   imageCloudinaryId?: string;
   order?: number;
+  isPublished?: boolean;
+}
+
+export interface BlogItem {
+  _id?: string;
+  id?: string | number;
+  title: string;
+  slug?: string;
+  date: string;
+  year?: string;
+  category: 'Event' | 'Personal' | 'News' | 'Tech';
+  imageURL: string;
+  imageCloudinaryId?: string | null;
+  readTime?: string;
+  location?: string;
+  link?: string;
+  desc: string;
+  content: string;
+  tags: string[];
+  isPublished: boolean;
+  isPinned: boolean;
+  author?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface EducationItem {
@@ -102,6 +126,7 @@ export interface CMSData {
   contactEntries: ContactEntry[];
   roles: Role[];
   experiences: Experience[];
+  blogs: BlogItem[];
 }
 
 export class CMSStorage {
@@ -186,9 +211,9 @@ export class CMSStorage {
   }
 
   // Tech Tools methods
-  static async getTechTools(): Promise<TechTool[]> {
+  static async getTechTools(publishedOnly = false): Promise<TechTool[]> {
     try {
-      const response = await apiService.getTechTools();
+      const response = await apiService.getTechTools(publishedOnly);
       if (response.success) {
         return response.data.map((item: any) => this.mapTechToolData(item));
       }
@@ -241,6 +266,16 @@ export class CMSStorage {
       }
     } catch (error) {
       console.error('Error deleting tech tool:', error);
+      throw error;
+    }
+  }
+
+  static async syncSkillsFromPortfolios(): Promise<{ success: boolean; message: string; data: any }> {
+    try {
+      const response = await apiService.syncSkillsFromPortfolios();
+      return response;
+    } catch (error) {
+      console.error('Error syncing skills from portfolios:', error);
       throw error;
     }
   }
@@ -440,14 +475,15 @@ export class CMSStorage {
   // Legacy compatibility method
   static async getData(): Promise<CMSData> {
     try {
-      const [about, techTools, education, portfolios, contactEntries, roles, experiences] = await Promise.all([
+      const [about, techTools, education, portfolios, contactEntries, roles, experiences, blogs] = await Promise.all([
         this.getAbout(),
         this.getTechTools(),
         this.getEducation(),
         this.getPortfolios(),
         this.getContacts(),
         this.getRoles(),
-        this.getExperiences()
+        this.getExperiences(),
+        this.getBlogs()
       ]);
 
       return {
@@ -457,7 +493,8 @@ export class CMSStorage {
         portfolios,
         contactEntries,
         roles,
-        experiences
+        experiences,
+        blogs
       };
     } catch (error) {
       console.error('Error fetching CMS data:', error);
@@ -518,6 +555,32 @@ export class CMSStorage {
       // Convert dates to YYYY-MM format for month pickers
       startDate: data.startDate ? new Date(data.startDate).toISOString().substring(0, 7) : '',
       endDate: data.endDate ? new Date(data.endDate).toISOString().substring(0, 7) : undefined
+    };
+  }
+
+  private static mapBlogData(data: any): BlogItem {
+    return {
+      ...data,
+      id: data._id || data.id,
+      _id: data._id,
+      title: data.title || '',
+      slug: data.slug || '',
+      date: data.date || '',
+      year: data.year || '',
+      category: data.category || 'Personal',
+      imageURL: data.imageURL || '',
+      imageCloudinaryId: data.imageCloudinaryId || null,
+      readTime: data.readTime || '3 min read',
+      location: data.location || '',
+      link: data.link || '',
+      desc: data.desc || '',
+      content: data.content || '',
+      tags: Array.isArray(data.tags) ? data.tags : [],
+      isPublished: data.isPublished !== undefined ? data.isPublished : true,
+      isPinned: !!data.isPinned,
+      author: data.author || 'Valentino Jehaut',
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt
     };
   }
 
@@ -681,6 +744,86 @@ export class CMSStorage {
       throw new Error(response.message || 'Failed to upload experience logo');
     } catch (error) {
       console.error('Error uploading experience logo:', error);
+      throw error;
+    }
+  }
+
+  // Blog methods
+  static async getBlogs(publishedOnly = false, params?: { category?: string; tag?: string; search?: string }): Promise<BlogItem[]> {
+    try {
+      const response = await apiService.getBlogs({
+        published: publishedOnly,
+        ...params
+      });
+      if (response.success) {
+        return response.data.map((item: any) => this.mapBlogData(item));
+      }
+      throw new Error('Failed to fetch blogs');
+    } catch (error) {
+      console.error('Error fetching blogs:', error);
+      throw error;
+    }
+  }
+
+  static async getBlog(id: string): Promise<BlogItem> {
+    try {
+      const response = await apiService.getBlog(id);
+      if (response.success) {
+        return this.mapBlogData(response.data);
+      }
+      throw new Error(response.message || 'Failed to fetch blog post');
+    } catch (error) {
+      console.error('Error fetching blog post:', error);
+      throw error;
+    }
+  }
+
+  static async addBlog(blog: Omit<BlogItem, 'id' | '_id'>): Promise<BlogItem> {
+    try {
+      const response = await apiService.createBlog(blog);
+      if (response.success) {
+        return this.mapBlogData(response.data);
+      }
+      throw new Error(response.message || 'Failed to create blog post');
+    } catch (error) {
+      console.error('Error creating blog post:', error);
+      throw error;
+    }
+  }
+
+  static async updateBlog(id: string | number, blog: Partial<BlogItem>): Promise<BlogItem> {
+    try {
+      const idString = typeof id === 'string' ? id : id.toString();
+      const response = await apiService.updateBlog(idString, blog);
+      if (response.success) {
+        return this.mapBlogData(response.data);
+      }
+      throw new Error(response.message || 'Failed to update blog post');
+    } catch (error) {
+      console.error('Error updating blog post:', error);
+      throw error;
+    }
+  }
+
+  static async deleteBlog(id: string | number): Promise<void> {
+    try {
+      const idString = typeof id === 'string' ? id : id.toString();
+      const response = await apiService.deleteBlog(idString);
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to delete blog post');
+      }
+    } catch (error) {
+      console.error('Error deleting blog post:', error);
+      throw error;
+    }
+  }
+
+  static async uploadBlogImage(file: File): Promise<{ imageURL: string; imageCloudinaryId: string }> {
+    try {
+      const response = await apiService.uploadBlogImage(file);
+      return response;
+    } catch (error) {
+      console.error('Error uploading blog image:', error);
       throw error;
     }
   }

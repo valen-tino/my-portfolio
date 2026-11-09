@@ -8,7 +8,7 @@ import { CMSStorage } from '../../cms/apiStorage'
 const Navbar = () => {
   const scrollPosition = useScrollPosition()
   const location = useLocation()
-  const isPortfolioPage = location.pathname.startsWith('/portfolio')
+  const isSubpage = location.pathname.startsWith('/portfolio') || location.pathname.startsWith('/blog') || location.pathname.startsWith('/blogs')
   const [cvUrl, setCvUrl] = useState('/Valen-Jehaut.pdf')
 
   useEffect(() => {
@@ -25,15 +25,16 @@ const Navbar = () => {
     return classes.filter(Boolean).join(' ')
   }
 
-  // Navigation items for main site (scroll links) vs portfolio pages (router links)
-  const NavItems = ({ isMobile = false }) => {
-    if (isPortfolioPage) {
-      // Portfolio page navigation - use router links back to main site
+  // Navigation items for main site (scroll links) vs subpages (router links)
+  const NavItems = ({ isMobile = false }: { isMobile?: boolean }) => {
+    if (isSubpage) {
+      // Subpage navigation - use router links back to main site
       return (
         <>
           <li><RouterLink to="/#home" className="hover:text-info transition-colors">Home</RouterLink></li>
           <li><RouterLink to="/#aboutme" className="hover:text-info transition-colors">About Me</RouterLink></li>
           <li><RouterLink to="/#portfolio" className="hover:text-info transition-colors">Portfolio</RouterLink></li>
+          <li><RouterLink to="/#blog" className="hover:text-info transition-colors">Blog</RouterLink></li>
           <li><RouterLink to="/#contact" className="hover:text-info transition-colors">Contact</RouterLink></li>
         </>
       )
@@ -44,6 +45,7 @@ const Navbar = () => {
           <li><ScrollLink activeClass="text-info" to="home" spy={true} smooth={true} offset={-100} duration={500} className="cursor-pointer hover:text-info transition-colors">Home</ScrollLink></li>
           <li><ScrollLink activeClass="text-info" to="aboutme" spy={true} smooth={true} offset={-100} duration={500} className="cursor-pointer hover:text-info transition-colors">About Me</ScrollLink></li>
           <li><ScrollLink activeClass="text-info" to="portfolio" spy={true} smooth={true} offset={-100} duration={500} className="cursor-pointer hover:text-info transition-colors">Portfolio</ScrollLink></li>
+          <li><ScrollLink activeClass="text-info" to="blog" spy={true} smooth={true} offset={-100} duration={500} className="cursor-pointer hover:text-info transition-colors">Blog</ScrollLink></li>
           <li><ScrollLink activeClass="text-info" to="contact" spy={true} smooth={true} offset={-100} duration={500} className="cursor-pointer hover:text-info transition-colors">Contact</ScrollLink></li>
         </>
       )
@@ -53,7 +55,7 @@ const Navbar = () => {
   return (
     <div className={classFunc(
       'navbar fixed top-0 z-50 min-h-16 sm:px-4 transition-all duration-300 px-2',
-      scrollPosition > 0 || isPortfolioPage
+      scrollPosition > 0 || isSubpage
         ? 'bg-base-100 shadow-lg border-b border-base-300 text-base-content w-full' 
         : 'bg-transparent text-base-100 xl:px-16'
     )}>

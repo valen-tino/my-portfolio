@@ -8,7 +8,8 @@ import { isMarkdownContent, migrateContentToHtml, optimizeCloudinaryVideoUrl } f
 vi.mock('../src/cms/apiStorage', () => ({
   CMSStorage: {
     uploadEditorMedia: vi.fn(),
-    uploadEditorGallery: vi.fn()
+    uploadEditorGallery: vi.fn(),
+    getPortfolios: vi.fn().mockResolvedValue([])
   }
 }));
 
@@ -179,6 +180,104 @@ describe('Content Migration & WYSIWYG Editor with Gallery Controls', () => {
     await waitFor(() => {
       expect(CMSStorage.uploadEditorMedia).not.toHaveBeenCalled();
       expect(screen.getByText(/exceeds 25 MB limit/i)).toBeInTheDocument();
+    });
+  });
+
+  it('opens portfolio attachment modal, allows search, strictly omits hidden portfolios, and inserts PortfolioEmbedNode into editor', async () => {
+    const mockPortfolios = [
+      {
+        id: 'port-123',
+        _id: 'port-123',
+        title: 'Ecommerce NextGen',
+        desc: 'Cutting edge shopping experience',
+        imageURL: 'https://res.cloudinary.com/demo/image/upload/shop.jpg',
+        tech: ['Next.js', 'Tailwind', 'Stripe'],
+        roles: ['Lead Dev'],
+        year: '2024',
+        relatedExperienceCompany: 'Acme Corp',
+        isPublished: true
+      },
+      {
+        id: 'port-hidden',
+        _id: 'port-hidden',
+        title: 'Hidden Draft Project',
+        desc: 'Secret unpublished work',
+        imageURL: '',
+        tech: ['C++'],
+        roles: ['Dev'],
+        year: '2023',
+        isPublished: false
+      }
+    ];
+
+    vi.mocked(CMSStorage.getPortfolios).mockResolvedValue(mockPortfolios as any);
+
+    const handleChange = vi.fn();
+    render(
+      <WYSIWYGEditor
+        value="<p>Article body</p>"
+        onChange={handleChange}
+        enablePortfolioEmbed={true}
+      />
+    );
+
+    const attachBtn = screen.getByTestId('attach-portfolio-btn');
+    fireEvent.click(attachBtn);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('portfolio-select-modal')).toBeInTheDocument();
+      expect(screen.getByText('Attach Portfolio Case Study (1 available)')).toBeInTheDocument();
+      expect(screen.getByText('Ecommerce NextGen')).toBeInTheDocument();
+      expect(screen.queryByText('Hidden Draft Project')).toBeNull();
+    });
+
+    const searchInput = screen.getByTestId('portfolio-search-input');
+    fireEvent.change(searchInput, { target: { value: 'Ecommerce' } });
+    expect(screen.getByText('Ecommerce NextGen')).toBeInTheDocument();
+
+    const selectItemBtn = screen.getByTestId('select-portfolio-item-port-123');
+    fireEvent.click(selectItemBtn);
+
+    await waitFor(() => {
+      expect(handleChange).toHaveBeenCalled();
+      expect(handleChange).toHaveBeenCalledWith(
+        expect.stringContaining('data-portfolio-id="port-123"')
+      );
+      expect(handleChange).toHaveBeenCalledWith(
+        expect.stringContaining('data-title="Ecommerce NextGen"')
+      );
+      expect(handleChange).toHaveBeenCalledWith(
+        expect.stringContaining('text-white')
+      );
+      expect(screen.getByTestId('portfolio-embed-node')).toBeInTheDocument();
+      expect(screen.getByText(/Attached Portfolio:/i)).toBeInTheDocument();
+    });
+
+    // Test remove button
+    const removeBtn = screen.getByTestId('remove-portfolio-embed-btn');
+    fireEvent.click(removeBtn);
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('portfolio-embed-node')).toBeNull();
+    });
+  });
+
+  it('parses existing embedded portfolio HTML and renders it correctly', async () => {
+    const initialHtml = `<p>Introduction</p><div data-portfolio-embed="true" data-portfolio-id="port-456" data-title="AI Platform" data-desc="Intelligent AI tool" data-image-url="https://res.cloudinary.com/demo/ai.png" data-tech="[&quot;Python&quot;,&quot;FastAPI&quot;]" data-roles="[&quot;Architect&quot;]" data-year="2025" data-affiliation="OpenCorp" class="portfolio-embed-card"></div><p>Conclusion</p>`;
+
+    render(
+      <WYSIWYGEditor
+        value={initialHtml}
+        onChange={vi.fn()}
+        enablePortfolioEmbed={true}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('portfolio-embed-node')).toBeInTheDocument();
+      expect(screen.getAllByText('AI Platform').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText('Intelligent AI tool')).toBeInTheDocument();
+      expect(screen.getByText('📅 2025')).toBeInTheDocument();
     });
   });
 });

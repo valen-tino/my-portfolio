@@ -21,6 +21,9 @@ const LogoCard = ({ title, imageURL, kunci }: Props) => {
           className="max-w-full max-h-full object-contain filter drop-shadow-sm"
           alt={titleAlt}
           src={imageLink}
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
         />
       </div>
     </div>

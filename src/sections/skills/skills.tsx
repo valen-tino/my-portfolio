@@ -8,7 +8,7 @@ const Skills = () => {
   useEffect(() => {
     const fetchTechTools = async () => {
       try {
-        const data = await CMSStorage.getTechTools();
+        const data = await CMSStorage.getTechTools(true);
         setTechTools(data);
       } catch (error) {
         console.error('Error fetching tech tools:', error);
@@ -30,9 +30,18 @@ const Skills = () => {
 
   const [row1, row2] = splitIntoRows(techTools);
 
-  // Duplicate items for seamless infinite loop
-  const duplicatedRow1 = [...row1, ...row1, ...row1];
-  const duplicatedRow2 = [...row2, ...row2, ...row2];
+  // Duplicate items for seamless infinite loop with minimum threshold
+  const duplicateToFill = (arr: TechTool[], minCount = 12): TechTool[] => {
+    if (arr.length === 0) return [];
+    let result: TechTool[] = [];
+    while (result.length < minCount) {
+      result = [...result, ...arr];
+    }
+    return result;
+  };
+
+  const duplicatedRow1 = duplicateToFill(row1, 12);
+  const duplicatedRow2 = duplicateToFill(row2, 12);
 
   return (
     <div className="py-16">
@@ -44,7 +53,7 @@ const Skills = () => {
         {/* Row 1 - Moving Right to Left */}
         <div className="flex animate-marquee-left mb-8">
           {duplicatedRow1.map((item, index) => (
-            <div key={`row1-${index}`} className="flex-shrink-0 mx-6">
+            <div key={`row1-${item._id || item.title}-${index}`} className="flex-shrink-0 mx-6">
               <LogoCard title={item.title} imageURL={item.imageURL} kunci={index} />
             </div>
           ))}
@@ -53,7 +62,7 @@ const Skills = () => {
         {/* Row 2 - Moving Left to Right */}
         <div className="flex animate-marquee-right">
           {duplicatedRow2.map((item, index) => (
-            <div key={`row2-${index}`} className="flex-shrink-0 mx-6">
+            <div key={`row2-${item._id || item.title}-${index}`} className="flex-shrink-0 mx-6">
               <LogoCard title={item.title} imageURL={item.imageURL} kunci={index + row1.length} />
             </div>
           ))}

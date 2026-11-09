@@ -2,14 +2,36 @@ const express = require('express');
 const TechTool = require('../models/TechTool');
 const { authMiddleware } = require('../middleware/auth');
 const { deleteImage } = require('../config/cloudinary');
+const { syncAllPortfolioSkills } = require('../utils/skillMigration');
 const router = express.Router();
+
+// @route   POST /api/tech-tools/sync-from-portfolios
+// @desc    Scan all portfolios and auto-provision uncataloged skills into TechTool
+// @access  Private
+router.post('/sync-from-portfolios', authMiddleware, async (req, res) => {
+  try {
+    const result = await syncAllPortfolioSkills();
+    res.json({
+      success: true,
+      message: `Scanned ${result.totalSkillsFound} skills from portfolios. Added ${result.createdCount} new draft tools.`,
+      data: result
+    });
+  } catch (error) {
+    console.error('Sync skills from portfolios error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while syncing skills from portfolios'
+    });
+  }
+});
 
 // @route   GET /api/tech-tools
 // @desc    Get all tech tools
 // @access  Public
 router.get('/', async (req, res) => {
   try {
-    const techTools = await TechTool.find().sort({ order: 1, createdAt: 1 });
+    const filter = req.query.published === 'true' ? { isPublished: { $ne: false } } : {};
+    const techTools = await TechTool.find(filter).sort({ order: 1, createdAt: 1 });
     res.json({
       success: true,
       data: techTools
@@ -28,7 +50,7 @@ router.get('/', async (req, res) => {
 // @access  Private
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { title, imageURL, imageCloudinaryId, order } = req.body;
+    const { title, imageURL, imageCloudinaryId, order, isPublished } = req.body;
 
     if (!title || !imageURL) {
       return res.status(400).json({
@@ -41,7 +63,8 @@ router.post('/', authMiddleware, async (req, res) => {
       title,
       imageURL,
       imageCloudinaryId,
-      order: order || 0
+      order: order || 0,
+      isPublished: isPublished !== undefined ? Boolean(isPublished) : true
     });
 
     await techTool.save();
@@ -65,7 +88,7 @@ router.post('/', authMiddleware, async (req, res) => {
 // @access  Private
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const { title, imageURL, imageCloudinaryId, order } = req.body;
+    const { title, imageURL, imageCloudinaryId, order, isPublished } = req.body;
     
     const techTool = await TechTool.findById(req.params.id);
     if (!techTool) {
@@ -88,6 +111,9 @@ router.put('/:id', authMiddleware, async (req, res) => {
     techTool.imageURL = imageURL || techTool.imageURL;
     techTool.imageCloudinaryId = imageCloudinaryId || techTool.imageCloudinaryId;
     techTool.order = order !== undefined ? order : techTool.order;
+    if (isPublished !== undefined) {
+      techTool.isPublished = Boolean(isPublished);
+    }
 
     await techTool.save();
 

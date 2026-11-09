@@ -43,7 +43,7 @@ npm run init-db
 ```bash
 # Test backend API independently
 npm run server
-# Then visit http://localhost:5000/api/health
+# Then visit http://localhost:5001/api/health
 
 # Test frontend independently  
 npm run client
@@ -53,20 +53,22 @@ npm run client
 ## Architecture Overview
 
 ### Frontend Structure (src/)
-- **`/pages`**: Main page components (Home, Portfolio pages)
-- **`/sections`**: Page sections (hero, about, experience, contact, etc.)
+- **`/pages`**: Main page components (Home, PortfolioPage, PortfolioDetail, BlogPage, BlogDetail)
+- **`/sections`**: Page sections (hero, aboutme, experience, education, portfolios, blog, skills, contact, nav, footer)
 - **`/cms`**: Complete CMS system with protected routes
-  - **`/cms/pages`**: CMS page components (Dashboard, Management pages)
-  - **`/cms/components`**: CMS-specific components (Layout, Modals)
+  - **`/cms/pages`**: CMS page components (Dashboard, PortfolioManagement, BlogManagement, TechToolsManagement, RolesManagement, ExperienceManagement, EducationManagement, AboutManagement, ContactEntries)
+  - **`/cms/components`**: CMS-specific components (CMSLayout, WYSIWYGEditor, AIPortfolioModal, ProtectedRoute)
   - **`apiStorage.ts`**: Client-side API service layer
   - **`auth.ts`**: Authentication utilities
-- **`/components`**: Reusable components including CursorInverter effect
+- **`/components`**: Reusable components (ScrollProgressBar, ImageLightboxModal, PasswordProtectionModal)
 - **`/hook`**: Custom React hooks
 
 ### Backend Structure (server/)
-- **`index.js`**: Main Express server with CORS and middleware setup
-- **`/models`**: MongoDB schemas (User, Portfolio, Experience, Education, etc.)
-- **`/routes`**: API endpoints organized by feature
+- **`index.js`**: Main Express server with CORS and middleware setup (runs on port 5001)
+- **`/models`**: MongoDB schemas (User, Portfolio, Blog, TechTool, Role, Experience, Education, Contact, About)
+- **`/routes`**: API endpoints organized by feature (portfolios, blog, techTools, roles, experiences, education, about, contacts, upload, ai, auth)
+- **`/utils`**: Server utilities (`skillMigration.js` for atomic uncataloged skill migrations)
+- **`/scripts`**: Automation CLI scripts (`syncExistingPortfolioSkills.js`)
 - **`/middleware`**: JWT authentication middleware
 - **`/config`**: Cloudinary and database configuration
 
@@ -108,11 +110,12 @@ Images are handled through Cloudinary with specific endpoints:
 - Experience logos: `/api/upload/experience-logo`
 
 ### Database Collections
-- **portfolios**: Project showcases with tech tags and roles
+- **portfolios**: Project showcases with tech tags, roles, year, and attached media
+- **blogs**: Event recaps, news announcements, and engineering commentary with category filtering and attached portfolio case studies
 - **experiences**: Work history with company logos and dates
 - **education**: Academic credentials and certifications
-- **techtools**: Technology skills with icons
-- **roles**: Professional roles with color coding
+- **techtools**: Technology skills with icons, display order, and `isPublished` draft controls
+- **roles**: Professional roles with color coding and CMS badge synchronization
 - **contacts**: Contact form submissions
 - **abouts**: Profile information and image
 - **users**: Admin authentication

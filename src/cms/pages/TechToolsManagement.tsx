@@ -9,10 +9,31 @@ const TechToolsManagement: React.FC = () => {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [loading, setLoading] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
+  const [syncingSkills, setSyncingSkills] = useState(false);
 
   useEffect(() => {
     loadTechTools();
   }, []);
+
+  const handleSyncSkills = async () => {
+    setSyncingSkills(true);
+    try {
+      const res = await CMSStorage.syncSkillsFromPortfolios();
+      setMessage({
+        type: 'success',
+        text: res.message || 'Skills synced from portfolios successfully!'
+      });
+      await loadTechTools();
+    } catch (error: any) {
+      console.error('Failed to sync skills from portfolios:', error);
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Failed to sync skills from portfolios. Please try again.'
+      });
+    } finally {
+      setSyncingSkills(false);
+    }
+  };
 
   const loadTechTools = async () => {
     try {
@@ -59,7 +80,8 @@ const TechToolsManagement: React.FC = () => {
     const newTool: TechTool = {
       id: 'temp-new', // Will be assigned by backend
       title: '',
-      imageURL: ''
+      imageURL: '',
+      isPublished: true
     };
     setEditingTool(newTool);
     setIsAddingNew(true);
@@ -143,21 +165,43 @@ const TechToolsManagement: React.FC = () => {
     <CMSLayout>
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-wrap justify-between items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Tech Tools Management</h1>
             <p className="mt-2 text-gray-600">Manage your technology skills and tools.</p>
           </div>
-          <button
-            onClick={handleAdd}
-            className="btn btn-primary"
-            disabled={editingTool !== null}
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Add New Tool
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSyncSkills}
+              disabled={syncingSkills || editingTool !== null}
+              className="btn btn-outline btn-primary"
+              data-testid="sync-skills-btn"
+            >
+              {syncingSkills ? (
+                <>
+                  <span className="loading loading-spinner loading-xs mr-2"></span>
+                  Syncing Skills...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Sync Skills from Portfolios
+                </>
+              )}
+            </button>
+            <button
+              onClick={handleAdd}
+              className="btn btn-primary"
+              disabled={editingTool !== null}
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Add New Tool
+            </button>
+          </div>
         </div>
 
         {/* Message */}
@@ -223,6 +267,19 @@ const TechToolsManagement: React.FC = () => {
                         ✓ Image uploaded successfully
                       </p>
                     )}
+                  </div>
+
+                  <div className="flex items-center gap-3 pt-1">
+                    <input
+                      type="checkbox"
+                      id="toolPublished"
+                      className="checkbox checkbox-primary checkbox-sm"
+                      checked={editingTool.isPublished !== false}
+                      onChange={(e) => setEditingTool({ ...editingTool, isPublished: e.target.checked })}
+                    />
+                    <label htmlFor="toolPublished" className="text-sm font-medium text-gray-700 cursor-pointer">
+                      Published (Visible in public skills showcase)
+                    </label>
                   </div>
                 </div>
 
@@ -301,6 +358,15 @@ const TechToolsManagement: React.FC = () => {
                     <p className="text-sm font-medium text-gray-900 truncate" title={tool.title}>
                       {tool.title}
                     </p>
+                    {tool.isPublished === false ? (
+                      <span className="badge badge-warning badge-xs mt-1" data-testid={`draft-badge-${tool.id}`}>
+                        Draft (Placeholder)
+                      </span>
+                    ) : (
+                      <span className="badge badge-ghost badge-xs mt-1 text-[10px] text-gray-500">
+                        Published
+                      </span>
+                    )}
                     
                     {/* Action buttons - show on hover */}
                     <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -309,6 +375,7 @@ const TechToolsManagement: React.FC = () => {
                           onClick={() => handleEdit(tool)}
                           className="p-1 bg-blue-600 text-white rounded hover:bg-blue-700"
                           disabled={editingTool !== null}
+                          data-testid={`edit-tech-tool-${tool.id}`}
                         >
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -318,6 +385,7 @@ const TechToolsManagement: React.FC = () => {
                           onClick={() => handleDelete(tool.id)}
                           className="p-1 bg-red-600 text-white rounded hover:bg-red-700"
                           disabled={editingTool !== null}
+                          data-testid={`delete-tech-tool-${tool.id}`}
                         >
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

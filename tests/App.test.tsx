@@ -22,7 +22,8 @@ vi.mock('../src/cms/apiStorage', () => ({
       }
     ]),
     getPortfolios: vi.fn().mockResolvedValue([]),
-    getExperiences: vi.fn().mockResolvedValue([])
+    getExperiences: vi.fn().mockResolvedValue([]),
+    getBlogs: vi.fn().mockResolvedValue([{ id: 'blog-1', title: 'Test Blog', category: 'Tech', isPublished: true, date: '2026-01-01' }])
   }
 }));
 
@@ -72,6 +73,7 @@ describe('App Component - CursorInverter Removal & Home Page Hierarchy', () => {
     await waitFor(() => {
       expect(apiService.getExperiences).toHaveBeenCalled();
       expect(CMSStorage.getEducation).toHaveBeenCalled();
+      expect(CMSStorage.getBlogs).toHaveBeenCalled();
     });
 
     const sectionIds = Array.from(container.querySelectorAll('section[id], div#home'))
@@ -83,6 +85,7 @@ describe('App Component - CursorInverter Removal & Home Page Hierarchy', () => {
       'aboutme',
       'tools',
       'portfolio',
+      'blog',
       'experience',
       'education',
       'contact'
@@ -92,5 +95,20 @@ describe('App Component - CursorInverter Removal & Home Page Hierarchy', () => {
     const educationSlide = container.querySelector('#education .flex-none.w-96');
     expect(experienceSlide).not.toBeNull();
     expect(educationSlide).not.toBeNull();
+  });
+
+  it('omits #blog section when getBlogs returns empty array', async () => {
+    vi.mocked(CMSStorage.getBlogs).mockResolvedValueOnce([]);
+    const { container } = render(
+      <MemoryRouter initialEntries={['/']}>
+        <App />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(CMSStorage.getBlogs).toHaveBeenCalled();
+    });
+
+    expect(container.querySelector('#blog')).toBeNull();
   });
 });

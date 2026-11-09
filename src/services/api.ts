@@ -126,23 +126,30 @@ class ApiService {
   }
 
   // Tech Tools methods
-  async getTechTools() {
-    const response = await this.api.get('/tech-tools');
+  async getTechTools(publishedOnly = false) {
+    const response = await this.api.get('/tech-tools', {
+      params: publishedOnly ? { published: 'true' } : undefined
+    });
     return response.data;
   }
 
-  async createTechTool(data: { title: string; imageURL: string; imageCloudinaryId?: string; order?: number }) {
+  async createTechTool(data: { title: string; imageURL: string; imageCloudinaryId?: string; order?: number; isPublished?: boolean }) {
     const response = await this.api.post('/tech-tools', data);
     return response.data;
   }
 
-  async updateTechTool(id: string, data: { title?: string; imageURL?: string; imageCloudinaryId?: string; order?: number }) {
+  async updateTechTool(id: string, data: { title?: string; imageURL?: string; imageCloudinaryId?: string; order?: number; isPublished?: boolean }) {
     const response = await this.api.put(`/tech-tools/${id}`, data);
     return response.data;
   }
 
   async deleteTechTool(id: string) {
     const response = await this.api.delete(`/tech-tools/${id}`);
+    return response.data;
+  }
+
+  async syncSkillsFromPortfolios(): Promise<{ success: boolean; message: string; data: any }> {
+    const response = await this.api.post('/tech-tools/sync-from-portfolios');
     return response.data;
   }
 
@@ -666,6 +673,46 @@ class ApiService {
         'Content-Type': 'multipart/form-data',
       },
     });
+    return response.data;
+  }
+
+  // Blog methods
+  async uploadBlogImage(file: File): Promise<{ imageURL: string; imageCloudinaryId: string }> {
+    const result = await this.uploadDirectFileToCloudinary(file, 'blogs');
+    return {
+      imageURL: result.url,
+      imageCloudinaryId: result.cloudinaryId
+    };
+  }
+
+  async getBlogs(params?: { published?: boolean; category?: string; tag?: string; search?: string }) {
+    const queryParams: Record<string, string> = {};
+    if (params?.published) queryParams.published = 'true';
+    if (params?.category) queryParams.category = params.category;
+    if (params?.tag) queryParams.tag = params.tag;
+    if (params?.search) queryParams.search = params.search;
+
+    const response = await this.api.get('/blog', { params: queryParams });
+    return response.data;
+  }
+
+  async getBlog(id: string) {
+    const response = await this.api.get(`/blog/${id}`);
+    return response.data;
+  }
+
+  async createBlog(data: any) {
+    const response = await this.api.post('/blog', data);
+    return response.data;
+  }
+
+  async updateBlog(id: string, data: any) {
+    const response = await this.api.put(`/blog/${id}`, data);
+    return response.data;
+  }
+
+  async deleteBlog(id: string) {
+    const response = await this.api.delete(`/blog/${id}`);
     return response.data;
   }
 

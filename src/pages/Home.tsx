@@ -6,6 +6,7 @@ import Footer from '../sections/footer/footer';
 import Hero from '../sections/hero/hero';
 import Navbar from '../sections/nav/nav';
 import Portfolio from '../sections/portfolios/portfolio';
+import BlogSection from '../sections/blog/blog';
 import EducationSection from '../sections/education/education';
 import ExperienceSection from '../sections/experience/experience';
 
@@ -39,6 +40,9 @@ const Home: React.FC = () => {
           <Portfolio limit={3} />
         </div>
       </section>
+
+      {/* Blog & News Section */}
+      <BlogSection limit={3} />
       
       {/* Experience Section */}
       <ExperienceSection />

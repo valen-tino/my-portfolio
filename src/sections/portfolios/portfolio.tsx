@@ -7,12 +7,48 @@ interface Props {
   limit?: number;
 }
 
+const ROLE_COLOR_STYLES: Record<string, { active: string; inactive: string }> = {
+  primary: {
+    active: 'btn-primary text-primary-content shadow-sm font-semibold',
+    inactive: 'btn-outline btn-primary hover:bg-primary hover:text-primary-content'
+  },
+  secondary: {
+    active: 'btn-secondary text-secondary-content shadow-sm font-semibold',
+    inactive: 'btn-outline btn-secondary hover:bg-secondary hover:text-secondary-content'
+  },
+  accent: {
+    active: 'btn-accent text-accent-content shadow-sm font-semibold',
+    inactive: 'btn-outline btn-accent hover:bg-accent hover:text-accent-content'
+  },
+  info: {
+    active: 'bg-[#00BAFE] text-white border-[#00BAFE] hover:bg-[#00BAFE]/90 shadow-sm font-semibold',
+    inactive: 'border-[#00BAFE] text-[#00BAFE] hover:bg-[#00BAFE] hover:text-white'
+  },
+  success: {
+    active: 'btn-success text-success-content shadow-sm font-semibold',
+    inactive: 'btn-outline btn-success hover:bg-success hover:text-success-content'
+  },
+  warning: {
+    active: 'btn-warning text-warning-content shadow-sm font-semibold',
+    inactive: 'btn-outline btn-warning hover:bg-warning hover:text-warning-content'
+  },
+  error: {
+    active: 'btn-error text-error-content shadow-sm font-semibold',
+    inactive: 'btn-outline btn-error hover:bg-error hover:text-error-content'
+  },
+  neutral: {
+    active: 'btn-neutral text-neutral-content shadow-sm font-semibold',
+    inactive: 'btn-outline btn-neutral hover:bg-neutral hover:text-neutral-content'
+  }
+};
+
 const Portfolio: React.FC<Props> = ({ limit }) => {
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<PortfolioItem[]>([]);
   const [selectedTechs, setSelectedTechs] = useState<string[]>([]);
   const [selectedRole, setSelectedRole] = useState<string>('All');
   const [selectedYear, setSelectedYear] = useState<string>('All');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [availableTechs, setAvailableTechs] = useState<string[]>([]);
   const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
   const [allRoleNames, setAllRoleNames] = useState<string[]>([]);
@@ -71,17 +107,28 @@ const Portfolio: React.FC<Props> = ({ limit }) => {
     };
   }, []);
 
-  // Filter items based on selected technologies, role, and year
+  // Filter items based on selected technologies, role, year, and search query
   useEffect(() => {
     let filtered = portfolioItems;
-    
+    const q = searchQuery.toLowerCase().trim();
+
+    if (q) {
+      filtered = filtered.filter(item => {
+        const titleMatch = (item.title || '').toLowerCase().includes(q);
+        const descMatch = (item.desc || '').toLowerCase().includes(q);
+        const techMatch = Array.isArray(item.tech) && item.tech.some(t => t.toLowerCase().includes(q));
+        const roleMatch = Array.isArray(item.roles) && item.roles.some(r => r.toLowerCase().includes(q));
+        return titleMatch || descMatch || techMatch || roleMatch;
+      });
+    }
+
     // Filter by technologies (any tech selected must be included)
     if (selectedTechs.length > 0) {
       filtered = filtered.filter(item => 
-        selectedTechs.some(tech => item.tech.includes(tech))
+        selectedTechs.some(tech => item.tech && item.tech.includes(tech))
       );
     }
-    
+
     // Filter by role
     if (selectedRole !== 'All') {
       filtered = filtered.filter(item => 
@@ -93,9 +140,9 @@ const Portfolio: React.FC<Props> = ({ limit }) => {
     if (selectedYear !== 'All') {
       filtered = filtered.filter(item => item.year === selectedYear);
     }
-    
+
     setFilteredItems(filtered);
-  }, [selectedTechs, selectedRole, selectedYear, portfolioItems]);
+  }, [selectedTechs, selectedRole, selectedYear, searchQuery, portfolioItems]);
 
   // Extract all unique years sorted descending
   const allYears = Array.from(
@@ -128,220 +175,244 @@ const Portfolio: React.FC<Props> = ({ limit }) => {
     setSelectedTechs([]);
     setSelectedRole('All');
     setSelectedYear('All');
+    setSearchQuery('');
   };
+  const handleClearFilters = clearAllFilters;
 
   return (
     <div className="text-center">
-      <h3 className="mt-12 mb-4 text-3xl md:text-6xl font-bold  text-gray-900 text-center">
-        My <span className='text-info'>Works</span>
+      <h3 className="mt-12 mb-4 text-3xl md:text-6xl font-bold text-gray-900 text-center">
+        My <span className="text-info">Works</span>
       </h3>
-      <p className="text-xl text-base-content/70 max-w-2xl mx-auto">These are my works, from my university assignments to my work projects.</p>
-      
-      {/* Filters - Horizontal Bar */}
+      <p className="text-xl text-base-content/70 max-w-2xl mx-auto">
+        These are my works, from my university assignments to my work projects.
+      </p>
+
+      {/* Filters - Modern Two-Row Partitioned Bar */}
       {!limit && (availableTechs.length > 0 || allRoleNames.length > 0 || allYears.length > 0) && (
-        <div className="mb-8 flex justify-center mx-6">
-          <div className="inline-block">
-            {/* Filter Header */}
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Filters</h3>
-              {(selectedTechs.length > 0 || selectedRole !== 'All' || selectedYear !== 'All') && (
-                <button 
-                  onClick={clearAllFilters}
-                  className="btn btn-sm btn-outline btn-error ml-4"
+        <div className="portfolio-filter relative z-30 mb-8 sm:mb-10 max-w-5xl mx-auto px-4 mt-8">
+          <div className="relative z-30 bg-base-200/60 backdrop-blur-sm p-4 sm:p-6 rounded-2xl border border-base-300 shadow-sm space-y-4 text-left">
+            {/* Row 1: Role Pills & Keyword Search */}
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-1.5" data-testid="portfolio-role-filter">
+                <span className="text-xs font-semibold text-base-content/60 mr-1 hidden sm:inline">Roles:</span>
+                <button
+                  type="button"
+                  onClick={() => handleRoleFilter('All')}
+                  className={`btn btn-xs sm:btn-sm gap-1.5 rounded-full transition-all ${
+                    selectedRole === 'All'
+                      ? 'bg-[#00BAFE] text-white border-[#00BAFE] hover:bg-[#00BAFE]/90 shadow-sm font-semibold'
+                      : 'border-[#00BAFE] text-[#00BAFE] hover:bg-[#00BAFE] hover:text-white'
+                  }`}
+                  data-testid="role-filter-All"
                 >
-                  Clear All
+                  <span>All</span>
+                  <span className={`badge badge-xs ${selectedRole === 'All' ? 'badge-neutral text-neutral-content' : 'badge-ghost'}`}>
+                    {portfolioItems.length}
+                  </span>
+                </button>
+                {allRoleNames.map((roleName) => {
+                  const count = portfolioItems.filter(item => item.roles && item.roles.includes(roleName)).length;
+                  const isSelected = selectedRole === roleName;
+                  const roleObj = availableRoles.find(r => r.title === roleName);
+                  const colorKey = roleObj?.color || 'info';
+                  const styleConfig = ROLE_COLOR_STYLES[colorKey] || ROLE_COLOR_STYLES.info;
+
+                  return (
+                    <button
+                      key={roleName}
+                      type="button"
+                      onClick={() => handleRoleFilter(roleName)}
+                      className={`btn btn-xs sm:btn-sm gap-1.5 rounded-full transition-all ${
+                        isSelected ? styleConfig.active : styleConfig.inactive
+                      }`}
+                      data-testid={`role-filter-${roleName}`}
+                    >
+                      <span>{roleName}</span>
+                      <span className={`badge badge-xs ${isSelected ? 'badge-neutral text-neutral-content' : 'badge-ghost'}`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Search Box */}
+              <div className="w-full md:w-64 relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search projects and technologies..."
+                  className="input input-bordered input-sm w-full pl-8 text-xs rounded-full bg-base-100"
+                  data-testid="portfolio-search-input"
+                />
+                <svg
+                  className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/40"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Row 2: Year Selector, Tech Dropdown, and Clear All */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-base-300/60">
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Year Selector */}
+                {allYears.length > 0 && (
+                  <div className="flex items-center gap-1.5" data-testid="portfolio-year-filter">
+                    <span className="text-xs font-semibold text-base-content/60 mr-1">Year:</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedYear('All')}
+                      className={`btn btn-xs rounded-full transition-all ${
+                        selectedYear === 'All'
+                          ? 'bg-[#00BAFE] text-white border-[#00BAFE] hover:bg-[#00BAFE]/90 font-semibold shadow-sm'
+                          : 'btn-ghost hover:bg-base-300'
+                      }`}
+                      data-testid="year-filter-All"
+                    >
+                      All
+                    </button>
+                    {allYears.map((year) => (
+                      <button
+                        key={year}
+                        type="button"
+                        onClick={() => setSelectedYear(year)}
+                        className={`btn btn-xs rounded-full transition-all ${
+                          selectedYear === year
+                            ? 'bg-[#00BAFE] text-white border-[#00BAFE] hover:bg-[#00BAFE]/90 font-semibold shadow-sm'
+                            : 'btn-ghost hover:bg-base-300'
+                        }`}
+                        data-testid={`year-filter-${year}`}
+                      >
+                        {year}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Tech Dropdown */}
+                {availableTechs.length > 0 && (
+                  <div className="relative inline-block z-40" ref={techDropdownRef}>
+                    <button
+                      type="button"
+                      onClick={() => setTechDropdownOpen(!techDropdownOpen)}
+                      className={`btn btn-xs rounded-full gap-1 border-base-300 ${
+                        selectedTechs.length > 0 ? 'btn-accent' : 'btn-outline'
+                      }`}
+                      data-testid="portfolio-tech-dropdown-btn"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5a1.99 1.99 0 011.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                      </svg>
+                      <span>{selectedTechs.length === 0 ? `Filter by Tech (${availableTechs.length})` : `${selectedTechs.length} Selected`}</span>
+                      <svg className={`w-3 h-3 transition-transform ${techDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {techDropdownOpen && (
+                      <div
+                        className="absolute left-0 mt-1 w-64 max-h-64 overflow-y-auto bg-base-100 rounded-xl shadow-xl border border-base-300 z-50 p-2 text-xs"
+                        data-testid="portfolio-tech-menu"
+                      >
+                        {availableTechs.map((tech) => {
+                          const count = portfolioItems.filter(item => item.tech.includes(tech)).length;
+                          const isSelected = selectedTechs.includes(tech);
+                          return (
+                            <button
+                              key={tech}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTechToggle(tech);
+                              }}
+                              className={`w-full flex items-center justify-between p-2 rounded-lg transition-colors ${
+                                isSelected ? 'bg-primary text-primary-content font-bold' : 'hover:bg-base-200 text-base-content'
+                              }`}
+                              data-testid={`tech-option-${tech}`}
+                            >
+                              <span className="flex items-center gap-2">
+                                {isSelected && <span>✓</span>}
+                                <span>{tech}</span>
+                              </span>
+                              <span className={`badge badge-xs ${isSelected ? 'badge-neutral' : 'badge-ghost'}`}>
+                                {count}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Selected Tech Pills */}
+                {selectedTechs.map((tech) => (
+                  <div key={tech} className="badge badge-info badge-sm gap-1.5 py-2">
+                    <span>{tech}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleTechToggle(tech)}
+                      className="btn btn-xs btn-circle btn-ghost h-4 w-4 min-h-0 hover:btn-error"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Clear All Button */}
+              {(selectedTechs.length > 0 || selectedRole !== 'All' || selectedYear !== 'All' || searchQuery.trim() !== '') && (
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="btn btn-ghost btn-xs text-error gap-1 hover:bg-error/10"
+                  aria-label="Clear All"
+                  data-testid="clear-portfolio-filters"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <span>Clear All</span>
                 </button>
               )}
             </div>
-            
-            {/* Horizontal Filter Bar */}
-            <div className="bg-base-200 rounded-lg p-4 w-fit max-w-4xl">
-              <div className="flex items-center gap-4 flex-wrap justify-start">
-                {/* Role Filters */}
-                {allRoleNames.length > 0 && (
-                  <>
-                    <span className="text-sm font-medium text-base-content/70 whitespace-nowrap">Roles:</span>
-                    <button
-                      onClick={() => handleRoleFilter('All')}
-                      className={`badge badge-lg cursor-pointer transition-all inline-flex items-center whitespace-nowrap ${
-                        selectedRole === 'All'
-                          ? 'badge-info shadow-lg'
-                          : 'badge-outline badge-info hover:badge-info hover:shadow-md'
-                      }`}
-                    >
-                      <span className="whitespace-nowrap">All</span>
-                      <span className="badge badge-xs ml-1 badge-neutral">
-                        {portfolioItems.length}
-                      </span>
-                    </button>
-                    {allRoleNames.map((roleName) => {
-                      const role = availableRoles.find(r => r.title === roleName);
-                      const isSelected = selectedRole === roleName;
-                      const count = portfolioItems.filter(item => item.roles && item.roles.includes(roleName)).length;
-                      
-                      return (
-                        <button
-                          key={roleName}
-                          onClick={() => handleRoleFilter(roleName)}
-                          className={`badge badge-lg cursor-pointer transition-all inline-flex items-center whitespace-nowrap ${
-                            isSelected
-                              ? `badge-${role?.color || 'info'} shadow-lg`
-                              : `badge-outline badge-${role?.color || 'info'} hover:badge-${role?.color || 'info'} hover:shadow-md`
-                          }`}
-                        >
-                          <span className="whitespace-nowrap">{roleName}</span>
-                          <span className={`badge badge-xs ml-1 ${
-                            isSelected ? 'badge-neutral' : 'badge-ghost'
-                          }`}>
-                            {count}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </>
-                )}
-                
-                {/* Year Filters */}
-                {allYears.length > 0 && (
-                  <>
-                    <span className="text-sm font-medium text-base-content/70 whitespace-nowrap">Year:</span>
-                    <button
-                      onClick={() => setSelectedYear('All')}
-                      className={`badge badge-lg cursor-pointer transition-all inline-flex items-center whitespace-nowrap ${
-                        selectedYear === 'All'
-                          ? 'badge-info shadow-lg'
-                          : 'badge-outline badge-info hover:badge-info hover:shadow-md'
-                      }`}
-                    >
-                      <span className="whitespace-nowrap">All</span>
-                      <span className="badge badge-xs ml-1 badge-neutral">
-                        {portfolioItems.length}
-                      </span>
-                    </button>
-                    {allYears.map((year) => {
-                      const isSelected = selectedYear === year;
-                      const count = portfolioItems.filter(item => item.year === year).length;
-                      
-                      return (
-                        <button
-                          key={year}
-                          onClick={() => setSelectedYear(year)}
-                          className={`badge badge-lg cursor-pointer transition-all inline-flex items-center whitespace-nowrap ${
-                            isSelected
-                              ? 'badge-info shadow-lg'
-                              : 'badge-outline badge-info hover:badge-info hover:shadow-md'
-                          }`}
-                        >
-                          <span className="whitespace-nowrap">{year}</span>
-                          <span className={`badge badge-xs ml-1 ${
-                            isSelected ? 'badge-neutral' : 'badge-ghost'
-                          }`}>
-                            {count}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </>
-                )}
+          </div>
 
-                {/* Tech Filters */}
-                {availableTechs.length > 0 && (
-                  <>
-                    <span className="text-sm font-medium text-base-content/70 whitespace-nowrap">Tech:</span>
-                    
-                    {/* Tech Dropdown */}
-                    <div className="relative" ref={techDropdownRef}>
-                      <button 
-                        className="btn btn-sm btn-outline btn-info"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setTechDropdownOpen(!techDropdownOpen);
-                        }}
-                      >
-                        Add Technology ({availableTechs.length})
-                        <svg className={`w-4 h-4 ml-1 transition-transform ${
-                          techDropdownOpen ? 'rotate-180' : ''
-                        }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-                      
-                      {techDropdownOpen && (
-                        <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-xl border border-gray-200 z-[9999] max-h-64 overflow-y-auto">
-                          <div className="p-2">
-                            {availableTechs.length > 0 ? (
-                              availableTechs.map((tech) => {
-                                const count = portfolioItems.filter(item => item.tech.includes(tech)).length;
-                                const isSelected = selectedTechs.includes(tech);
-                                return (
-                                  <button
-                                    key={tech}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleTechToggle(tech);
-                                      // Keep dropdown open for multiple selections
-                                    }}
-                                    className={`w-full flex items-center justify-between p-2 rounded hover:bg-gray-100 text-left transition-colors ${
-                                      isSelected ? 'bg-blue-500 text-white' : 'text-gray-700'
-                                    }`}
-                                  >
-                                    <span className="flex items-center gap-2">
-                                      {isSelected && (
-                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                        </svg>
-                                      )}
-                                      {tech}
-                                    </span>
-                                    <span className={`badge badge-xs ${
-                                      isSelected ? 'badge-neutral' : 'badge-ghost'
-                                    }`}>
-                                      {count}
-                                    </span>
-                                  </button>
-                                );
-                              })
-                            ) : (
-                              <div className="p-4 text-center text-gray-500">
-                                No technologies available
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Selected Tech Pills */}
-                    {selectedTechs.map((tech) => (
-                      <div key={tech} className="badge badge-info gap-2">
-                        {tech}
-                        <button
-                          onClick={() => handleTechToggle(tech)}
-                          className="btn btn-xs btn-circle btn-ghost hover:btn-error"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                    ))}
-                  </>
-                )}
-              </div>
-            </div>
-            
-            {/* Results summary */}
-            <div className="text-center mt-4">
-              <div className="text-sm text-base-content/60">
-                Showing {items.length} of {portfolioItems.length} projects
-              </div>
-            </div>
+          {/* Results summary */}
+          <div className="text-center mt-3 text-xs text-base-content/60">
+            Showing {filteredItems.length} of {portfolioItems.length} projects
           </div>
         </div>
       )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 sm:gap-8 lg:gap-10 justify-items-center mt-4 sm:mt-8 lg:mt-12 py-6 px-4 sm:py-8 sm:px-6 lg:py-2 lg:px-2 max-w-7xl mx-auto">
-        <PortfolioCard items={items} />
-      </div>
+
+      {/* Grid of Projects or Empty State */}
+      {filteredItems.length === 0 ? (
+        <div className="text-center py-16 bg-base-200/40 rounded-2xl border border-base-300 max-w-2xl mx-auto my-8 p-6">
+          <p className="text-base text-base-content/70 mb-3">
+            No projects match your current filter and search criteria.
+          </p>
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="btn btn-primary btn-sm rounded-full"
+            data-testid="reset-empty-portfolio-filters"
+          >
+            Reset Filters
+          </button>
+        </div>
+      ) : (
+        <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 sm:gap-8 lg:gap-10 justify-items-center mt-4 sm:mt-8 lg:mt-12 py-6 px-4 sm:py-8 sm:px-6 lg:py-2 lg:px-2 max-w-7xl mx-auto">
+          <PortfolioCard items={items} />
+        </div>
+      )}
+
       {limit && (
         <div className="text-center mt-8 sm:mt-10 lg:mt-12">
           <Link to="/portfolio" className="btn btn-outline btn-info btn-sm sm:btn-md">

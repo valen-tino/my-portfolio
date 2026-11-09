@@ -17,6 +17,10 @@ const techToolSchema = new mongoose.Schema({
   order: {
     type: Number,
     default: 0
+  },
+  isPublished: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true

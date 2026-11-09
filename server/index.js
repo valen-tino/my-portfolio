@@ -6,6 +6,7 @@ require('dotenv').config();
 
 const app = express();
 const User = require('./models/User');
+const { syncAllPortfolioSkills } = require('./utils/skillMigration');
 let adminBootstrapped = false;
 
 // Middleware
@@ -75,7 +76,17 @@ app.use(async (req, res, next) => {
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/portfolio';
 mongoose.connect(MONGODB_URI)
-.then(() => console.log('✅ Connected to MongoDB'))
+.then(async () => {
+  console.log('✅ Connected to MongoDB');
+  try {
+    const syncResult = await syncAllPortfolioSkills();
+    if (syncResult && syncResult.createdCount > 0) {
+      console.log(`🛠️ Auto-migrated ${syncResult.createdCount} new skills from existing portfolios to TechTool.`);
+    }
+  } catch (syncErr) {
+    console.warn('Portfolio skills startup sync warning:', syncErr?.message || syncErr);
+  }
+})
 .catch((err) => console.error('❌ MongoDB connection error:', err));
 
 // Import routes
@@ -89,6 +100,7 @@ const uploadRoutes = require('./routes/upload');
 const roleRoutes = require('./routes/roles');
 const aiRoutes = require('./routes/ai');
 const experienceRoutes = require('./routes/experiences');
+const blogRoutes = require('./routes/blog');
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -101,6 +113,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/experiences', experienceRoutes);
+app.use('/api/blog', blogRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

@@ -1,9 +1,36 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const Portfolio = require('../models/Portfolio');
+const TechTool = require('../models/TechTool');
 const { authMiddleware } = require('../middleware/auth');
 const { deleteImage } = require('../config/cloudinary');
 const router = express.Router();
+
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const syncUncatalogedSkills = async (techList) => {
+  if (!Array.isArray(techList) || techList.length === 0) return;
+  try {
+    const uniqueSkills = Array.from(new Set(techList.map(s => String(s).trim()).filter(Boolean)));
+    for (const skill of uniqueSkills) {
+      await TechTool.findOneAndUpdate(
+        { title: { $regex: new RegExp(`^${escapeRegex(skill)}$`, 'i') } },
+        {
+          $setOnInsert: {
+            title: skill,
+            imageURL: '/placeholder-tech.svg',
+            imageCloudinaryId: null,
+            order: 0,
+            isPublished: false
+          }
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+    }
+  } catch (err) {
+    console.warn('Non-blocking tech tools auto-sync warning:', err);
+  }
+};
 
 // @route   GET /api/portfolio
 // @desc    Get all portfolio items
@@ -99,6 +126,7 @@ router.post('/', authMiddleware, async (req, res) => {
     });
 
     await portfolio.save();
+    await syncUncatalogedSkills(portfolio.tech);
 
     res.status(201).json({
       success: true,
@@ -204,6 +232,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
 
     await portfolio.save();
+    await syncUncatalogedSkills(portfolio.tech);
 
     res.json({
       success: true,

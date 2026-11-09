@@ -149,6 +149,8 @@ const PortfolioManagement: React.FC = () => {
         type: 'success',
         text: `Portfolio item ${isNew ? 'added' : 'updated'} successfully!`
       });
+      // Refresh available tech tools so auto-provisioned draft skills are synced
+      await loadTechTools();
       return savedItem;
     } catch (error) {
       console.error('Save error:', error);

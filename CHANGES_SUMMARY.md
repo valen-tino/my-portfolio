@@ -19,7 +19,14 @@ This document provides a comprehensive, centralized record of all architecture i
 12. [Homepage Hierarchy & UI Alignment](#12-homepage-hierarchy--ui-alignment)
 13. [Portfolio Public Visibility & Draft Management](#13-portfolio-public-visibility--draft-management)
 14. [Custom Technologies Input & Tokenization System](#14-custom-technologies-input--tokenization-system)
-15. [Files Created, Modified, or Removed](#15-files-created-modified-or-removed)
+15. [WYSIWYG Expansion, Public Formatting & CV Upload](#15-wysiwyg-expansion-public-formatting--cv-upload)
+16. [Blog & News Publication System](#16-blog--news-publication-system)
+17. [Tech Tools Auto-Provisioning & Draft Privacy](#17-tech-tools-auto-provisioning--draft-privacy)
+18. [TipTap Portfolio Embed Node & Modal Widget](#18-tiptap-portfolio-embed-node--modal-widget)
+19. [Blog System Refinements & Portfolio Skills Full Migration](#19-blog-system-refinements--portfolio-skills-full-migration)
+20. [Portfolio Embed Persistence & "My Works" Filter Redesign](#20-portfolio-embed-persistence--my-works-filter-redesign)
+21. [Portfolio Filter Z-Index Elevation & Color Badge Synchronization](#21-portfolio-filter-z-index-elevation--color-badge-synchronization)
+22. [Files Created, Modified, or Removed](#22-files-created-modified-or-removed)
 
 ---
 
@@ -297,47 +304,178 @@ This document provides a comprehensive, centralized record of all architecture i
 
 ---
 
-## 16. Files Created, Modified, or Removed
+## 16. Blog & News Publication System
+
+- **Public Showcase & Archive System**:
+  - Implemented multi-dimensional filter bar (`src/sections/blog/blog.tsx`) featuring Category pills (`All`, `Event`, `Personal`, `News`, `Tech`), Year pills, interactive Tags dropdown, and keyword search.
+  - Developed responsive blog card (`src/sections/blog/blogcard.tsx`) with category badge, read time, date, excerpt, tags, and pinned indicators.
+  - Created full archive page at `/blog` (`src/pages/BlogPage.tsx`) and reading view at `/blog/:id` (`src/pages/BlogDetail.tsx`).
+  - Embedded homepage preview section (`#blog`) with 3-post limit and full archive link button between Portfolio and Experience.
+  - Implemented delegated link handler on article content bodies to transition internal routes (`/portfolio/...`) smoothly via client-side routing.
+- **Backend Architecture & Dual-Lookup Routing**:
+  - Created Mongoose model `server/models/Blog.js` with indexed sparse `slug`, category enum, tags, cover image, read time, and pre-save year and kebab-case slug derivation.
+  - Created RESTful routes `server/routes/blog.js` with dual lookup (`_id` or `slug` via `mongoose.Types.ObjectId.isValid`), published filter `{ isPublished: { $ne: false } }`, deterministic sorting (`{ isPinned: -1, date: -1, createdAt: -1 }`), and Cloudinary cover cleanup on delete.
+  - Mounted routes under `/api/blog` in `server/index.js`.
+- **Admin Dashboard**:
+  - Created `src/cms/pages/BlogManagement.tsx` under protected route `/cms/blogs`.
+  - Added TipTap WYSIWYG editor (`enableSectionPresets={false}`, `enablePortfolioEmbed={true}`), cover upload directly to Cloudinary (`blogs` folder), tags input, and pinned/published toggles.
+  - Added "Blogs & News" navigation entry to `src/cms/components/CMSLayout.tsx`.
+
+---
+
+## 17. Tech Tools Auto-Provisioning & Draft Privacy
+
+- **Atomic Auto-Sync**:
+  - In `server/routes/portfolio.js`, implemented `syncUncatalogedSkills`: saving a portfolio item with custom comma-separated skills checks `TechTool` via case-insensitive regex. If absent, it atomically upserts the tool as draft (`isPublished: false`, `/placeholder-tech.svg`, `order: 0`) using `$setOnInsert`.
+  - Client-side chip input in `PortfolioManagement.tsx` remains strictly local React state until the portfolio is explicitly saved, avoiding orphan drafts from uncommitted input.
+  - On portfolio save, `PortfolioManagement.tsx` refreshes `availableTechTools` to synchronize newly provisioned tools.
+- **Public Marquee Isolation**:
+  - Updated `server/routes/techTools.js` to support `?published=true`, filtering by `{ isPublished: { $ne: false } }`.
+  - Updated `src/sections/skills/skills.tsx` to query `CMSStorage.getTechTools(true)`. Draft tools are excluded from the public marquee.
+  - Implemented `duplicateToFill` with compound React keys (`key={`${tool._id || tool.title}-${idx}`}`) to prevent duplicate key collisions and avoid visual marquee gaps.
+  - Added `onError` fallback on `src/sections/skills/logocard.tsx` to prevent broken image badges.
+- **CMS Draft Management**:
+  - In `src/cms/pages/TechToolsManagement.tsx`, auto-provisioned draft tools are displayed with a `Draft (Placeholder)` badge.
+  - Added `isPublished` toggle in the edit modal, allowing administrators to upload official icons, adjust titles, and publish tools to the public marquee.
+
+---
+
+## 18. TipTap Portfolio Embed Node & Modal Widget
+
+- **Custom Node (`PortfolioEmbedNode`)**:
+  - Implemented custom atomic block node in `src/cms/components/WYSIWYGEditor.tsx` with non-rendered attributes (`portfolioId`, `title`, `desc`, `imageURL`, `linkTo`, `tech`, `roles`, `year`, `affiliation`).
+  - Explicitly registered `PortfolioEmbedNode` in `useEditor({ extensions: [...] })`, preserving embedded card tags during HTML parsing and serialization.
+  - Semantic HTML serialization into `<div data-portfolio-embed="true" ...>` with card layout, thumbnail, case study badge, affiliation, and action button.
+- **Interactive NodeView (`PortfolioEmbedNodeView`)**:
+  - Wrapped root in `<NodeViewWrapper>` from `@tiptap/react` to maintain DOM cursor tracking and avoid orphan nodes.
+  - Floating dark action bar with attached title and `✕ Remove` button invoking `deleteNode()`.
+  - Card preview button with `e.preventDefault()` to prevent accidental navigation while editing CMS content.
+- **Modal Selector (`PortfolioSelectModal`)**:
+  - Added "💼 Attach Portfolio" toolbar button with `onMouseDown={(e) => e.preventDefault()}` to preserve ProseMirror editor focus.
+  - Searchable modal with live title/description/tech query, project thumbnails, and instant insertion into editor cursor position.
+
+---
+
+## 19. Blog System Refinements & Portfolio Skills Full Migration
+
+### Dynamic Blog Category Omission & Reset
+- In `src/sections/blog/blog.tsx`, category pills are dynamically filtered so categories with 0 published items are omitted from the filter bar.
+- Added auto-reset `useEffect` to defensively reset `selectedCategory` to `'All'` if the currently selected category has 0 posts.
+
+### Homepage Blog Decoupling & Section Suppression
+- Decoupled homepage mode (`limit={3}`) from archive mode:
+  - When `limit` is present, the filter bar and search box are completely suppressed.
+  - Renders latest blogs grid up to `limit` and an explicit "See More Blogs" CTA button linking to `/blogs` (`btn btn-outline btn-info btn-sm sm:btn-md`).
+  - If 0 published blogs exist, the entire `#blog` section returns `null` and is omitted from the DOM without layout disruption.
+- In `src/pages/Home.tsx`, simplified structure by rendering `<BlogSection limit={3} />` directly, aligning with `ExperienceSection` and `EducationSection`.
+
+### Canonical `/blogs` Routing & Breadcrumbs
+- In `src/App.tsx`, registered canonical `/blogs` route and redirected `/blog` to `/blogs` via `<Navigate to="/blogs" replace />`.
+- Supported dual reading routes `/blogs/:id` and `/blog/:id`.
+- Standardized links across `src/sections/blog/blogcard.tsx`, `src/pages/BlogDetail.tsx`, and `src/sections/nav/nav.tsx`.
+
+### Portfolio Select Modal Overflow & Hidden Filtering
+- In `PortfolioSelectModal` (`src/cms/components/WYSIWYGEditor.tsx`):
+  - Strictly filtered out uncataloged / hidden portfolios (`p.isPublished !== false`).
+  - Fixed flexbox scrolling overflow by setting `shrink-0` on headers and `min-h-0 flex-1 overflow-y-auto overscroll-contain` on the container, allowing all portfolios to scroll without being clamped.
+  - Displayed dynamic portfolio count in modal title: `Attach Portfolio Case Study ({count} available)`.
+
+### Existing Portfolio Skills Migration & Auto-Sync
+- Created `server/utils/skillMigration.js` with case-insensitive `Set` deduplication and atomic `TechTool.bulkWrite` (`updateOne` with `$setOnInsert` and `upsert: true`).
+- Hooked automatic, non-blocking scan upon MongoDB connection in `server/index.js`.
+- Created standalone CLI migration tool `server/scripts/syncExistingPortfolioSkills.js`.
+- Added manual sync button "Sync Skills from Portfolios" in `src/cms/pages/TechToolsManagement.tsx` backed by `POST /api/tech-tools/sync-from-portfolios`.
+
+---
+
+## 20. Portfolio Embed Persistence & "My Works" Filter Redesign
+
+### TipTap PortfolioEmbedNode Serialization Fix & White Button Text
+- **Attribute Persistence**: In `src/cms/components/WYSIWYGEditor.tsx`, removed `rendered: false` from `PortfolioEmbedNode.addAttributes()`. In `renderHTML({ node, HTMLAttributes })`, read defensively from `node?.attrs || HTMLAttributes` and merged into the outer `div`, preserving valid JSON array serialization for `tech` and `roles`. Fixed the bug where attached case study cards reverted to `"Untitled Project"` after save.
+- **Trailing Paragraph Flow**: Added trailing paragraph insertion in `PortfolioSelectModal.onSelect` so authors can click and type below newly embedded atom cards.
+- **White Action Button**:
+  - Added `.portfolio-embed-card` directly to `PortfolioEmbedNodeView` in `WYSIWYGEditor.tsx`.
+  - Added `text-white !text-white !no-underline` to the anchor button in both the React NodeView and serialized HTML.
+  - Added scoped CSS rule in `src/App.css` (`.portfolio-embed-card a.btn, [data-portfolio-embed] a.btn { color: #ffffff !important; text-decoration: none !important; }`) to neutralize `.ProseMirror a` and `@tailwindcss/typography` specificity cascades.
+
+### "My Works" Multi-Dimensional Filter Redesign
+- **Partitioned Two-Row Layout**: Redesigned the filter bar in `src/sections/portfolios/portfolio.tsx` matching the clean Blog filter pattern:
+  - **Row 1**: Role pill buttons (`All`, `UI/UX`, `Web Developer`, `WordPress Developer`) with `btn-primary` active states and neutral count badges, alongside a real-time keyword search input (`🔍 Search projects and technologies...`).
+  - **Divider**: Separator line (`border-t border-base-300/60`).
+  - **Row 2**: Year pills (`All`, `2024`, etc.), Technology filter dropdown (`Filter by Tech (${count})`), selected technology tags with remove buttons, and an active `✕ Clear All` button.
+  - **Results Summary**: Centered `"Showing X of Y projects"` summary.
+- **Null-Safe Multi-Field Keyword Search**: Added real-time filtering across project title, description, and technologies.
+- **Friendly Empty State**: When 0 projects match, renders a centered message with a "Reset Filters" action button calling `clearAllFilters`.
+- **Homepage Protection**: Retained `{!limit && ...}` guard so `<Portfolio limit={3} />` on the homepage remains completely clean.
+
+---
+
+## 21. Portfolio Filter Z-Index Elevation & Color Badge Synchronization
+
+### Stacking Context Elevation (Dropdown Below Card Fix)
+- **Problem**: The technology filter dropdown (`portfolio-tech-menu` with `z-50`) rendered visually underneath adjacent portfolio cards when expanded, due to portfolio cards having `relative` position, `z-10` badges (e.g. affiliation, pinned), and transform transitions (`hover:scale-105`) while the filter container was statically positioned.
+- **Resolution**:
+  - Assigned `relative z-30` to `.portfolio-filter` and its inner card container (`bg-base-200/60`).
+  - Assigned `relative inline-block z-40` to the dropdown anchor button container.
+  - Assigned `relative z-10` to the portfolio project card grid container below.
+  - This establishes an immutable parent stacking context where all dropdown menus float above card elements and badges.
+
+### Year Pill Selection Color (`#00BAFE`)
+- Updated the selected year pill (both `'All'` and individual years) to use the brand cyan color `#00BAFE`:
+  `bg-[#00BAFE] text-white border-[#00BAFE] hover:bg-[#00BAFE]/90 font-semibold shadow-sm`.
+- Retained clean unselected state (`btn-ghost hover:bg-base-300`).
+
+### Role Tab Badge Color Synchronization
+- **Role Badge Mapping**: Integrated `ROLE_COLOR_STYLES` dictionary mapping each role's CMS badge color (`primary`, `secondary`, `accent`, `info`, `success`, `warning`, `error`, `neutral`) to DaisyUI button styles.
+- **Outline & Fill Dynamics**:
+  - Inactive role tabs render as outlines matching their CMS badge color (e.g. `btn-outline btn-secondary`, `btn-outline btn-accent`, `border-[#00BAFE] text-[#00BAFE]`).
+  - Active role tabs render as solid fills in their CMS badge color with matching content text color and shadow.
+  - `'All'` role button renders in brand `#00BAFE` (filled when selected, outlined when unselected).
+
+---
+
+## 22. Files Created, Modified, or Removed
 
 | File | Status | Description |
 | :--- | :--- | :--- |
-| `src/utils/contentMigration.ts` | Modified | Exported `formatPublicDescription(content)` without case study chapter rewriting. |
-| `src/cms/components/WYSIWYGEditor.tsx` | Modified | Added configurable props (`enableSectionPresets`, `enableGalleries`, `minHeight`) and conditional toolbar rendering. |
-| `server/models/About.js` | Modified | Added `cvURL` and `cvCloudinaryId` fields with defaults. |
-| `server/routes/about.js` | Modified | Added `cvURL` and `cvCloudinaryId` in GET/PUT routes; deletes replaced raw CV assets from Cloudinary. |
-| `src/services/api.ts` | Modified | Added `uploadCV` direct signed Cloudinary upload; updated `updateAbout` argument types. |
-| `src/cms/apiStorage.ts` | Modified | Updated `AboutData` interface; added `CMSStorage.uploadCV`. |
-| `src/App.css` | Modified | Added `.wysiwyg-content` styling for lists, bullets, numbers, paragraphs, and left alignment. |
-| `src/sections/experience/experience.tsx` | Modified | Replaced outer `<p>` with `<div className="wysiwyg-content">` and `formatPublicDescription`. |
-| `src/sections/education/educationcard.tsx` | Modified | Replaced outer `<p>` with `<div className="wysiwyg-content">` and `formatPublicDescription`. |
-| `src/sections/aboutme/aboutme.tsx` | Modified | Replaced `.split('\n')` with `formatPublicDescription`; bound dynamic `cvURL` with `target="_blank"`. |
-| `src/sections/nav/nav.tsx` | Modified | Fetches `CMSStorage.getAbout()` on mount and dynamically binds `cvUrl` (`target="_blank"`). |
-| `src/cms/pages/ExperienceManagement.tsx` | Modified | Integrated `WYSIWYGEditor`; stripped tags in list card previews. |
-| `src/cms/pages/EducationManagement.tsx` | Modified | Integrated `WYSIWYGEditor`; stripped tags in list card previews. |
-| `src/cms/pages/AboutManagement.tsx` | Modified | Integrated `WYSIWYGEditor`; added CV upload card and updated preview. |
-| `tests/publicFormatting.test.tsx` | Created | Automated tests for public Experience, Education, and About Me rich list/paragraph rendering. |
-| `tests/AboutManagement.test.tsx` | Created | Automated tests for About Management WYSIWYG integration and CV upload flow. |
-| `tests/PortfolioDetail.test.tsx` | Modified | Added `getAbout` to mock to support Navbar CV fetch. |
-| `src/cms/pages/PortfolioManagement.tsx` | Modified | Added `normalizeAndDeduplicateTech`, `handleAddCustomTech`, `techInputRef`, input group with `+ Add` button, and pre-save sync. |
-| `tests/PortfolioManagement.test.tsx` | Created | Automated Vitest suite for interactive tag creation, Enter/comma handling, duplicate suppression, and pre-save flushing. |
-| `server/routes/portfolio.js` | Modified | Updated GET `/api/portfolio` query filter to `{ isPublished: { $ne: false } }` for legacy record parity. |
-| `src/sections/portfolios/portfolio.tsx` | Modified | Public showcase queries published-only items and derives metadata filters strictly from published projects. |
-| `src/pages/PortfolioDetail.tsx` | Modified | Public detail route guards against unpublished items with fallback screen. |
-| `tests/portfolio.test.tsx` | Modified | Unit test asserting hidden portfolios and metadata are excluded from public showcase. |
-| `server/models/Portfolio.js` | Modified | Added `year`, `relatedExperience`, `relatedExperienceCompany`, `relatedEducation`, `relatedEducationInstitution`. |
-| `server/routes/upload.js` | Modified | Added `GET /api/upload/signature` for direct Cloudinary signed uploads. |
-| `src/pages/Home.tsx` | Modified | Reordered homepage section hierarchy and white background for My Works. |
-| `src/sections/portfolios/portfoliocard.tsx` | Modified | Dynamic badge overlay for experience/education with privacy masking and pinned offsets. |
-| `src/sections/education/education.tsx` | Modified | Standardized card container width to `w-96`. |
-| `tests/portfoliocard.test.tsx` | Modified | Unit tests for experience and education badge rendering and password masking. |
-| `src/components/ImageLightboxModal.tsx` | Created | Full-screen image preview modal with gallery navigation. |
-| `src/components/ScrollProgressBar.tsx` | Created | Sticky case study progress bar with active section tracking. |
-| `server/scripts/migrateMarkdownToWYSIWYG.js` | Created | Database migration script standardizing portfolio records. |
-| `src/main.tsx` | Modified | Added `import './App.css'` to stylesheet pipeline. |
-| `server/config/cloudinary.js` | Modified | Custom CloudinaryStorage engine, video file filters, stream error handling. |
-| `server/services/aiService.js` | Modified | Updated AI prompt schemas for standardized case study sections. |
-| `tests/WYSIWYGEditor.test.tsx` | Created | Comprehensive tests for WYSIWYG editor, lists, and galleries. |
-| `tests/setup.ts` | Modified | Added `@testing-library/jest-dom/vitest`. |
+| `public/placeholder-tech.svg` | Created | Vector placeholder icon for draft auto-provisioned skills. |
+| `server/models/Blog.js` | Created | Mongoose schema for blog posts with category enum, tags, slug, and pre-save hook. |
+| `server/models/TechTool.js` | Modified | Added `isPublished: { type: Boolean, default: true }`. |
+| `server/utils/skillMigration.js` | Created | Reusable, atomic portfolio skills migration module with case-insensitive bulkWrite. |
+| `server/scripts/syncExistingPortfolioSkills.js` | Created | Standalone CLI script for migrating uncataloged skills across all existing portfolios. |
+| `server/routes/blog.js` | Created | CRUD routes for blogs with dual ID/slug lookup, filter, sorting, and asset cleanup. |
+| `server/routes/techTools.js` | Modified | Added `?published=true` filter and `POST /api/tech-tools/sync-from-portfolios`. |
+| `server/routes/portfolio.js` | Modified | Imported `TechTool` and added atomic `syncUncatalogedSkills` ($setOnInsert). |
+| `server/index.js` | Modified | Mounted `blogRoutes` and triggers non-blocking skill migration upon DB connection. |
+| `src/services/api.ts` | Modified | Added `syncSkillsFromPortfolios`, `getTechTools(publishedOnly)`, and blog CRUD methods. |
+| `src/cms/apiStorage.ts` | Modified | Added `syncSkillsFromPortfolios`, `BlogItem` interface, and blog methods. |
+| `src/cms/components/WYSIWYGEditor.tsx` | Modified | Fixed TipTap attribute stripping, added white button styling, trailing paragraph, and modal scrolling. |
+| `src/cms/components/CMSLayout.tsx` | Modified | Added "Blogs & News" navigation menu item. |
+| `src/cms/pages/BlogManagement.tsx` | Created | Admin dashboard for blog posts with WYSIWYG editor and Cloudinary upload. |
+| `src/cms/pages/TechToolsManagement.tsx` | Modified | Added "Sync Skills from Portfolios" button, draft badge, and `isPublished` toggle. |
+| `src/cms/pages/PortfolioManagement.tsx` | Modified | Reloads tech tools after saving to sync auto-provisioned tool IDs. |
+| `src/sections/skills/skills.tsx` | Modified | Queries published-only tools; implemented `duplicateToFill` with compound keys. |
+| `src/sections/skills/logocard.tsx` | Modified | Added `onError` fallback on image tag. |
+| `src/sections/portfolios/portfolio.tsx` | Modified | Redesigned two-row filter bar, real-time search, null-safe filtering, 0-match empty state, elevated stacking context (z-30), #00BAFE selected year pill, and CMS badge color synchronization for role tabs. |
+| `src/sections/blog/blogcard.tsx` | Created | Public blog card component with canonical `/blogs/:id` detail links. |
+| `src/sections/blog/blog.tsx` | Created | Dynamic category pills, homepage decoupling, search suppression, and CTA button. |
+| `src/pages/BlogPage.tsx` | Created | Public blog archive page at `/blogs`. |
+| `src/pages/BlogDetail.tsx` | Created | Public article reading view with canonical `/blogs` back navigation. |
+| `src/pages/Home.tsx` | Modified | Embedded `<BlogSection limit={3} />` with automatic empty section suppression. |
+| `src/sections/nav/nav.tsx` | Modified | Updated `isSubpage` to handle `/blogs` routes. |
+| `src/App.css` | Modified | Added scoped white text and text-decoration override for portfolio embed buttons. |
+| `src/App.tsx` | Modified | Registered canonical `/blogs` route with `/blog` redirect. |
+| `tests/blog.test.tsx` | Created | Automated tests for category omission, homepage mode, "See More Blogs" CTA, and 404. |
+| `tests/BlogManagement.test.tsx` | Created | Automated tests for CMS blog CRUD operations and image upload. |
+| `tests/techToolAutoSync.test.tsx` | Created | Automated tests for skills migration, CMS sync button, and draft badge isolation. |
+| `tests/App.test.tsx` | Modified | Verified `#blog` inclusion in hierarchy and omission when empty. |
+| `tests/WYSIWYGEditor.test.tsx` | Modified | Verified portfolio embed modal filtering of draft items and round-trip HTML serialization. |
+| `tests/portfolio.test.tsx` | Modified | Verified two-row filter bar, real-time search input, 0-match empty state, #00BAFE year pill, and role badge color styles. |
+| `README.md` | Modified | Updated feature highlights and primary documentation cross-references. |
+| `WARP.md` | Modified | Updated architecture, models, routes, database collections, and dev port 5001. |
+| `PORTFOLIO_DOCUMENTATION.md` | Modified | Synchronized React 19/Vite tech stack, project tree, Blog module, two-row filter bar, and endpoints. |
+| `DOCUMENTATION_MONO.md` | Modified | Synchronized mono-documentation schemas, collections, project structure, and API routes. |
+| `CMS_STATUS.md` | Modified | Documented latest milestones, blog features, portfolio embed persistence, and filter color styling. |
 | `tsconfig.json` | Modified | Added `"tests"` to `"include"`. |
 | `src/components/CursorInverter/*` | Removed | Removed non-native cursor components. |
 
