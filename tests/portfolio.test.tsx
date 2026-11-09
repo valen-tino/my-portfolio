@@ -109,5 +109,46 @@ describe('Portfolio Component - Year Filtering', () => {
       expect(screen.getByText('Project 2023 Beta')).toBeInTheDocument();
     });
   });
+
+  it('excludes unpublished portfolio items and their metadata filters from public view', async () => {
+    const mockWithHidden = [
+      ...mockPortfolios,
+      {
+        id: 'hidden-item-99',
+        title: 'Hidden Stealth Project',
+        desc: 'Unpublished project description',
+        projectDetails: '',
+        linkTo: '',
+        imageURL: 'stealth.png',
+        tech: ['StealthTech'],
+        roles: ['StealthRole'],
+        year: '1995',
+        isPublished: false
+      }
+    ];
+
+    vi.spyOn(CMSStorage, 'getPortfolios').mockResolvedValue(mockWithHidden as any);
+
+    render(
+      <MemoryRouter>
+        <Portfolio />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Project 2024 Alpha')).toBeInTheDocument();
+    });
+
+    // 1. Hidden card must not be rendered
+    expect(screen.queryByText('Hidden Stealth Project')).not.toBeInTheDocument();
+
+    // 2. Metadata filters must not extract from unpublished items
+    expect(screen.queryByText('StealthTech')).not.toBeInTheDocument();
+    expect(screen.queryByText('StealthRole')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /1995/i })).not.toBeInTheDocument();
+
+    // 3. Verify CMSStorage was invoked with publishedOnly = true
+    expect(CMSStorage.getPortfolios).toHaveBeenCalledWith(true);
+  });
 });
 

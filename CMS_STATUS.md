@@ -222,6 +222,8 @@ AI Integration:
 5. ✅ **Smart Technology Separation**: AI-suggested technologies are automatically separated into:
    - **Matched**: Technologies that exist in your tech tools (selected automatically)
    - **Unmatched**: Technologies not in your tools (added to "Custom Technologies" field)
+6. ✅ **Direct Signed Cloudinary Uploads**: Bypassed 4.5 MB serverless proxy limit for videos and multi-file galleries.
+7. ✅ **Public Visibility & Draft Hiding**: Portfolio edit section allows toggling visibility on the public website with airtight filtering and route guards.
 
 ### **Future Enhancements**
 - [ ] Add AI model selection (chat vs reasoner)

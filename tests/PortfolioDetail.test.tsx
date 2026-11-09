@@ -136,5 +136,36 @@ describe('PortfolioDetail Component - Cloudinary Video & WYSIWYG Rendering', () 
       );
     });
   });
+
+  it('renders Portfolio Not Found fallback when navigating directly to an unpublished portfolio item', async () => {
+    vi.mocked(CMSStorage.getPortfolios).mockResolvedValue([
+      {
+        id: 'hidden-item-99',
+        title: 'Hidden Case Study',
+        desc: 'Secret details',
+        projectDetails: '<p>Secret</p>',
+        linkTo: '',
+        imageURL: 'hidden.png',
+        videoURL: null,
+        tech: ['React'],
+        roles: [],
+        isPublished: false
+      }
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/portfolio/hidden-item-99']}>
+        <Routes>
+          <Route path="/portfolio/:id" element={<PortfolioDetail />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Portfolio Not Found')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Hidden Case Study')).not.toBeInTheDocument();
+    expect(CMSStorage.getPortfolios).toHaveBeenCalledWith(true);
+  });
 });
 

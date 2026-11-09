@@ -55,10 +55,13 @@ const PortfolioDetail: React.FC = () => {
       if (id) {
         try {
           const [portfolioData, rolesData] = await Promise.all([
-            CMSStorage.getPortfolios(),
+            CMSStorage.getPortfolios(true),
             CMSStorage.getRoles()
           ]);
-          const foundPortfolio = portfolioData.find(p => p.id === id || p._id === id);
+          // Defensive filter: only match if item is not explicitly unpublished
+          const foundPortfolio = portfolioData.find(
+            p => (p.id === id || p._id === id) && p.isPublished !== false
+          );
           setPortfolio(foundPortfolio || null);
           setAvailableRoles(rolesData);
         } catch (error) {

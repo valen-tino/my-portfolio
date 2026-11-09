@@ -303,9 +303,9 @@ export class CMSStorage {
   }
 
   // Portfolio methods
-  static async getPortfolios(): Promise<PortfolioItem[]> {
+  static async getPortfolios(publishedOnly = false): Promise<PortfolioItem[]> {
     try {
-      const response = await apiService.getPortfolios();
+      const response = await apiService.getPortfolios(publishedOnly);
       if (response.success) {
         return response.data.map((item: any) => this.mapPortfolioData(item));
       }

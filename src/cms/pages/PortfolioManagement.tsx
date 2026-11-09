@@ -140,6 +140,7 @@ const PortfolioManagement: React.FC = () => {
       tech: [],
       roles: [],
       year: new Date().getFullYear().toString(),
+      isPublished: true,
       relatedExperience: null,
       relatedExperienceCompany: null,
       relatedEducation: null,
@@ -261,6 +262,7 @@ const PortfolioManagement: React.FC = () => {
       roles: portfolio.roles || [],
       tech: portfolio.tech || [], // Matched technologies
       year: portfolio.year || new Date().getFullYear().toString(),
+      isPublished: portfolio.isPublished !== undefined ? portfolio.isPublished : true,
       relatedExperience: portfolio.relatedExperience || null,
       relatedExperienceCompany: portfolio.relatedExperienceCompany || null,
       relatedEducation: portfolio.relatedEducation || null,
@@ -491,9 +493,9 @@ const PortfolioManagement: React.FC = () => {
                   <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                     {isAddingNew ? 'Add New Portfolio Item' : `Editing: ${editingItem.title || 'Untitled Project'}`}
                     {editingItem.isPublished !== false ? (
-                      <span className="badge badge-success badge-sm text-white">Published</span>
+                      <span className="badge badge-success badge-sm text-white">🌐 Public (Visible)</span>
                     ) : (
-                      <span className="badge badge-ghost badge-sm">Draft</span>
+                      <span className="badge badge-neutral badge-sm">🚫 Hidden from Public</span>
                     )}
                     {editingItem.isPinned && (
                       <span className="badge badge-warning badge-sm">Pinned</span>
@@ -734,21 +736,23 @@ const PortfolioManagement: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Publish Status */}
-                  <div className="flex items-start space-x-3">
+                  {/* Public Visibility Toggle */}
+                  <div className="flex items-start space-x-3 p-3 bg-white rounded-lg border border-gray-200">
                     <input
                       type="checkbox"
                       id="published"
                       checked={editingItem.isPublished !== false}
                       onChange={(e) => setEditingItem({ ...editingItem, isPublished: e.target.checked })}
-                      className="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
                     />
                     <div>
-                      <label htmlFor="published" className="text-sm font-medium text-gray-700 cursor-pointer">
-                        🌐 Published Status
+                      <label htmlFor="published" className="text-sm font-semibold text-gray-800 cursor-pointer">
+                        {editingItem.isPublished !== false ? '🌐 Visible on Public Website' : '🚫 Hidden from Public Website'}
                       </label>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        Visible to public visitors when enabled
+                        {editingItem.isPublished !== false
+                          ? 'This project is live and visible on the homepage and portfolio archive.'
+                          : 'This project is hidden from public visitors. Only admins can view and edit it in this CMS panel.'}
                       </p>
                     </div>
                   </div>
@@ -1135,8 +1139,8 @@ const PortfolioManagement: React.FC = () => {
                             </span>
                           )}
                           {item.isPublished === false && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800" title="Unpublished">
-                              🚫
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-800 border border-gray-300" title="Hidden from public visitors">
+                              🚫 Hidden
                             </span>
                           )}
                         </div>

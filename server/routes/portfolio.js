@@ -11,7 +11,7 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const { published } = req.query;
-    const filter = published === 'true' ? { isPublished: true } : {};
+    const filter = published === 'true' ? { isPublished: { $ne: false } } : {};
     
     const portfolios = await Portfolio.find(filter).sort({ order: 1, createdAt: -1 });
     res.json({

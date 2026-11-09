@@ -23,21 +23,24 @@ const Portfolio: React.FC<Props> = ({ limit }) => {
     const fetchPortfolioData = async () => {
       try {
         const [portfolioData, rolesData] = await Promise.all([
-          CMSStorage.getPortfolios(),
+          CMSStorage.getPortfolios(true),
           CMSStorage.getRoles()
         ]);
         
-        setPortfolioItems(portfolioData);
-        setFilteredItems(portfolioData);
+        // Defensive filter: exclude items where isPublished is explicitly false
+        const publishedItems = portfolioData.filter(item => item.isPublished !== false);
+
+        setPortfolioItems(publishedItems);
+        setFilteredItems(publishedItems);
         setAvailableRoles(rolesData);
         
-        // Extract all unique technologies
-        const allTechs = portfolioData.reduce<string[]>((techs, item) => {
+        // Extract unique technologies strictly from published items
+        const allTechs = publishedItems.reduce<string[]>((techs, item) => {
           return [...techs, ...item.tech.filter(tech => !techs.includes(tech))];
         }, []).sort();
         
-        // Extract all unique role names from portfolio items
-        const allRoles = portfolioData.reduce<string[]>((roles, item) => {
+        // Extract unique role names strictly from published items
+        const allRoles = publishedItems.reduce<string[]>((roles, item) => {
           const itemRoles = item.roles || [];
           return [...roles, ...itemRoles.filter(role => !roles.includes(role))];
         }, []).sort();

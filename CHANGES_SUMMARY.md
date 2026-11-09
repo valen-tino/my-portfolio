@@ -17,7 +17,8 @@ This document provides a comprehensive, centralized record of all architecture i
 10. [Unified Experience & Education Affiliation System](#10-unified-experience--education-affiliation-system)
 11. [Direct Signed Cloudinary Video Upload (413 Fix)](#11-direct-signed-cloudinary-video-upload-413-fix)
 12. [Homepage Hierarchy & UI Alignment](#12-homepage-hierarchy--ui-alignment)
-13. [Files Created, Modified, or Removed](#13-files-created-modified-or-removed)
+13. [Portfolio Public Visibility & Draft Management](#13-portfolio-public-visibility--draft-management)
+14. [Files Created, Modified, or Removed](#14-files-created-modified-or-removed)
 
 ---
 
@@ -226,23 +227,43 @@ This document provides a comprehensive, centralized record of all architecture i
 
 ---
 
-## 13. Files Created, Modified, or Removed
+## 13. Portfolio Public Visibility & Draft Management
+
+### Feature Overview
+- **Admin Visibility Control**: Added a clear public visibility toggle inside the portfolio edit/create modal (`src/cms/pages/PortfolioManagement.tsx`). Admins can toggle between `"🌐 Visible on Public Website"` and `"🚫 Hidden from Public Website"` with explanatory microcopy.
+- **Visual Status Badges**:
+  - Modal Header: Displays dynamic badges `🌐 Public (Visible)` or `🚫 Hidden from Public`.
+  - Admin Card List: Displays `🚫 Hidden` badge for unpublished items while keeping them accessible and editable for administrators.
+  - Creation Defaults: Explicitly defaults `isPublished: true` for both manual creation and AI-assisted portfolio generation.
+- **Airtight Public Exclusion**:
+  - `src/cms/apiStorage.ts`: Updated `CMSStorage.getPortfolios(publishedOnly = false)` to pass `publishedOnly` parameter to `apiService.getPortfolios(publishedOnly)`.
+  - `src/sections/portfolios/portfolio.tsx`: Calls `CMSStorage.getPortfolios(true)` and applies defensive filtering `item.isPublished !== false`. Filter extractions (`allTechs`, `allRoles`, `allYears`) strictly derive from published items to prevent metadata leakage.
+  - `src/pages/PortfolioDetail.tsx`: Calls `CMSStorage.getPortfolios(true)` and checks `p.isPublished !== false`, gracefully redirecting direct URL access to the "Portfolio Not Found" fallback screen.
+  - `server/routes/portfolio.js`: Query filter uses `{ isPublished: { $ne: false } }` when `published === 'true'` to preserve backward compatibility for legacy records.
+- **Test Coverage**:
+  - `tests/portfolio.test.tsx`: Verified unpublished items and their metadata tags (tech, role, year) are excluded from the public showcase.
+  - `tests/PortfolioDetail.test.tsx`: Verified direct route access to an unpublished item renders "Portfolio Not Found" fallback and calls `CMSStorage.getPortfolios(true)`.
+
+---
+
+## 14. Files Created, Modified, or Removed
 
 | File | Status | Description |
 | :--- | :--- | :--- |
+| `server/routes/portfolio.js` | Modified | Updated GET `/api/portfolio` query filter to `{ isPublished: { $ne: false } }` for legacy record parity. |
+| `src/cms/apiStorage.ts` | Modified | Added `publishedOnly = false` parameter to `CMSStorage.getPortfolios`. |
+| `src/cms/pages/PortfolioManagement.tsx` | Modified | Added visibility toggle card, header status badge, admin card list badge, and default `isPublished: true` initializers. |
+| `src/sections/portfolios/portfolio.tsx` | Modified | Public showcase queries published-only items and derives metadata filters strictly from published projects. |
+| `src/pages/PortfolioDetail.tsx` | Modified | Public detail route guards against unpublished items with fallback screen. |
+| `tests/portfolio.test.tsx` | Modified | Unit test asserting hidden portfolios and metadata are excluded from public showcase. |
+| `tests/PortfolioDetail.test.tsx` | Modified | Unit test asserting unpublished portfolio direct URLs trigger fallback view. |
 | `server/models/Portfolio.js` | Modified | Added `year`, `relatedExperience`, `relatedExperienceCompany`, `relatedEducation`, `relatedEducationInstitution`. |
-| `server/routes/portfolio.js` | Modified | Added `year`, `relatedExperience`, `relatedEducation` handling with `null` clearing semantics. |
 | `server/routes/upload.js` | Modified | Added `GET /api/upload/signature` for direct Cloudinary signed uploads. |
-| `src/services/api.ts` | Modified | Parameter interfaces updated for `year`, `relatedExperience`, `relatedEducation`. |
-| `src/cms/apiStorage.ts` | Modified | `PortfolioItem` interface updated; normalization in `addPortfolio` and `updatePortfolio`. |
-| `src/cms/pages/PortfolioManagement.tsx` | Modified | Combined affiliation selector, year input, direct Cloudinary uploads, admin badges. |
+| `src/services/api.ts` | Modified | Direct signed Cloudinary uploads, parameter interfaces updated for `year`, `relatedExperience`, `relatedEducation`. |
 | `src/pages/Home.tsx` | Modified | Reordered homepage section hierarchy and white background for My Works. |
-| `src/sections/portfolios/portfolio.tsx` | Modified | Year filter badges, descending order extraction, filter bar visibility. |
 | `src/sections/portfolios/portfoliocard.tsx` | Modified | Dynamic badge overlay for experience/education with privacy masking and pinned offsets. |
-| `src/pages/PortfolioDetail.tsx` | Modified | Header affiliation and year badges for mobile and desktop views. |
 | `src/sections/education/education.tsx` | Modified | Standardized card container width to `w-96`. |
 | `tests/portfoliocard.test.tsx` | Modified | Unit tests for experience and education badge rendering and password masking. |
-| `tests/portfolio.test.tsx` | Created | Test suite for year filtering and "Clear All" reset in `Portfolio`. |
 | `src/cms/components/WYSIWYGEditor.tsx` | Created | Complete TipTap WYSIWYG editor with section presets, media upload, and gallery controls. |
 | `src/components/ImageLightboxModal.tsx` | Created | Full-screen image preview modal with gallery navigation. |
 | `src/components/ScrollProgressBar.tsx` | Created | Sticky case study progress bar with active section tracking. |
@@ -253,7 +274,6 @@ This document provides a comprehensive, centralized record of all architecture i
 | `server/config/cloudinary.js` | Modified | Custom CloudinaryStorage engine, video file filters, stream error handling. |
 | `server/services/aiService.js` | Modified | Updated AI prompt schemas for standardized case study sections. |
 | `tests/WYSIWYGEditor.test.tsx` | Created | Comprehensive tests for WYSIWYG editor, lists, and galleries. |
-| `tests/PortfolioDetail.test.tsx` | Modified | Tests for video rendering, lightbox opening, and progress bar. |
 | `tests/setup.ts` | Modified | Added `@testing-library/jest-dom/vitest`. |
 | `tsconfig.json` | Modified | Added `"tests"` to `"include"`. |
 | `src/components/CursorInverter/*` | Removed | Removed non-native cursor components. |
