@@ -21,12 +21,14 @@ class FakeDOMRectList extends Array<DOMRect> implements DOMRectList {
   }
 }
 
-document.elementFromPoint = () => null;
-HTMLElement.prototype.getBoundingClientRect = getBoundingClientRect;
-HTMLElement.prototype.getClientRects = () => new FakeDOMRectList();
-Range.prototype.getBoundingClientRect = getBoundingClientRect;
-Range.prototype.getClientRects = () => new FakeDOMRectList();
-if (typeof Text !== 'undefined') {
-  (Text.prototype as any).getClientRects = () => new FakeDOMRectList();
-  (Text.prototype as any).getBoundingClientRect = getBoundingClientRect;
+if (typeof document !== 'undefined') {
+  document.elementFromPoint = () => null;
+  HTMLElement.prototype.getBoundingClientRect = getBoundingClientRect;
+  HTMLElement.prototype.getClientRects = () => new FakeDOMRectList();
+  Range.prototype.getBoundingClientRect = getBoundingClientRect;
+  Range.prototype.getClientRects = () => new FakeDOMRectList();
+  if (typeof Text !== 'undefined') {
+    (Text.prototype as any).getClientRects = () => new FakeDOMRectList();
+    (Text.prototype as any).getBoundingClientRect = getBoundingClientRect;
+  }
 }

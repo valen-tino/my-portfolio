@@ -26,7 +26,8 @@ This document provides a comprehensive, centralized record of all architecture i
 19. [Blog System Refinements & Portfolio Skills Full Migration](#19-blog-system-refinements--portfolio-skills-full-migration)
 20. [Portfolio Embed Persistence & "My Works" Filter Redesign](#20-portfolio-embed-persistence--my-works-filter-redesign)
 21. [Portfolio Filter Z-Index Elevation & Color Badge Synchronization](#21-portfolio-filter-z-index-elevation--color-badge-synchronization)
-22. [Files Created, Modified, or Removed](#22-files-created-modified-or-removed)
+22. [Vercel Serverless Route Parity & Blog 404 Resolution](#22-vercel-serverless-route-parity--blog-404-resolution)
+23. [Files Created, Modified, or Removed](#23-files-created-modified-or-removed)
 
 ---
 
@@ -434,10 +435,38 @@ This document provides a comprehensive, centralized record of all architecture i
 
 ---
 
-## 22. Files Created, Modified, or Removed
+## 22. Vercel Serverless Route Parity & Blog 404 Resolution
+
+### Root Cause & Serverless Router Alignment
+- **Problem**: Vercel production deployment returned `404 Not Found` for all `/api/blog` requests (`Error fetching blogs: AxiosError: Request failed with status code 404`), preventing fetching, displaying, adding, editing, or deleting blog posts. While local Express (`server/index.js`) mounted `blogRoutes`, `api/serverless.js` (the Vercel catch-all API handler) never imported or registered the router.
+- **Resolution**:
+  - Imported `const blogRoutes = require('../server/routes/blog');` in `api/serverless.js`.
+  - Mounted both canonical singular `/api/blog` and plural alias `/api/blogs` in `api/serverless.js`.
+  - Added `/api/blogs` alias in `server/index.js` for complete local and production environment parity.
+
+### Safe Cold-Start Skills Migration
+- Integrated `{ syncAllPortfolioSkills } = require('../server/utils/skillMigration');` into `api/serverless.js`.
+- Wrapped execution behind a module-level `let skillsSynced = false;` latch inside the pre-middleware, triggered as a non-blocking background promise (`syncAllPortfolioSkills().catch(...)`) so cold-start HTTP responses are never delayed or failed by background sync.
+
+### Mongoose Model Recompilation Defense
+- Updated all schemas in `server/models/` (`Blog.js`, `User.js`, `About.js`, `Contact.js`, `Education.js`, `Experience.js`, `Portfolio.js`, `Role.js`, `TechTool.js`) with `mongoose.models?.ModelName || mongoose.model(...)` to prevent `OverwriteModelError` during serverless container reuse.
+
+### Automated Integration Verification
+- Created `tests/serverlessBlog.test.ts` running in native Node runtime (`// @vitest-environment node`) with ephemeral HTTP server and `fetch`.
+- Verified `GET /api/blog` (200), `GET /api/blogs` (200), `OPTIONS /api/blog` with CORS headers (200/204), unauthenticated `POST /api/blog` (401), and non-existent endpoints (404).
+
+---
+
+## 23. Files Created, Modified, or Removed
 
 | File | Status | Description |
 | :--- | :--- | :--- |
+| `api/serverless.js` | Modified | Imported and mounted `/api/blog` and `/api/blogs`, added latched non-blocking skills migration. |
+| `server/index.js` | Modified | Mounted `/api/blogs` compatibility alias alongside `/api/blog`. |
+| `server/models/Blog.js` | Modified | Added `mongoose.models?.Blog` recompilation guard. |
+| `server/models/*.js` | Modified | Added `mongoose.models?.ModelName` compilation safety guards across all Mongoose models. |
+| `tests/setup.ts` | Modified | Guarded DOM-specific polyfills with `typeof document !== 'undefined'` for Node test compatibility. |
+| `tests/serverlessBlog.test.ts` | Created | Automated integration tests for serverless blog routes, CORS preflight, and auth middleware. |
 | `public/placeholder-tech.svg` | Created | Vector placeholder icon for draft auto-provisioned skills. |
 | `server/models/Blog.js` | Created | Mongoose schema for blog posts with category enum, tags, slug, and pre-save hook. |
 | `server/models/TechTool.js` | Modified | Added `isPublished: { type: Boolean, default: true }`. |

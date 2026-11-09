@@ -18,7 +18,9 @@ const contactRoutes = require('../server/routes/contact');
 const experiencesRoutes = require('../server/routes/experiences');
 const uploadRoutes = require('../server/routes/upload');
 const aiRoutes = require('../server/routes/ai');
+const blogRoutes = require('../server/routes/blog');
 const User = require('../server/models/User');
+const { syncAllPortfolioSkills } = require('../server/utils/skillMigration');
 
 // Create Express app
 const app = express();
@@ -26,6 +28,7 @@ const app = express();
 // MongoDB connection with connection pooling for serverless
 let cachedDb = null;
 let adminBootstrapped = false;
+let skillsSynced = false;
 
 async function connectToDatabase() {
   if (cachedDb && mongoose.connection.readyState === 1) {
@@ -136,6 +139,14 @@ app.use(async (req, res, next) => {
       }
     }
 
+    // Trigger non-blocking uncataloged skills sync once per cold start
+    if (!skillsSynced) {
+      skillsSynced = true;
+      syncAllPortfolioSkills().catch((syncErr) => {
+        console.warn('Serverless startup skill sync warning:', syncErr?.message || syncErr);
+      });
+    }
+
     next();
   } catch (error) {
     res.status(500).json({ 
@@ -156,6 +167,8 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/experiences', experiencesRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/blog', blogRoutes);
+app.use('/api/blogs', blogRoutes); // Parity alias
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {

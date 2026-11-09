@@ -26,4 +26,4 @@ const RoleSchema = new mongoose.Schema({
 // Add index for order
 RoleSchema.index({ order: 1 });
 
-module.exports = mongoose.model('Role', RoleSchema);
+module.exports = mongoose.models?.Role || mongoose.model('Role', RoleSchema);

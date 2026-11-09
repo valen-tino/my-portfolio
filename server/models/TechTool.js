@@ -26,4 +26,4 @@ const techToolSchema = new mongoose.Schema({
   timestamps: true
 });
 
-module.exports = mongoose.model('TechTool', techToolSchema);
+module.exports = mongoose.models?.TechTool || mongoose.model('TechTool', techToolSchema);

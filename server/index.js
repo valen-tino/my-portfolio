@@ -114,6 +114,7 @@ app.use('/api/roles', roleRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/experiences', experienceRoutes);
 app.use('/api/blog', blogRoutes);
+app.use('/api/blogs', blogRoutes); // Parity alias
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

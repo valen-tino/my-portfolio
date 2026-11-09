@@ -33,4 +33,4 @@ const educationSchema = new mongoose.Schema({
   timestamps: true
 });
 
-module.exports = mongoose.model('Education', educationSchema);
+module.exports = mongoose.models?.Education || mongoose.model('Education', educationSchema);

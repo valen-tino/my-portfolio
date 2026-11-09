@@ -113,5 +113,5 @@ blogSchema.pre('save', function (next) {
   next();
 });
 
-module.exports = mongoose.model('Blog', blogSchema);
+module.exports = mongoose.models?.Blog || mongoose.model('Blog', blogSchema);
 

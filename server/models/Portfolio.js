@@ -99,4 +99,4 @@ const portfolioSchema = new mongoose.Schema({
   timestamps: true
 });
 
-module.exports = mongoose.model('Portfolio', portfolioSchema);
+module.exports = mongoose.models?.Portfolio || mongoose.model('Portfolio', portfolioSchema);

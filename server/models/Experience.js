@@ -95,4 +95,4 @@ experienceSchema.methods.isCurrent = function() {
   return this.status === 'Current';
 };
 
-module.exports = mongoose.model('Experience', experienceSchema);
+module.exports = mongoose.models?.Experience || mongoose.model('Experience', experienceSchema);

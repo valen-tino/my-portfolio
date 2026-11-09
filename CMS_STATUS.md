@@ -242,6 +242,7 @@ AI Integration:
 12. ✅ **Blog Refinements & Skills Full Migration**: Dynamic category suppression for empty categories, homepage search/filter decoupling with "See More Blogs" CTA, canonical `/blogs` routing, flexbox scroll fixes for portfolio attachment popup, and automated portfolio skills migration.
 13. ✅ **Portfolio Embed Persistence & "My Works" Filter Redesign**: Eliminated TipTap attribute stripping on save, guaranteed crisp white text on "View Case Study" action button, and refactored portfolio filter into a modern two-row layout matching Blog & News with real-time search and 0-match empty states.
 14. ✅ **Portfolio Filter Z-Index Elevation & Color Badge Synchronization**: Elevated filter container stacking context (`z-30` vs grid `z-10`) preventing cards from rendering above the tech dropdown menu, applied brand cyan `#00BAFE` to active year pills, and synchronized role tab active/inactive outline styling with CMS badge colors.
+15. ✅ **Vercel Serverless Route Parity & Blog 404 Resolution**: Mounted `/api/blog` and `/api/blogs` in `api/serverless.js` eliminating the production 404 outage, implemented non-blocking latched cold-start skills migration, added Mongoose model re-compilation guards across all models, and added full serverless integration tests.
 
 ### **Future Enhancements**
 - [ ] Add AI model selection (chat vs reasoner)
