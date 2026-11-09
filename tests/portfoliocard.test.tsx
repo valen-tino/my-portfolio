@@ -64,5 +64,79 @@ describe('PortfolioCard Component - Truncation & Layout Fix', () => {
     expect(card?.className).toContain('flex-col');
     expect(card?.className).toContain('justify-between');
   });
+
+  it('renders experience company badge and creation year when provided', () => {
+    const itemWithExp: PortfolioItem = {
+      ...mockItems[0],
+      id: '2',
+      year: '2023',
+      relatedExperienceCompany: 'Google'
+    };
+
+    render(
+      <MemoryRouter>
+        <PortfolioCard items={[itemWithExp]} />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText(/Google/)).toBeInTheDocument();
+    expect(screen.getByText(/2023/)).toBeInTheDocument();
+  });
+
+  it('masks related experience company badge and creation year when item is password protected', () => {
+    const protectedItem: PortfolioItem = {
+      ...mockItems[0],
+      id: '3',
+      isPasswordProtected: true,
+      year: '2023',
+      relatedExperienceCompany: 'Confidential Corp'
+    };
+
+    render(
+      <MemoryRouter>
+        <PortfolioCard items={[protectedItem]} />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByText(/Confidential Corp/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/2023/)).not.toBeInTheDocument();
+    expect(screen.getByText('🔒 Protected')).toBeInTheDocument();
+  });
+
+  it('renders educational institution badge when provided', () => {
+    const itemWithEdu: PortfolioItem = {
+      ...mockItems[0],
+      id: '4',
+      year: '2024',
+      relatedEducationInstitution: 'Stanford University'
+    };
+
+    render(
+      <MemoryRouter>
+        <PortfolioCard items={[itemWithEdu]} />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText(/🎓 Stanford University/)).toBeInTheDocument();
+  });
+
+  it('masks educational institution badge when item is password protected', () => {
+    const protectedEduItem: PortfolioItem = {
+      ...mockItems[0],
+      id: '5',
+      isPasswordProtected: true,
+      year: '2024',
+      relatedEducationInstitution: 'MIT'
+    };
+
+    render(
+      <MemoryRouter>
+        <PortfolioCard items={[protectedEduItem]} />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByText(/MIT/)).not.toBeInTheDocument();
+    expect(screen.getByText('🔒 Protected')).toBeInTheDocument();
+  });
 });
 

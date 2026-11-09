@@ -13,7 +13,11 @@ This document provides a comprehensive, centralized record of all architecture i
 6. [AI Service Upgrades (Opencode Go / Deepseek Flash)](#6-ai-service-upgrades-opencode-go--deepseek-flash)
 7. [UI Cleanup & Portfolio Cards](#7-ui-cleanup--portfolio-cards)
 8. [Testing & Build Tooling](#8-testing--build-tooling)
-9. [Files Created, Modified, or Removed](#9-files-created-modified-or-removed)
+9. [Portfolio Creation Year & Archive Filter](#9-portfolio-creation-year--archive-filter)
+10. [Unified Experience & Education Affiliation System](#10-unified-experience--education-affiliation-system)
+11. [Direct Signed Cloudinary Video Upload (413 Fix)](#11-direct-signed-cloudinary-video-upload-413-fix)
+12. [Homepage Hierarchy & UI Alignment](#12-homepage-hierarchy--ui-alignment)
+13. [Files Created, Modified, or Removed](#13-files-created-modified-or-removed)
 
 ---
 
@@ -162,15 +166,79 @@ This document provides a comprehensive, centralized record of all architecture i
   - Cloudinary video optimization flags.
   - Lightbox modal interactions and keyboard navigation.
   - Case study scroll progress bar tracking.
-- **Current Test Status**: 18 tests passing across 5 test suites.
-- **Production Build**: 0 errors, building in ~1.5–2.0s with Vite.
+- **Current Test Status**: 26 tests passing across 6 test suites (`npm test`).
+- **Production Build**: 0 errors, building cleanly in ~1.5–1.7s with Vite.
 
 ---
 
-## 9. Files Created, Modified, or Removed
+## 9. Portfolio Creation Year & Archive Filter
+
+### Project Year Field
+- Added `year` field (4-digit string) to `server/models/Portfolio.js` and `server/routes/portfolio.js`.
+- Added `Project Year (optional)` input to the admin CMS editor modal in `src/cms/pages/PortfolioManagement.tsx`.
+- Displays `📅 {year}` badge in the admin card list, portfolio cards, and detail views.
+
+### Archive Year Filter Bar
+- Extracted unique years in descending order (`src/sections/portfolios/portfolio.tsx`).
+- Added interactive Year filter badges alongside Roles and Technologies in the horizontal filter bar.
+- Updated filter dependencies and wired `clearAllFilters` to reset selected year.
+- Validated with unit tests in `tests/portfolio.test.tsx`.
+
+---
+
+## 10. Unified Experience & Education Affiliation System
+
+### Unified Affiliation Dropdown
+- Combined "Related Work Experience" and "Educational Background" selectors into a single dropdown in `src/cms/pages/PortfolioManagement.tsx`.
+- Organized with `<optgroup label="💼 Work Experiences">` and `<optgroup label="🎓 Educational Background">`.
+- Implemented mutual exclusivity state machine: selecting an education item explicitly clears experience fields, and vice versa. Selecting "None" clears all fields to `null`.
+- Allows labeling university, bootcamp, freelance, and workplace projects.
+
+### Public & Admin Badge Display
+- **Card Image Overlay**: Dedicated badge slot on `src/sections/portfolios/portfoliocard.tsx` rendering `💼 {company}` or `🎓 {institution}`, dynamically offset below pinned badge (`${isPinned ? 'top-10' : 'top-2'}`).
+- **Privacy Masking**: Hidden when `isPasswordProtected: true` until unlocked.
+- **Detail View**: Displayed in both Mobile and Desktop Split-Screen headers in `src/pages/PortfolioDetail.tsx`.
+- **Admin CMS**: Displayed in emerald badges `🎓 {institution}` in the card list.
+
+---
+
+## 11. Direct Signed Cloudinary Video Upload (413 Fix)
+
+### Issue & Resolution
+- **Issue**: Vercel serverless request body size limit is 4.5 MB. Large video uploads proxied through `/api/upload/portfolio-video` failed with HTTP 413 (Payload Too Large).
+- **Resolution**:
+  - Implemented direct client-to-Cloudinary signed upload via `GET /api/upload/signature`.
+  - Added client-side 100 MB limits and upload progress tracking in `src/cms/pages/PortfolioManagement.tsx`.
+
+---
+
+## 12. Homepage Hierarchy & UI Alignment
+
+### Section Order & Theme Tweaks
+- Reordered homepage sections (`src/pages/Home.tsx`):
+  Hero → About Me → Tools that I'm currently using → My Works → My Experiences → My Educational Background → Social Media Cards + Contact Form → Footer.
+- Changed "My Works" section background color from `#CA8A03` to clean white `#FFFFFF`.
+- Standardized educational background content card container width in `src/sections/education/education.tsx` to `w-96`, aligning with experience cards.
+
+---
+
+## 13. Files Created, Modified, or Removed
 
 | File | Status | Description |
 | :--- | :--- | :--- |
+| `server/models/Portfolio.js` | Modified | Added `year`, `relatedExperience`, `relatedExperienceCompany`, `relatedEducation`, `relatedEducationInstitution`. |
+| `server/routes/portfolio.js` | Modified | Added `year`, `relatedExperience`, `relatedEducation` handling with `null` clearing semantics. |
+| `server/routes/upload.js` | Modified | Added `GET /api/upload/signature` for direct Cloudinary signed uploads. |
+| `src/services/api.ts` | Modified | Parameter interfaces updated for `year`, `relatedExperience`, `relatedEducation`. |
+| `src/cms/apiStorage.ts` | Modified | `PortfolioItem` interface updated; normalization in `addPortfolio` and `updatePortfolio`. |
+| `src/cms/pages/PortfolioManagement.tsx` | Modified | Combined affiliation selector, year input, direct Cloudinary uploads, admin badges. |
+| `src/pages/Home.tsx` | Modified | Reordered homepage section hierarchy and white background for My Works. |
+| `src/sections/portfolios/portfolio.tsx` | Modified | Year filter badges, descending order extraction, filter bar visibility. |
+| `src/sections/portfolios/portfoliocard.tsx` | Modified | Dynamic badge overlay for experience/education with privacy masking and pinned offsets. |
+| `src/pages/PortfolioDetail.tsx` | Modified | Header affiliation and year badges for mobile and desktop views. |
+| `src/sections/education/education.tsx` | Modified | Standardized card container width to `w-96`. |
+| `tests/portfoliocard.test.tsx` | Modified | Unit tests for experience and education badge rendering and password masking. |
+| `tests/portfolio.test.tsx` | Created | Test suite for year filtering and "Clear All" reset in `Portfolio`. |
 | `src/cms/components/WYSIWYGEditor.tsx` | Created | Complete TipTap WYSIWYG editor with section presets, media upload, and gallery controls. |
 | `src/components/ImageLightboxModal.tsx` | Created | Full-screen image preview modal with gallery navigation. |
 | `src/components/ScrollProgressBar.tsx` | Created | Sticky case study progress bar with active section tracking. |
@@ -178,10 +246,7 @@ This document provides a comprehensive, centralized record of all architecture i
 | `server/scripts/migrateMarkdownToWYSIWYG.js` | Created | Database migration script standardizing portfolio records. |
 | `src/main.tsx` | Modified | Added `import './App.css'` to stylesheet pipeline. |
 | `src/App.css` | Modified | Section title typography, responsive gallery breakpoints, and lightbox badges. |
-| `src/pages/PortfolioDetail.tsx` | Modified | Mobile/desktop header alignment, sticky progress bar, action buttons layout. |
-| `src/cms/pages/PortfolioManagement.tsx` | Modified | 40% / 60% split screen editor layout, `⌘S` shortcut. |
 | `server/config/cloudinary.js` | Modified | Custom CloudinaryStorage engine, video file filters, stream error handling. |
-| `server/routes/upload.js` | Modified | Wrapped upload middleware with descriptive JSON error handling. |
 | `server/services/aiService.js` | Modified | Updated AI prompt schemas for standardized case study sections. |
 | `tests/WYSIWYGEditor.test.tsx` | Created | Comprehensive tests for WYSIWYG editor, lists, and galleries. |
 | `tests/PortfolioDetail.test.tsx` | Modified | Tests for video rendering, lightbox opening, and progress bar. |

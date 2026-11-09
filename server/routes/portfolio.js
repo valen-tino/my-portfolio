@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const Portfolio = require('../models/Portfolio');
 const { authMiddleware } = require('../middleware/auth');
 const { deleteImage } = require('../config/cloudinary');
@@ -57,7 +58,7 @@ router.get('/:id', async (req, res) => {
 // @access  Private
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { title, desc, projectDetails, linkTo, imageURL, imageCloudinaryId, videoURL, videoCloudinaryId, tech, roles, order, isPublished, isPasswordProtected, password, isPinned } = req.body;
+    const { title, desc, projectDetails, linkTo, imageURL, imageCloudinaryId, videoURL, videoCloudinaryId, tech, roles, order, isPublished, isPasswordProtected, password, isPinned, year, relatedExperience, relatedExperienceCompany, relatedEducation, relatedEducationInstitution } = req.body;
 
     if (!title || !desc || (!imageURL && !videoURL)) {
       return res.status(400).json({
@@ -89,7 +90,12 @@ router.post('/', authMiddleware, async (req, res) => {
       // New fields
       isPasswordProtected: !!isPasswordProtected,
       password: isPasswordProtected ? (password || null) : null,
-      isPinned: !!isPinned
+      isPinned: !!isPinned,
+      year: year || null,
+      relatedExperience: (relatedExperience && mongoose.Types.ObjectId.isValid(relatedExperience)) ? relatedExperience : null,
+      relatedExperienceCompany: relatedExperienceCompany || null,
+      relatedEducation: (relatedEducation && mongoose.Types.ObjectId.isValid(relatedEducation)) ? relatedEducation : null,
+      relatedEducationInstitution: relatedEducationInstitution || null
     });
 
     await portfolio.save();
@@ -113,7 +119,7 @@ router.post('/', authMiddleware, async (req, res) => {
 // @access  Private
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const { title, desc, projectDetails, linkTo, imageURL, imageCloudinaryId, videoURL, videoCloudinaryId, tech, roles, order, isPublished, isPasswordProtected, password, isPinned } = req.body;
+    const { title, desc, projectDetails, linkTo, imageURL, imageCloudinaryId, videoURL, videoCloudinaryId, tech, roles, order, isPublished, isPasswordProtected, password, isPinned, year, relatedExperience, relatedExperienceCompany, relatedEducation, relatedEducationInstitution } = req.body;
     
     const portfolio = await Portfolio.findById(req.params.id);
     if (!portfolio) {
@@ -180,6 +186,21 @@ router.put('/:id', authMiddleware, async (req, res) => {
       if (portfolio.isPasswordProtected) {
         portfolio.password = password;
       }
+    }
+    if (typeof year !== 'undefined') {
+      portfolio.year = year || null;
+    }
+    if (typeof relatedExperience !== 'undefined') {
+      portfolio.relatedExperience = (relatedExperience && mongoose.Types.ObjectId.isValid(relatedExperience)) ? relatedExperience : null;
+    }
+    if (typeof relatedExperienceCompany !== 'undefined') {
+      portfolio.relatedExperienceCompany = relatedExperienceCompany || null;
+    }
+    if (typeof relatedEducation !== 'undefined') {
+      portfolio.relatedEducation = (relatedEducation && mongoose.Types.ObjectId.isValid(relatedEducation)) ? relatedEducation : null;
+    }
+    if (typeof relatedEducationInstitution !== 'undefined') {
+      portfolio.relatedEducationInstitution = relatedEducationInstitution || null;
     }
 
     await portfolio.save();

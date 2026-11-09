@@ -79,6 +79,14 @@ Browser ──► API Service ──► Server Routes ──► AI Service ─�
 - **Single Media Node**: Cloudinary image/video with size (25%–100%), aspect ratio, and alignment controls
 - **Multi-Media Gallery Node**: Responsive gallery with individual item resizing and per-image Lightbox preview
 
+#### 5. **Unified Experience & Education Affiliations & Year Filtering** ✅
+- **Combined Selector**: Unified `<select>` in `src/cms/pages/PortfolioManagement.tsx` with `<optgroup>` for Work Experiences (`💼`) and Educational Background (`🎓`). Supports labeling university, bootcamp, freelance, and workplace projects.
+- **Mutual Exclusivity State Machine**: Automatically unlinks opposing affiliation or clears both when set to "None".
+- **Dynamic Card Badge Overlays**: High-contrast, privacy-masked affiliation badges on public cards with vertical offsets for pinned projects.
+- **Project Creation Year**: Labeling and descending archive filter bar in `src/sections/portfolios/portfolio.tsx`.
+- **Direct Cloudinary Signed Uploads**: Client-side video uploads bypassing Vercel 4.5 MB serverless limit (`GET /api/upload/signature`).
+- **Test Suite**: 26 automated unit tests passing across 6 suites (`npm test`).
+
 ## 📁 File Structure
 
 ```

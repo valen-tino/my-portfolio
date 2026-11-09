@@ -204,6 +204,11 @@ class ApiService {
     isPasswordProtected?: boolean;
     password?: string | null;
     isPinned?: boolean;
+    year?: string | null;
+    relatedExperience?: string | { _id?: string; id?: string; companyName?: string; title?: string } | null;
+    relatedExperienceCompany?: string | null;
+    relatedEducation?: string | { _id?: string; id?: string; institution?: string; title?: string } | null;
+    relatedEducationInstitution?: string | null;
   }) {
     const response = await this.api.post('/portfolio', data);
     return response.data;
@@ -226,6 +231,11 @@ class ApiService {
     isPasswordProtected?: boolean;
     password?: string | null;
     isPinned?: boolean;
+    year?: string | null;
+    relatedExperience?: string | { _id?: string; id?: string; companyName?: string; title?: string } | null;
+    relatedExperienceCompany?: string | null;
+    relatedEducation?: string | { _id?: string; id?: string; institution?: string; title?: string } | null;
+    relatedEducationInstitution?: string | null;
   }) {
     const response = await this.api.put(`/portfolio/${id}`, data);
     return response.data;

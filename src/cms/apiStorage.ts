@@ -46,6 +46,11 @@ export interface PortfolioItem {
   isPasswordProtected?: boolean;
   password?: string | null;
   isPinned?: boolean;
+  year?: string | null;
+  relatedExperience?: string | { _id?: string; id?: string; companyName: string; title?: string } | null;
+  relatedExperienceCompany?: string | null;
+  relatedEducation?: string | { _id?: string; id?: string; institution?: string; title?: string } | null;
+  relatedEducationInstitution?: string | null;
 }
 
 export interface ContactEntry {
@@ -318,7 +323,18 @@ export class CMSStorage {
 
   static async addPortfolio(portfolio: Omit<PortfolioItem, 'id' | '_id'>): Promise<PortfolioItem> {
     try {
-      const response = await apiService.createPortfolio(portfolio);
+      const expId = typeof portfolio.relatedExperience === 'object' && portfolio.relatedExperience !== null
+        ? (portfolio.relatedExperience._id || portfolio.relatedExperience.id || null)
+        : (portfolio.relatedExperience || null);
+      const eduId = typeof portfolio.relatedEducation === 'object' && portfolio.relatedEducation !== null
+        ? (portfolio.relatedEducation._id || portfolio.relatedEducation.id || null)
+        : (portfolio.relatedEducation || null);
+
+      const response = await apiService.createPortfolio({
+        ...portfolio,
+        relatedExperience: expId,
+        relatedEducation: eduId
+      });
       if (response.success) {
         return this.mapPortfolioData(response.data);
       }
@@ -332,7 +348,18 @@ export class CMSStorage {
   static async updatePortfolio(id: string | number, portfolio: Partial<PortfolioItem>): Promise<PortfolioItem> {
     try {
       const idString = typeof id === 'string' ? id : id.toString();
-      const response = await apiService.updatePortfolio(idString, portfolio);
+      const expId = typeof portfolio.relatedExperience === 'object' && portfolio.relatedExperience !== null
+        ? (portfolio.relatedExperience._id || portfolio.relatedExperience.id || null)
+        : (portfolio.relatedExperience !== undefined ? portfolio.relatedExperience : undefined);
+      const eduId = typeof portfolio.relatedEducation === 'object' && portfolio.relatedEducation !== null
+        ? (portfolio.relatedEducation._id || portfolio.relatedEducation.id || null)
+        : (portfolio.relatedEducation !== undefined ? portfolio.relatedEducation : undefined);
+
+      const response = await apiService.updatePortfolio(idString, {
+        ...portfolio,
+        ...(expId !== undefined ? { relatedExperience: expId } : {}),
+        ...(eduId !== undefined ? { relatedEducation: eduId } : {})
+      });
       if (response.success) {
         return this.mapPortfolioData(response.data);
       }

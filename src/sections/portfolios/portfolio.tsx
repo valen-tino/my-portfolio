@@ -12,6 +12,7 @@ const Portfolio: React.FC<Props> = ({ limit }) => {
   const [filteredItems, setFilteredItems] = useState<PortfolioItem[]>([]);
   const [selectedTechs, setSelectedTechs] = useState<string[]>([]);
   const [selectedRole, setSelectedRole] = useState<string>('All');
+  const [selectedYear, setSelectedYear] = useState<string>('All');
   const [availableTechs, setAvailableTechs] = useState<string[]>([]);
   const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
   const [allRoleNames, setAllRoleNames] = useState<string[]>([]);
@@ -67,7 +68,7 @@ const Portfolio: React.FC<Props> = ({ limit }) => {
     };
   }, []);
 
-  // Filter items based on selected technologies and role
+  // Filter items based on selected technologies, role, and year
   useEffect(() => {
     let filtered = portfolioItems;
     
@@ -84,9 +85,19 @@ const Portfolio: React.FC<Props> = ({ limit }) => {
         item.roles && item.roles.includes(selectedRole)
       );
     }
+
+    // Filter by year
+    if (selectedYear !== 'All') {
+      filtered = filtered.filter(item => item.year === selectedYear);
+    }
     
     setFilteredItems(filtered);
-  }, [selectedTechs, selectedRole, portfolioItems]);
+  }, [selectedTechs, selectedRole, selectedYear, portfolioItems]);
+
+  // Extract all unique years sorted descending
+  const allYears = Array.from(
+    new Set(portfolioItems.map(item => item.year).filter((y): y is string => Boolean(y && y.trim())))
+  ).sort((a, b) => b.localeCompare(a));
 
   // For homepage (when limit is set), prioritize pinned items
   const items = limit ? (() => {
@@ -113,6 +124,7 @@ const Portfolio: React.FC<Props> = ({ limit }) => {
   const clearAllFilters = () => {
     setSelectedTechs([]);
     setSelectedRole('All');
+    setSelectedYear('All');
   };
 
   return (
@@ -123,13 +135,13 @@ const Portfolio: React.FC<Props> = ({ limit }) => {
       <p className="text-xl text-base-content/70 max-w-2xl mx-auto">These are my works, from my university assignments to my work projects.</p>
       
       {/* Filters - Horizontal Bar */}
-      {!limit && (availableTechs.length > 0 || allRoleNames.length > 0) && (
+      {!limit && (availableTechs.length > 0 || allRoleNames.length > 0 || allYears.length > 0) && (
         <div className="mb-8 flex justify-center mx-6">
           <div className="inline-block">
             {/* Filter Header */}
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Filters</h3>
-              {(selectedTechs.length > 0 || selectedRole !== 'All') && (
+              {(selectedTechs.length > 0 || selectedRole !== 'All' || selectedYear !== 'All') && (
                 <button 
                   onClick={clearAllFilters}
                   className="btn btn-sm btn-outline btn-error ml-4"
@@ -186,6 +198,49 @@ const Portfolio: React.FC<Props> = ({ limit }) => {
                   </>
                 )}
                 
+                {/* Year Filters */}
+                {allYears.length > 0 && (
+                  <>
+                    <span className="text-sm font-medium text-base-content/70 whitespace-nowrap">Year:</span>
+                    <button
+                      onClick={() => setSelectedYear('All')}
+                      className={`badge badge-lg cursor-pointer transition-all inline-flex items-center whitespace-nowrap ${
+                        selectedYear === 'All'
+                          ? 'badge-info shadow-lg'
+                          : 'badge-outline badge-info hover:badge-info hover:shadow-md'
+                      }`}
+                    >
+                      <span className="whitespace-nowrap">All</span>
+                      <span className="badge badge-xs ml-1 badge-neutral">
+                        {portfolioItems.length}
+                      </span>
+                    </button>
+                    {allYears.map((year) => {
+                      const isSelected = selectedYear === year;
+                      const count = portfolioItems.filter(item => item.year === year).length;
+                      
+                      return (
+                        <button
+                          key={year}
+                          onClick={() => setSelectedYear(year)}
+                          className={`badge badge-lg cursor-pointer transition-all inline-flex items-center whitespace-nowrap ${
+                            isSelected
+                              ? 'badge-info shadow-lg'
+                              : 'badge-outline badge-info hover:badge-info hover:shadow-md'
+                          }`}
+                        >
+                          <span className="whitespace-nowrap">{year}</span>
+                          <span className={`badge badge-xs ml-1 ${
+                            isSelected ? 'badge-neutral' : 'badge-ghost'
+                          }`}>
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </>
+                )}
+
                 {/* Tech Filters */}
                 {availableTechs.length > 0 && (
                   <>

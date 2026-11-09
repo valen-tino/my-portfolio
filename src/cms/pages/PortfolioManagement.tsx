@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CMSLayout from '../components/CMSLayout';
 import WYSIWYGEditor from '../components/WYSIWYGEditor';
-import { CMSStorage, PortfolioItem, TechTool, Role } from '../apiStorage';
+import { CMSStorage, PortfolioItem, TechTool, Role, Experience, EducationItem } from '../apiStorage';
 import AIPortfolioModal from '../components/AIPortfolioModal';
 import aiService from '../../services/ai';
 import {
@@ -24,6 +24,8 @@ const PortfolioManagement: React.FC = () => {
   const [videoUploading, setVideoUploading] = useState(false);
   const [availableTechTools, setAvailableTechTools] = useState<TechTool[]>([]);
   const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
+  const [availableExperiences, setAvailableExperiences] = useState<Experience[]>([]);
+  const [availableEducation, setAvailableEducation] = useState<EducationItem[]>([]);
   // AI-related state
   const [showAIModal, setShowAIModal] = useState(false);
   const [isRewriting, setIsRewriting] = useState(false);
@@ -33,6 +35,8 @@ const PortfolioManagement: React.FC = () => {
     loadPortfolioItems();
     loadTechTools();
     loadRoles();
+    loadExperiences();
+    loadEducation();
   }, []);
 
   const loadPortfolioItems = async () => {
@@ -63,6 +67,24 @@ const PortfolioManagement: React.FC = () => {
       setAvailableRoles(roles);
     } catch (error) {
       console.error('Error loading roles:', error);
+    }
+  };
+
+  const loadExperiences = async () => {
+    try {
+      const experiences = await CMSStorage.getExperiences();
+      setAvailableExperiences(experiences);
+    } catch (error) {
+      console.error('Error loading experiences:', error);
+    }
+  };
+
+  const loadEducation = async () => {
+    try {
+      const education = await CMSStorage.getEducation();
+      setAvailableEducation(education);
+    } catch (error) {
+      console.error('Error loading education:', error);
     }
   };
 
@@ -116,7 +138,12 @@ const PortfolioManagement: React.FC = () => {
       linkTo: '',
       imageURL: '',
       tech: [],
-      roles: []
+      roles: [],
+      year: new Date().getFullYear().toString(),
+      relatedExperience: null,
+      relatedExperienceCompany: null,
+      relatedEducation: null,
+      relatedEducationInstitution: null
     };
     setEditingItem(newItem);
     setIsAddingNew(true);
@@ -125,6 +152,14 @@ const PortfolioManagement: React.FC = () => {
   };
 
   const handleEdit = (item: PortfolioItem) => {
+    const expId = typeof item.relatedExperience === 'object' && item.relatedExperience !== null
+      ? (item.relatedExperience._id || item.relatedExperience.id || null)
+      : (item.relatedExperience || null);
+
+    const eduId = typeof item.relatedEducation === 'object' && item.relatedEducation !== null
+      ? (item.relatedEducation._id || item.relatedEducation.id || null)
+      : (item.relatedEducation || null);
+
     // Ensure all fields exist with proper defaults and migrate legacy markdown to WYSIWYG HTML
     const itemWithDefaults = {
       ...item,
@@ -132,6 +167,11 @@ const PortfolioManagement: React.FC = () => {
       roles: item.roles || [],
       videoURL: item.videoURL || null,
       videoCloudinaryId: item.videoCloudinaryId || null,
+      year: item.year || '',
+      relatedExperience: expId,
+      relatedExperienceCompany: item.relatedExperienceCompany || (typeof item.relatedExperience === 'object' && item.relatedExperience !== null ? item.relatedExperience.companyName : null) || null,
+      relatedEducation: eduId,
+      relatedEducationInstitution: item.relatedEducationInstitution || (typeof item.relatedEducation === 'object' && item.relatedEducation !== null ? item.relatedEducation.institution : null) || null,
       // Initialize new fields with defaults if they don't exist
       isPasswordProtected: item.isPasswordProtected || false,
       password: item.password || '',
@@ -219,7 +259,12 @@ const PortfolioManagement: React.FC = () => {
       ...portfolio,
       id: 'temp-ai-generated',
       roles: portfolio.roles || [],
-      tech: portfolio.tech || [] // Matched technologies
+      tech: portfolio.tech || [], // Matched technologies
+      year: portfolio.year || new Date().getFullYear().toString(),
+      relatedExperience: portfolio.relatedExperience || null,
+      relatedExperienceCompany: portfolio.relatedExperienceCompany || null,
+      relatedEducation: portfolio.relatedEducation || null,
+      relatedEducationInstitution: portfolio.relatedEducationInstitution || null
     };
     
     // Set custom technologies in the input field if any were unmatched
@@ -528,6 +573,97 @@ const PortfolioManagement: React.FC = () => {
                     value={editingItem.linkTo}
                     onChange={(e) => setEditingItem({ ...editingItem, linkTo: e.target.value })}
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+                    Project Year (optional)
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={4}
+                    pattern="[0-9]{4}"
+                    className="w-full px-3.5 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    placeholder="e.g., 2024"
+                    value={editingItem.year || ''}
+                    onChange={(e) => setEditingItem({ ...editingItem, year: e.target.value })}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Label indicating the year this project was created or delivered.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+                    Related Experience or Education (optional)
+                  </label>
+                  <select
+                    className="w-full px-3.5 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
+                    value={(() => {
+                      const expId = typeof editingItem.relatedExperience === 'object' && editingItem.relatedExperience !== null
+                        ? (editingItem.relatedExperience._id || editingItem.relatedExperience.id)
+                        : editingItem.relatedExperience;
+                      if (expId) return `exp_${expId}`;
+
+                      const eduId = typeof editingItem.relatedEducation === 'object' && editingItem.relatedEducation !== null
+                        ? (editingItem.relatedEducation._id || editingItem.relatedEducation.id)
+                        : editingItem.relatedEducation;
+                      if (eduId) return `edu_${eduId}`;
+
+                      return '';
+                    })()}
+                    onChange={(e) => {
+                      const selected = e.target.value;
+                      if (!selected) {
+                        setEditingItem({
+                          ...editingItem,
+                          relatedExperience: null,
+                          relatedExperienceCompany: null,
+                          relatedEducation: null,
+                          relatedEducationInstitution: null
+                        });
+                      } else if (selected.startsWith('exp_')) {
+                        const id = selected.slice(4);
+                        const exp = availableExperiences.find(item => String(item._id || item.id) === id);
+                        setEditingItem({
+                          ...editingItem,
+                          relatedExperience: id,
+                          relatedExperienceCompany: exp ? exp.companyName : null,
+                          relatedEducation: null,
+                          relatedEducationInstitution: null
+                        });
+                      } else if (selected.startsWith('edu_')) {
+                        const id = selected.slice(4);
+                        const edu = availableEducation.find(item => String(item._id || item.id) === id);
+                        setEditingItem({
+                          ...editingItem,
+                          relatedEducation: id,
+                          relatedEducationInstitution: edu ? edu.institution : null,
+                          relatedExperience: null,
+                          relatedExperienceCompany: null
+                        });
+                      }
+                    }}
+                  >
+                    <option value="">None (Personal / Independent Project)</option>
+                    <optgroup label="💼 Work Experiences">
+                      {availableExperiences.map((exp) => (
+                        <option key={exp._id || exp.id} value={`exp_${exp._id || exp.id}`}>
+                          {exp.companyName} — {exp.title || 'Role'}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="🎓 Educational Background">
+                      {availableEducation.map((edu) => (
+                        <option key={edu._id || edu.id} value={`edu_${edu._id || edu.id}`}>
+                          {edu.institution} — {edu.title || 'Degree'}
+                        </option>
+                      ))}
+                    </optgroup>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Associate project with a company, university, or bootcamp (optional).
+                  </p>
                 </div>
 
                 {/* Portfolio Settings Card */}
@@ -1023,6 +1159,27 @@ const PortfolioManagement: React.FC = () => {
                               </div>
                             );
                           })}
+                        </div>
+                      )}
+
+                      {/* Year & Related Affiliation Badges */}
+                      {(item.year || item.relatedExperienceCompany || item.relatedEducationInstitution) && (
+                        <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                          {item.year && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+                              📅 {item.year}
+                            </span>
+                          )}
+                          {item.relatedExperienceCompany && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                              💼 {item.relatedExperienceCompany}
+                            </span>
+                          )}
+                          {item.relatedEducationInstitution && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800">
+                              🎓 {item.relatedEducationInstitution}
+                            </span>
+                          )}
                         </div>
                       )}
                       

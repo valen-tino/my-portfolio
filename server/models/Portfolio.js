@@ -67,6 +67,33 @@ const portfolioSchema = new mongoose.Schema({
   isPinned: {
     type: Boolean,
     default: false
+  },
+  // Year & Work Experience Link
+  year: {
+    type: String,
+    default: null,
+    trim: true
+  },
+  relatedExperience: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Experience',
+    default: null
+  },
+  relatedExperienceCompany: {
+    type: String,
+    default: null,
+    trim: true
+  },
+  // Educational Background Link
+  relatedEducation: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Education',
+    default: null
+  },
+  relatedEducationInstitution: {
+    type: String,
+    default: null,
+    trim: true
   }
 }, {
   timestamps: true

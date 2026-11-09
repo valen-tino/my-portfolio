@@ -223,6 +223,25 @@ const PortfolioDetail: React.FC = () => {
               {/* Project Header */}
               <div className="text-center mb-12">
                 <h1 className="text-3xl md:text-5xl font-bold mb-4">{portfolio.title}</h1>
+                {(portfolio.year || portfolio.relatedExperienceCompany || portfolio.relatedEducationInstitution) && (
+                  <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
+                    {portfolio.year && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-base-200 text-base-content/80">
+                        📅 {portfolio.year}
+                      </span>
+                    )}
+                    {portfolio.relatedExperienceCompany && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-primary text-primary-content">
+                        💼 {portfolio.relatedExperienceCompany}
+                      </span>
+                    )}
+                    {portfolio.relatedEducationInstitution && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-emerald-600 text-white">
+                        🎓 {portfolio.relatedEducationInstitution}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
               
               {/* Project Media (Video or Image) */}
@@ -330,6 +349,25 @@ const PortfolioDetail: React.FC = () => {
               {/* Project Header */}
               <div className="mb-8">
                 <h1 className="text-3xl xl:text-4xl font-bold mb-4">{portfolio.title}</h1>
+                {(portfolio.year || portfolio.relatedExperienceCompany || portfolio.relatedEducationInstitution) && (
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    {portfolio.year && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-base-200 text-base-content/80">
+                        📅 {portfolio.year}
+                      </span>
+                    )}
+                    {portfolio.relatedExperienceCompany && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-primary text-primary-content">
+                        💼 {portfolio.relatedExperienceCompany}
+                      </span>
+                    )}
+                    {portfolio.relatedEducationInstitution && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-emerald-600 text-white">
+                        🎓 {portfolio.relatedEducationInstitution}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
               
               {/* Project Media (Video or Image) */}

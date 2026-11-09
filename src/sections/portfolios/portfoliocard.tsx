@@ -61,6 +61,21 @@ const PortfolioCard: React.FC<Props> = ({ items }) => {
                 </span>
               </div>
             )}
+
+            {/* Related Experience or Education Badge (Only if not protected) */}
+            {!isProtected && (item.relatedExperienceCompany || item.relatedEducationInstitution) && (
+              <div className={`absolute ${isPinned ? 'top-10' : 'top-2'} left-2 z-10`}>
+                {item.relatedExperienceCompany ? (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-primary text-primary-content shadow-lg backdrop-blur-md bg-opacity-90">
+                    💼 {item.relatedExperienceCompany}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-emerald-600 text-white shadow-lg backdrop-blur-md bg-opacity-90">
+                    🎓 {item.relatedEducationInstitution}
+                  </span>
+                )}
+              </div>
+            )}
             
             <figure className="aspect-video overflow-hidden flex-shrink-0">
               <img 
@@ -84,6 +99,13 @@ const PortfolioCard: React.FC<Props> = ({ items }) => {
             
             <div className={`card-body p-4 sm:p-6 flex-1 flex flex-col justify-between ${isProtected ? 'blur-sm' : ''}`}>
               <div>
+                {item.year && !isProtected && (
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-base-200 text-base-content/80">
+                      📅 {item.year}
+                    </span>
+                  </div>
+                )}
                 <h2 
                   className="card-title text-base sm:text-lg font-bold line-clamp-2 text-left"
                   title={isProtected ? 'Protected Portfolio' : item.title}
