@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import CMSLayout from '../components/CMSLayout';
 import WYSIWYGEditor from '../components/WYSIWYGEditor';
 import { CMSStorage, PortfolioItem, TechTool, Role, Experience, EducationItem } from '../apiStorage';
@@ -12,12 +12,45 @@ import {
 } from '../../utils/aiHelpers';
 import { migrateContentToHtml, optimizeCloudinaryVideoUrl } from '../../utils/contentMigration';
 
+/**
+ * Normalizes incoming technology tokens:
+ * - Trims whitespace and filters empty tokens.
+ * - Matches case-insensitively against catalog tools and adopts canonical title.
+ * - Prevents case-insensitive duplicates against existing technologies.
+ */
+export const normalizeAndDeduplicateTech = (
+  incoming: string[],
+  existing: string[],
+  catalog: TechTool[]
+): string[] => {
+  const result = [...existing];
+  for (const raw of incoming) {
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    const matched = catalog.find(
+      (tool) => tool.title.toLowerCase() === trimmed.toLowerCase()
+    );
+    const canonical = matched ? matched.title : trimmed;
+    const alreadyExists = result.some(
+      (t) => t.toLowerCase() === canonical.toLowerCase()
+    );
+    if (!alreadyExists) {
+      result.push(canonical);
+    }
+  }
+  return result;
+};
+
 const PortfolioManagement: React.FC = () => {
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
   const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [techInput, setTechInput] = useState('');
+  const techInputRef = useRef(techInput);
+  useEffect(() => {
+    techInputRef.current = techInput;
+  }, [techInput]);
   const [techSearch, setTechSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
@@ -149,6 +182,7 @@ const PortfolioManagement: React.FC = () => {
     setEditingItem(newItem);
     setIsAddingNew(true);
     setTechInput('');
+    techInputRef.current = '';
     setTechSearch('');
   };
 
@@ -182,7 +216,26 @@ const PortfolioManagement: React.FC = () => {
     setEditingItem(itemWithDefaults);
     setIsAddingNew(false);
     setTechInput(''); // Clear custom tech input when editing existing item
+    techInputRef.current = '';
     setTechSearch('');
+  };
+
+  const handleAddCustomTech = (inputOverride?: string) => {
+    if (!editingItem) return;
+    const raw = inputOverride !== undefined ? inputOverride : techInput;
+    if (!raw.trim()) return;
+    const splitItems = raw.split(',').map((s) => s.trim()).filter(Boolean);
+    if (splitItems.length === 0) return;
+
+    setEditingItem((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        tech: normalizeAndDeduplicateTech(splitItems, prev.tech || [], availableTechTools)
+      };
+    });
+    setTechInput('');
+    techInputRef.current = '';
   };
 
   const handleSave = async () => {
@@ -203,14 +256,14 @@ const PortfolioManagement: React.FC = () => {
       return;
     }
 
-    // Combine selected tech tools with custom tech input
-    const customTechTools = techInput
-      .split(',')
-      .map(tech => tech.trim())
-      .filter(tech => tech.length > 0);
-    
-    const allTechTools = [...(editingItem.tech || []), ...customTechTools]
-      .filter((tech, index, arr) => arr.indexOf(tech) === index); // Remove duplicates
+    // Reconcile any uncommitted text remaining in custom tech input buffer
+    const pendingRaw = techInputRef.current.trim();
+    const pendingList = pendingRaw ? pendingRaw.split(',').map((s) => s.trim()).filter(Boolean) : [];
+    const allTechTools = normalizeAndDeduplicateTech(
+      pendingList,
+      editingItem.tech || [],
+      availableTechTools
+    );
 
     const updatedItem = {
       ...editingItem,
@@ -224,6 +277,7 @@ const PortfolioManagement: React.FC = () => {
       setEditingItem(null);
       setIsAddingNew(false);
       setTechInput('');
+      techInputRef.current = '';
     } catch (error) {
       // Error already handled in savePortfolioItem
     }
@@ -252,15 +306,26 @@ const PortfolioManagement: React.FC = () => {
     setEditingItem(null);
     setIsAddingNew(false);
     setTechInput('');
+    techInputRef.current = '';
     setAiError('');
   };
 
   const handleAIPortfolioGenerate = (portfolio: any) => {
+    const rawCustom = Array.isArray(portfolio.customTech) ? portfolio.customTech : [];
+    const rawMatched = Array.isArray(portfolio.tech) ? portfolio.tech : [];
+    
+    // Combine and deduplicate matched tools with custom tech directly into chips
+    const mergedTech = normalizeAndDeduplicateTech(
+      rawCustom,
+      rawMatched,
+      availableTechTools
+    );
+
     const newItem: PortfolioItem = {
       ...portfolio,
       id: 'temp-ai-generated',
       roles: portfolio.roles || [],
-      tech: portfolio.tech || [], // Matched technologies
+      tech: mergedTech,
       year: portfolio.year || new Date().getFullYear().toString(),
       isPublished: portfolio.isPublished !== undefined ? portfolio.isPublished : true,
       relatedExperience: portfolio.relatedExperience || null,
@@ -269,18 +334,14 @@ const PortfolioManagement: React.FC = () => {
       relatedEducationInstitution: portfolio.relatedEducationInstitution || null
     };
     
-    // Set custom technologies in the input field if any were unmatched
-    const customTechString = portfolio.customTech && portfolio.customTech.length > 0 
-      ? portfolio.customTech.join(', ')
-      : '';
-    
     setEditingItem(newItem);
     setIsAddingNew(true);
-    setTechInput(customTechString); // Populate custom tech input
+    setTechInput(''); // Clear input buffer
+    techInputRef.current = '';
     setShowAIModal(false);
     
-    const techMessage = portfolio.customTech && portfolio.customTech.length > 0
-      ? `AI-generated portfolio loaded! ${portfolio.customTech.length} unmatched technologies added to custom field.`
+    const techMessage = rawCustom.length > 0 
+      ? `AI-generated portfolio loaded! ${rawCustom.length} unmatched technologies added as tags.`
       : 'AI-generated portfolio loaded! Review and customize as needed, then save.';
     
     setMessage({
@@ -767,7 +828,11 @@ const PortfolioManagement: React.FC = () => {
                     {editingItem.tech && editingItem.tech.length > 0 && (
                       <button
                         type="button"
-                        onClick={() => setEditingItem({ ...editingItem, tech: [] })}
+                        onClick={() => {
+                          setEditingItem({ ...editingItem, tech: [] });
+                          setTechInput('');
+                          techInputRef.current = '';
+                        }}
                         className="text-xs text-red-600 hover:text-red-800 font-medium"
                       >
                         Clear all
@@ -777,7 +842,7 @@ const PortfolioManagement: React.FC = () => {
 
                   {/* Selected Tech Chips */}
                   {editingItem.tech && editingItem.tech.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 p-2 bg-white border border-gray-200 rounded-lg max-h-24 overflow-y-auto">
+                    <div data-testid="selected-tech-chips" className="flex flex-wrap gap-1.5 p-2 bg-white border border-gray-200 rounded-lg max-h-24 overflow-y-auto">
                       {editingItem.tech.map((toolTitle) => (
                         <span key={toolTitle} className="badge badge-info badge-sm gap-1 text-white py-2">
                           {toolTitle}
@@ -852,17 +917,39 @@ const PortfolioManagement: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Custom tech input */}
-                  <div>
-                    <input
-                      type="text"
-                      className={`w-full px-2.5 py-1.5 text-xs border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                        techInput ? 'border-orange-300 bg-orange-50' : 'border-gray-300 bg-white'
-                      }`}
-                      placeholder="Additional custom technologies (comma-separated)"
-                      value={techInput}
-                      onChange={(e) => setTechInput(e.target.value)}
-                    />
+                  {/* Custom tech input group */}
+                  <div className="space-y-1">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        data-testid="custom-tech-input"
+                        className={`flex-1 px-2.5 py-1.5 text-xs border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                          techInput ? 'border-blue-400 bg-blue-50/30' : 'border-gray-300 bg-white'
+                        }`}
+                        placeholder="Custom tech (e.g. Three.js)..."
+                        value={techInput}
+                        onChange={(e) => setTechInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ',') {
+                            e.preventDefault();
+                            handleAddCustomTech();
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        data-testid="add-custom-tech-btn"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => handleAddCustomTech()}
+                        disabled={!techInput.trim()}
+                        className="btn btn-sm btn-outline text-xs px-3 shrink-0"
+                      >
+                        + Add
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-gray-500">
+                      Type custom technologies separated by commas, then press Enter or click Add.
+                    </p>
                   </div>
                 </div>
 

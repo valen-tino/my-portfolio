@@ -18,7 +18,8 @@ This document provides a comprehensive, centralized record of all architecture i
 11. [Direct Signed Cloudinary Video Upload (413 Fix)](#11-direct-signed-cloudinary-video-upload-413-fix)
 12. [Homepage Hierarchy & UI Alignment](#12-homepage-hierarchy--ui-alignment)
 13. [Portfolio Public Visibility & Draft Management](#13-portfolio-public-visibility--draft-management)
-14. [Files Created, Modified, or Removed](#14-files-created-modified-or-removed)
+14. [Custom Technologies Input & Tokenization System](#14-custom-technologies-input--tokenization-system)
+15. [Files Created, Modified, or Removed](#15-files-created-modified-or-removed)
 
 ---
 
@@ -246,13 +247,33 @@ This document provides a comprehensive, centralized record of all architecture i
 
 ---
 
-## 14. Files Created, Modified, or Removed
+## 14. Custom Technologies Input & Tokenization System
+
+### Defect & Resolution
+- **Issue**: The comma-separated input field inside "Technologies Used" in `src/cms/pages/PortfolioManagement.tsx` was unresponsive:
+  - No `+ Add` button or key event listeners (`Enter`, `,`), providing zero visual feedback or chip creation until form save.
+  - Stale closure in `Cmd+S` keyboard shortcut listener permanently dropped any uncommitted text in `techInput`.
+  - "Clear all" failed to clear `techInput`, causing cleared technologies to resurface upon saving.
+  - Case-sensitive deduplication allowed duplicate tags (`React` vs `react`) without canonical catalog matching.
+- **Resolution**:
+  - Implemented and exported pure `normalizeAndDeduplicateTech` helper for whitespace trimming, case-insensitive catalog normalization against `availableTechTools`, and duplicate suppression.
+  - Implemented `handleAddCustomTech` with functional state updater `setEditingItem(prev => ...)`.
+  - Grouped the input with a `+ Add` button (`onMouseDown` preventDefault prevents focus blur race conditions) and attached `onKeyDown` intercepting `Enter` and `,`.
+  - Added `techInputRef` to eliminate stale closure bugs in `handleSave` and `Cmd+S` / `Ctrl+S` shortcut listener.
+  - Synchronized "Clear all", `handleEdit`, and `handleCancel` to reset `techInput` and `techInputRef.current`.
+  - In `handleAIPortfolioGenerate`, merged `portfolio.customTech` directly into `newItem.tech` as visible chips upon generation.
+  - Added full test suite in `tests/PortfolioManagement.test.tsx` verifying chip creation on button click, Enter, and comma, case normalization, pre-save flush, and Clear all sync (34 total tests passing).
+
+---
+
+## 15. Files Created, Modified, or Removed
 
 | File | Status | Description |
 | :--- | :--- | :--- |
+| `src/cms/pages/PortfolioManagement.tsx` | Modified | Added `normalizeAndDeduplicateTech`, `handleAddCustomTech`, `techInputRef`, input group with `+ Add` button, and pre-save sync. |
+| `tests/PortfolioManagement.test.tsx` | Created | Automated Vitest suite for interactive tag creation, Enter/comma handling, duplicate suppression, and pre-save flushing. |
 | `server/routes/portfolio.js` | Modified | Updated GET `/api/portfolio` query filter to `{ isPublished: { $ne: false } }` for legacy record parity. |
 | `src/cms/apiStorage.ts` | Modified | Added `publishedOnly = false` parameter to `CMSStorage.getPortfolios`. |
-| `src/cms/pages/PortfolioManagement.tsx` | Modified | Added visibility toggle card, header status badge, admin card list badge, and default `isPublished: true` initializers. |
 | `src/sections/portfolios/portfolio.tsx` | Modified | Public showcase queries published-only items and derives metadata filters strictly from published projects. |
 | `src/pages/PortfolioDetail.tsx` | Modified | Public detail route guards against unpublished items with fallback screen. |
 | `tests/portfolio.test.tsx` | Modified | Unit test asserting hidden portfolios and metadata are excluded from public showcase. |

@@ -224,6 +224,7 @@ AI Integration:
    - **Unmatched**: Technologies not in your tools (added to "Custom Technologies" field)
 6. ✅ **Direct Signed Cloudinary Uploads**: Bypassed 4.5 MB serverless proxy limit for videos and multi-file galleries.
 7. ✅ **Public Visibility & Draft Hiding**: Portfolio edit section allows toggling visibility on the public website with airtight filtering and route guards.
+8. ✅ **Custom Technologies Tokenization**: Added interactive `+ Add` button, `Enter` / `,` keyboard listeners, catalog title normalization, duplicate suppression, and stale-closure-free pre-save synchronization.
 
 ### **Future Enhancements**
 - [ ] Add AI model selection (chat vs reasoner)
