@@ -165,5 +165,21 @@ describe('Content Migration & WYSIWYG Editor with Gallery Controls', () => {
       expect(editorEl?.innerHTML).toContain('<li>');
     });
   });
+
+  it('validates file size and shows error message when image exceeds 25 MB limit', async () => {
+    const handleChange = vi.fn();
+    render(<WYSIWYGEditor value="<p>Test</p>" onChange={handleChange} />);
+
+    const singleInput = screen.getByTestId('single-media-input');
+    const largeFile = new File(['x'.repeat(100)], 'huge.png', { type: 'image/png' });
+    Object.defineProperty(largeFile, 'size', { value: 30 * 1024 * 1024 }); // 30 MB
+
+    fireEvent.change(singleInput, { target: { files: [largeFile] } });
+
+    await waitFor(() => {
+      expect(CMSStorage.uploadEditorMedia).not.toHaveBeenCalled();
+      expect(screen.getByText(/exceeds 25 MB limit/i)).toBeInTheDocument();
+    });
+  });
 });
 

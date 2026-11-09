@@ -41,6 +41,20 @@ const ALIGN_CLASS_MAP: Record<AlignOption, string> = {
 const SIZE_OPTIONS: MediaSizeOption[] = ['25%', '33%', '50%', '75%', '100%'];
 const ASPECT_OPTIONS: AspectRatioOption[] = ['16:9', '4:3', '1:1', 'auto'];
 
+const MAX_IMAGE_FILE_SIZE = 25 * 1024 * 1024; // 25 MB
+const MAX_VIDEO_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
+
+const validateMediaFileSize = (file: File): string | null => {
+  const isVideo = (file.type && file.type.startsWith('video/')) || /\.(mp4|webm|mov|mkv|m4v)$/i.test(file.name);
+  if (isVideo && file.size > MAX_VIDEO_FILE_SIZE) {
+    return `Video "${file.name}" exceeds 100 MB limit (${(file.size / (1024 * 1024)).toFixed(1)} MB).`;
+  }
+  if (!isVideo && file.size > MAX_IMAGE_FILE_SIZE) {
+    return `Image "${file.name}" exceeds 25 MB limit (${(file.size / (1024 * 1024)).toFixed(1)} MB).`;
+  }
+  return null;
+};
+
 /**
  * Helper to build gallery HTML from items array so both renderHTML and static rendering match.
  */
@@ -322,9 +336,19 @@ const GalleryNodeView: React.FC<NodeViewProps> = ({ node, updateAttributes, dele
   const handleAddMoreFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0) return;
+
+    const files = Array.from(fileList);
+    for (const f of files) {
+      const sizeErr = validateMediaFileSize(f);
+      if (sizeErr) {
+        alert(sizeErr);
+        if (addMoreInputRef.current) addMoreInputRef.current.value = '';
+        return;
+      }
+    }
+
     setUploadingMore(true);
     try {
-      const files = Array.from(fileList);
       const uploaded = await CMSStorage.uploadEditorGallery(files);
       const newItems: GalleryMediaItem[] = uploaded.map((u, idx) => ({
         id: `gal-${Date.now()}-${idx}`,
@@ -719,6 +743,13 @@ const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({ value, onChange }) => {
     const file = e.target.files?.[0];
     if (!file || !editor) return;
 
+    const sizeErr = validateMediaFileSize(file);
+    if (sizeErr) {
+      setUploadError(sizeErr);
+      if (singleFileInputRef.current) singleFileInputRef.current.value = '';
+      return;
+    }
+
     setUploading(true);
     setUploadError('');
     try {
@@ -751,10 +782,19 @@ const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({ value, onChange }) => {
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0 || !editor) return;
 
+    const files = Array.from(fileList);
+    for (const f of files) {
+      const sizeErr = validateMediaFileSize(f);
+      if (sizeErr) {
+        setUploadError(sizeErr);
+        if (galleryFileInputRef.current) galleryFileInputRef.current.value = '';
+        return;
+      }
+    }
+
     setUploading(true);
     setUploadError('');
     try {
-      const files = Array.from(fileList);
       const uploadedItems = await CMSStorage.uploadEditorGallery(files);
       const defaultSize: MediaSizeOption = files.length === 2 ? '50%' : '33%';
 

@@ -377,7 +377,78 @@ class ApiService {
     return response.data;
   }
 
+  async uploadDirectFileToCloudinary(
+    file: File,
+    folder = 'editor-media',
+    prefetchedSig?: { signature: string; timestamp: number; apiKey: string; cloudName: string; folder: string }
+  ): Promise<{ url: string; cloudinaryId: string; mediaType: 'image' | 'video' }> {
+    let sigData = prefetchedSig;
+    if (!sigData) {
+      const sigResponse = await this.getUploadSignature(folder);
+      if (!sigResponse?.success || !sigResponse.data) {
+        throw new Error('Failed to obtain upload signature');
+      }
+      sigData = sigResponse.data;
+    }
+
+    if (!sigData) {
+      throw new Error('Failed to obtain upload signature');
+    }
+
+    const { signature, timestamp, apiKey, cloudName, folder: targetFolder } = sigData;
+    const directFormData = new FormData();
+    directFormData.append('file', file);
+    directFormData.append('api_key', apiKey);
+    directFormData.append('timestamp', String(timestamp));
+    directFormData.append('signature', signature);
+    directFormData.append('folder', targetFolder);
+
+    const isVideo = (file.type && file.type.startsWith('video/')) || /\.(mp4|webm|mov|mkv|m4v)$/i.test(file.name);
+    const endpointType = isVideo ? 'video' : 'auto';
+
+    const cloudinaryResponse = await axios.post(
+      `https://api.cloudinary.com/v1_1/${cloudName}/${endpointType}/upload`,
+      directFormData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 300000,
+      }
+    );
+
+    const rawUrl = cloudinaryResponse.data.secure_url || cloudinaryResponse.data.url;
+    const mediaType: 'image' | 'video' = cloudinaryResponse.data.resource_type === 'video' || isVideo ? 'video' : 'image';
+    const finalUrl = mediaType === 'video' ? this.optimizeCloudinaryVideoUrl(rawUrl) : rawUrl;
+
+    return {
+      url: finalUrl,
+      cloudinaryId: cloudinaryResponse.data.public_id,
+      mediaType,
+    };
+  }
+
   async uploadEditorMedia(file: File) {
+    try {
+      const result = await this.uploadDirectFileToCloudinary(file, 'editor-media');
+      return {
+        success: true,
+        message: 'Editor media uploaded successfully',
+        data: result,
+      };
+    } catch (directUploadError) {
+      if (
+        axios.isAxiosError(directUploadError) &&
+        directUploadError.response?.status &&
+        directUploadError.response.status >= 400 &&
+        directUploadError.response.status < 500 &&
+        directUploadError.config?.url?.includes('cloudinary.com')
+      ) {
+        throw directUploadError;
+      }
+      console.warn('Direct Cloudinary editor media upload unavailable, falling back to server upload:', directUploadError);
+    }
+
     const formData = new FormData();
     formData.append('media', file);
     const response = await this.api.post('/upload/editor-media', formData, {
@@ -390,6 +461,32 @@ class ApiService {
   }
 
   async uploadEditorGallery(files: File[]) {
+    try {
+      const sigResponse = await this.getUploadSignature('editor-gallery');
+      if (sigResponse?.success && sigResponse.data) {
+        const sigData = sigResponse.data;
+        const uploadedItems = await Promise.all(
+          files.map((file) => this.uploadDirectFileToCloudinary(file, 'editor-gallery', sigData))
+        );
+        return {
+          success: true,
+          message: 'Gallery media uploaded successfully',
+          data: uploadedItems,
+        };
+      }
+    } catch (directUploadError) {
+      if (
+        axios.isAxiosError(directUploadError) &&
+        directUploadError.response?.status &&
+        directUploadError.response.status >= 400 &&
+        directUploadError.response.status < 500 &&
+        directUploadError.config?.url?.includes('cloudinary.com')
+      ) {
+        throw directUploadError;
+      }
+      console.warn('Direct Cloudinary editor gallery upload unavailable, falling back to server upload:', directUploadError);
+    }
+
     const formData = new FormData();
     files.forEach((file) => formData.append('media', file));
     const response = await this.api.post('/upload/editor-gallery', formData, {

@@ -166,7 +166,7 @@ This document provides a comprehensive, centralized record of all architecture i
   - Cloudinary video optimization flags.
   - Lightbox modal interactions and keyboard navigation.
   - Case study scroll progress bar tracking.
-- **Current Test Status**: 26 tests passing across 6 test suites (`npm test`).
+- **Current Test Status**: 27 tests passing across 6 test suites (`npm test`).
 - **Production Build**: 0 errors, building cleanly in ~1.5–1.7s with Vite.
 
 ---
@@ -202,13 +202,17 @@ This document provides a comprehensive, centralized record of all architecture i
 
 ---
 
-## 11. Direct Signed Cloudinary Video Upload (413 Fix)
+## 11. Direct Signed Cloudinary Uploads for Video & Gallery (413 Fix)
 
 ### Issue & Resolution
-- **Issue**: Vercel serverless request body size limit is 4.5 MB. Large video uploads proxied through `/api/upload/portfolio-video` failed with HTTP 413 (Payload Too Large).
+- **Issue**: Vercel serverless request body size limit is 4.5 MB. Large video uploads proxied through `/api/upload/portfolio-video` and multi-file gallery/media uploads proxied through `/api/upload/editor-gallery` and `/api/upload/editor-media` failed with HTTP 413 (Payload Too Large).
 - **Resolution**:
-  - Implemented direct client-to-Cloudinary signed upload via `GET /api/upload/signature`.
-  - Added client-side 100 MB limits and upload progress tracking in `src/cms/pages/PortfolioManagement.tsx`.
+  - Implemented direct client-to-Cloudinary signed upload architecture via `GET /api/upload/signature` in `src/services/api.ts` for:
+    - Portfolio videos (`uploadPortfolioVideo`)
+    - Single editor media (`uploadEditorMedia`)
+    - Multi-file gallery batches (`uploadEditorGallery`) using concurrent parallel uploads via `Promise.all()`
+  - Added client-side size guards (25 MB per image, 100 MB per video) and upload progress tracking in `src/cms/pages/PortfolioManagement.tsx` and `src/cms/components/WYSIWYGEditor.tsx`.
+  - Added unit tests in `tests/WYSIWYGEditor.test.tsx` verifying file size validation (27 tests passing across 6 suites).
 
 ---
 
