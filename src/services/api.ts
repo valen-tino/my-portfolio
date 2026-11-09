@@ -114,7 +114,13 @@ class ApiService {
     return response.data;
   }
 
-  async updateAbout(data: { description: string; imageURL?: string; imageCloudinaryId?: string }) {
+  async updateAbout(data: {
+    description: string;
+    imageURL?: string;
+    imageCloudinaryId?: string | null;
+    cvURL?: string | null;
+    cvCloudinaryId?: string | null;
+  }) {
     const response = await this.api.put('/about', data);
     return response.data;
   }
@@ -425,6 +431,34 @@ class ApiService {
       url: finalUrl,
       cloudinaryId: cloudinaryResponse.data.public_id,
       mediaType,
+    };
+  }
+
+  async uploadCV(file: File): Promise<{ url: string; cloudinaryId: string }> {
+    const sigResponse = await this.getUploadSignature('cv');
+    if (!sigResponse?.success || !sigResponse.data) {
+      throw new Error('Failed to obtain upload signature for CV');
+    }
+    const { signature, timestamp, apiKey, cloudName, folder } = sigResponse.data;
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('api_key', apiKey);
+    formData.append('timestamp', String(timestamp));
+    formData.append('signature', signature);
+    formData.append('folder', folder);
+
+    const response = await axios.post(
+      `https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`,
+      formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60000,
+      }
+    );
+
+    return {
+      url: response.data.secure_url || response.data.url,
+      cloudinaryId: response.data.public_id,
     };
   }
 

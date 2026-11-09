@@ -348,3 +348,59 @@ figure.gallery-item {
   text-decoration: underline;
   word-break: break-word;
 }
+
+/* WYSIWYG Content Public View Formatting */
+.wysiwyg-content {
+  text-align: left;
+}
+
+.wysiwyg-content ul {
+  list-style-type: disc !important;
+  list-style-position: outside !important;
+  padding-left: 1.5rem !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.wysiwyg-content ol {
+  list-style-type: decimal !important;
+  list-style-position: outside !important;
+  padding-left: 1.5rem !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.wysiwyg-content li {
+  display: list-item !important;
+  margin-bottom: 0.25rem !important;
+  line-height: 1.6 !important;
+}
+
+.wysiwyg-content li > p {
+  margin: 0 !important;
+}
+
+.wysiwyg-content p {
+  margin-top: 0 !important;
+  margin-bottom: 0.75rem !important;
+  line-height: 1.6 !important;
+}
+
+.wysiwyg-content p:last-child {
+  margin-bottom: 0 !important;
+}
+
+.wysiwyg-content strong {
+  font-weight: 600 !important;
+}
+
+.wysiwyg-content em {
+  font-style: italic !important;
+}
+
+.wysiwyg-content blockquote {
+  border-left: 3px solid hsl(var(--in));
+  padding-left: 1rem;
+  font-style: italic;
+  margin: 0.75rem 0;
+}

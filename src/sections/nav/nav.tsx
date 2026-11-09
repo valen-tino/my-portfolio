@@ -1,13 +1,25 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link as RouterLink, useLocation } from 'react-router-dom'
 import { Link as ScrollLink } from 'react-scroll'
 import Download from '../../assets/download.svg'
 import useScrollPosition from '../../hook/useScrollPosition'
+import { CMSStorage } from '../../cms/apiStorage'
 
 const Navbar = () => {
   const scrollPosition = useScrollPosition()
   const location = useLocation()
   const isPortfolioPage = location.pathname.startsWith('/portfolio')
+  const [cvUrl, setCvUrl] = useState('/Valen-Jehaut.pdf')
+
+  useEffect(() => {
+    if (typeof CMSStorage?.getAbout === 'function') {
+      CMSStorage.getAbout()
+        .then(data => {
+          if (data?.cvURL) setCvUrl(data.cvURL)
+        })
+        .catch(() => {})
+    }
+  }, [])
   
   function classFunc(...classes: string[]) {
     return classes.filter(Boolean).join(' ')
@@ -82,9 +94,9 @@ const Navbar = () => {
         {/* Mobile CV Button - Icon only */}
         <a 
           className="btn btn-warning btn-sm gap-2 sm:hidden" 
-          href="/Valen-Jehaut.pdf" 
-          target="_self" 
-          rel="noreferrer"
+          href={cvUrl} 
+          target="_blank" 
+          rel="noopener noreferrer"
           title="Download CV"
         >
           <img src={Download} alt="Download CV" className="w-3 h-3" />
@@ -94,9 +106,9 @@ const Navbar = () => {
         {/* Desktop CV Button - Full text */}
         <a 
           className="btn btn-warning btn-sm gap-2 hidden sm:flex" 
-          href="/Valen-Jehaut.pdf" 
-          target="_self" 
-          rel="noreferrer"
+          href={cvUrl} 
+          target="_blank" 
+          rel="noopener noreferrer"
         >
           <img src={Download} alt="Download" className="w-4 h-4" />
           Download CV

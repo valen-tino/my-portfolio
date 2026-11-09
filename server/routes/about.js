@@ -15,7 +15,9 @@ router.get('/', async (req, res) => {
     if (!about) {
       about = new About({
         description: `Well, name's Valentino Yudhistira Jehaut (A.k.a Valen) and nice to know you!\n\nI'm 20 years old now and currently living in Bali, Indonesia. I just graduated from SMK TI Bali Global Denpasar majoring in Software Engineering and currently pursuing Double Bachelor's Degree in Information Systems (ITB Stikom Bali) & Information Technology (HELP University)\n\nI've had experience as a web developer for more than 2.5 years now and as a UI/UX Designer for more than a year. At that time, i'm always curious and open to trying new technologies just to enhance my skills so that i didn't miss out on the current trends.\n\nNow, i'm currently as a UI/UX Designer & Part-time Web Developer at Bendega.id, a Web Developer at Bali Mountain Retreat and Mashup R Japan.`,
-        imageURL: 'myface.jpeg'
+        imageURL: 'myface.jpeg',
+        cvURL: '/Valen-Jehaut.pdf',
+        cvCloudinaryId: null
       });
       await about.save();
     }
@@ -38,7 +40,7 @@ router.get('/', async (req, res) => {
 // @access  Private
 router.put('/', authMiddleware, async (req, res) => {
   try {
-    const { description, imageURL, imageCloudinaryId } = req.body;
+    const { description, imageURL, imageCloudinaryId, cvURL, cvCloudinaryId } = req.body;
 
     // Validation
     if (!description) {
@@ -61,10 +63,21 @@ router.put('/', authMiddleware, async (req, res) => {
         }
       }
 
+      // If CV is being updated and old CV exists in cloudinary, delete it as raw resource
+      if (cvCloudinaryId && about.cvCloudinaryId && cvCloudinaryId !== about.cvCloudinaryId) {
+        try {
+          await deleteImage(about.cvCloudinaryId, 'raw');
+        } catch (deleteError) {
+          console.error('Error deleting old CV:', deleteError);
+        }
+      }
+
       // Update existing
       about.description = description;
       if (imageURL) about.imageURL = imageURL;
-      if (imageCloudinaryId) about.imageCloudinaryId = imageCloudinaryId;
+      if (imageCloudinaryId !== undefined) about.imageCloudinaryId = imageCloudinaryId;
+      if (cvURL !== undefined) about.cvURL = cvURL || '/Valen-Jehaut.pdf';
+      if (cvCloudinaryId !== undefined) about.cvCloudinaryId = cvCloudinaryId || null;
       
       await about.save();
     } else {
@@ -72,7 +85,9 @@ router.put('/', authMiddleware, async (req, res) => {
       about = new About({
         description,
         imageURL: imageURL || 'myface.jpeg',
-        imageCloudinaryId: imageCloudinaryId || null
+        imageCloudinaryId: imageCloudinaryId || null,
+        cvURL: cvURL || '/Valen-Jehaut.pdf',
+        cvCloudinaryId: cvCloudinaryId || null
       });
       await about.save();
     }

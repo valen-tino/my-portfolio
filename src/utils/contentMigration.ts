@@ -86,6 +86,27 @@ export function migrateContentToHtml(content: string, projectTitle?: string): st
 }
 
 /**
+ * Formats general content (Experience, About Me, Education) for public display:
+ * - If already semantic HTML, returns content directly.
+ * - If legacy Markdown or plain text with newlines, parses via marked without
+ *   mutating headings into case study chapter titles.
+ */
+export function formatPublicDescription(content: string): string {
+  if (!content || !content.trim()) return '';
+  const trimmed = content.trim();
+
+  // If already contains block HTML tags, return as HTML
+  const hasBlockHtml = /<(p|ul|ol|li|h[1-6]|div|blockquote)\b/i.test(trimmed);
+  if (hasBlockHtml) {
+    return trimmed;
+  }
+
+  // Parse legacy markdown or plain text with marked
+  const parsed = marked.parse(trimmed, { async: false, breaks: true }) as string;
+  return parsed.trim();
+}
+
+/**
  * Ensures Cloudinary video URLs include web delivery optimization flags (q_auto, f_auto, w_1920, c_limit).
  */
 export function optimizeCloudinaryVideoUrl(url?: string | null): string {

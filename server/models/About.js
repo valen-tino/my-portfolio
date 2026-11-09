@@ -14,6 +14,14 @@ const aboutSchema = new mongoose.Schema({
   imageCloudinaryId: {
     type: String,
     default: null
+  },
+  cvURL: {
+    type: String,
+    default: '/Valen-Jehaut.pdf'
+  },
+  cvCloudinaryId: {
+    type: String,
+    default: null
   }
 }, {
   timestamps: true

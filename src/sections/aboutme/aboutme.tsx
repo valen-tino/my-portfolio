@@ -5,6 +5,7 @@ import Pink from '../../assets/Party.svg'
 import { Link } from 'react-scroll'
 import { useEffect, useState } from 'react'
 import { CMSStorage, AboutData } from '../../cms/apiStorage'
+import { formatPublicDescription } from '../../utils/contentMigration'
 
 const AboutMe = () => {
   const [aboutData, setAboutData] = useState<AboutData>({
@@ -48,15 +49,10 @@ const AboutMe = () => {
               <h1 className="mb-6 sm:mb-8 lg:mb-10 text-2xl sm:text-3xl md:text-5xl lg:text-7xl font-bold underline underline-offset-4 sm:underline-offset-8 decoration-wavy decoration-info">
                 About Me
               </h1>
-              <div className="text-sm sm:text-base md:text-md lg:text-xl font-regular mb-4 sm:mb-6 leading-relaxed">
-                {aboutData.description.split('\n').map((paragraph, index) => (
-                  paragraph.trim() && (
-                    <p key={index} className="mb-4">
-                      {paragraph}
-                    </p>
-                  )
-                ))}
-              </div>
+              <div
+                className="text-sm sm:text-base md:text-md lg:text-xl font-regular mb-4 sm:mb-6 leading-relaxed wysiwyg-content"
+                dangerouslySetInnerHTML={{ __html: formatPublicDescription(aboutData.description) }}
+              />
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <Link 
                   className="btn btn-info btn-sm sm:btn-md shadow-xl gap-2" 
@@ -71,9 +67,9 @@ const AboutMe = () => {
                   See My Portfolios!
                 </Link>
                 <a 
-                  href="/Valen-Jehaut.pdf" 
-                  target="_self" 
-                  rel="noreferrer" 
+                  href={aboutData.cvURL || "/Valen-Jehaut.pdf"} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
                   className="btn btn-outline btn-warning btn-sm sm:btn-md shadow-xl gap-2"
                 >
                   <img src={Download} alt='Download' className='w-4 h-4 sm:w-5 sm:h-5'/>

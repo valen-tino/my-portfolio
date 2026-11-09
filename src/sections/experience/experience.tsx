@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiService from '../../services/api';
 import HorizontalScrollContainer from '../../hook/useHorizontalScroll';
+import { formatPublicDescription } from '../../utils/contentMigration';
 
 interface ExperienceData {
   id: string;
@@ -141,10 +142,11 @@ const ExperienceSection: React.FC = () => {
                   </div>
 
                   {/* Description */}
-                  <div className="prose prose-sm max-w-none flex-grow">
-                    <p className="text-base-content/80 leading-relaxed">
-                      {experience.description}
-                    </p>
+                  <div className="flex-grow">
+                    <div
+                      className="wysiwyg-content text-base-content/80 text-sm leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: formatPublicDescription(experience.description) }}
+                    />
                   </div>
 
                   {/* Current badge for active positions */}

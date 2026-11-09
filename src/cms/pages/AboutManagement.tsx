@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import CMSLayout from '../components/CMSLayout';
 import { CMSStorage, AboutData } from '../apiStorage';
+import WYSIWYGEditor from '../components/WYSIWYGEditor';
+import { formatPublicDescription } from '../../utils/contentMigration';
 
 const AboutManagement: React.FC = () => {
   const [aboutData, setAboutData] = useState<AboutData>({
@@ -10,6 +12,7 @@ const AboutManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [imageUploading, setImageUploading] = useState(false);
+  const [cvUploading, setCvUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -54,6 +57,42 @@ const AboutManagement: React.FC = () => {
         });
       } finally {
         setImageUploading(false);
+      }
+    }
+  };
+
+  const handleCVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
+        setMessage({ type: 'error', text: 'Please select a valid PDF file for your CV.' });
+        return;
+      }
+      if (file.size > 15 * 1024 * 1024) {
+        setMessage({ type: 'error', text: 'CV file exceeds 15MB limit.' });
+        return;
+      }
+
+      setCvUploading(true);
+      try {
+        const uploadResult = await CMSStorage.uploadCV(file);
+        setAboutData(prev => ({
+          ...prev,
+          cvURL: uploadResult.cvURL,
+          cvCloudinaryId: uploadResult.cvCloudinaryId
+        }));
+        setMessage({
+          type: 'success',
+          text: 'CV uploaded successfully! Remember to click "Save Changes" to apply.'
+        });
+      } catch (error) {
+        console.error('CV upload error:', error);
+        setMessage({
+          type: 'error',
+          text: 'Failed to upload CV. Please try again.'
+        });
+      } finally {
+        setCvUploading(false);
       }
     }
   };
@@ -164,18 +203,61 @@ const AboutManagement: React.FC = () => {
               </div>
             </div>
 
+            {/* CV / Resume Management */}
+            <div className="card bg-base-100 border border-base-200 shadow-sm p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-semibold text-gray-800">
+                  Curriculum Vitae (Download CV Link)
+                </label>
+                {aboutData.cvURL && (
+                  <a
+                    href={aboutData.cvURL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-info hover:underline flex items-center gap-1"
+                  >
+                    📄 View Current CV ↗
+                  </a>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  id="cv-upload-input"
+                  data-testid="cv-upload-input"
+                  onChange={handleCVUpload}
+                  disabled={cvUploading}
+                  className="file-input file-input-bordered file-input-sm w-full max-w-xs text-xs"
+                />
+                {cvUploading && <span className="loading loading-spinner loading-sm text-info"></span>}
+                {aboutData.cvURL && aboutData.cvURL !== '/Valen-Jehaut.pdf' && (
+                  <button
+                    type="button"
+                    onClick={() => setAboutData(prev => ({ ...prev, cvURL: '/Valen-Jehaut.pdf', cvCloudinaryId: null }))}
+                    className="btn btn-ghost btn-sm text-xs text-gray-500"
+                  >
+                    Reset to Local Default
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-gray-500">
+                Accepted format: PDF (up to 15MB). Uploading hosts your document on Cloudinary and automatically updates the "Download CV" buttons across the site.
+              </p>
+            </div>
+
             {/* Description */}
             <div className="form-control">
               <label className="label">
                 <span className="label-text font-medium">About Description</span>
               </label>
-              <textarea
-                rows={12}
-                className="textarea textarea-bordered w-full"
-                placeholder="Tell your story..."
+              <WYSIWYGEditor
                 value={aboutData.description}
-                onChange={(e) => setAboutData(prev => ({ ...prev, description: e.target.value }))}
-                required
+                onChange={(html) => setAboutData(prev => ({ ...prev, description: html }))}
+                placeholder="Write your personal story..."
+                enableSectionPresets={false}
+                enableGalleries={false}
+                minHeight="280px"
               />
               <label className="label">
                 <span className="label-text-alt">
@@ -233,15 +315,10 @@ const AboutManagement: React.FC = () => {
               )}
               <div className="flex-1">
                 <h3 className="text-2xl font-bold mb-4">About Me</h3>
-                <div className="prose max-w-none">
-                  {aboutData.description.split('\n').map((paragraph, index) => (
-                    paragraph.trim() && (
-                      <p key={index} className="text-base-content/80 leading-relaxed mb-4">
-                        {paragraph}
-                      </p>
-                    )
-                  ))}
-                </div>
+                <div
+                  className="wysiwyg-content text-base-content/80 leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: formatPublicDescription(aboutData.description) }}
+                />
               </div>
             </div>
           </div>

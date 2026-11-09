@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CMSLayout from '../components/CMSLayout';
 import { CMSStorage, Experience } from '../apiStorage';
+import WYSIWYGEditor from '../components/WYSIWYGEditor';
 
 const ExperienceManagement: React.FC = () => {
   const [experiences, setExperiences] = useState<Experience[]>([]);
@@ -374,21 +375,17 @@ const ExperienceManagement: React.FC = () => {
                     <label className="label">
                       <span className="label-text font-medium">Description *</span>
                     </label>
-                    <textarea
-                      rows={12}
-                      className="textarea textarea-bordered w-full resize-none"
-                      placeholder="Describe your role, responsibilities, achievements, and key contributions. Be specific about technologies used and impact made."
+                    <WYSIWYGEditor
                       value={editingExperience.description}
-                      onChange={(e) => setEditingExperience({ 
+                      onChange={(html) => setEditingExperience({ 
                         ...editingExperience, 
-                        description: e.target.value 
+                        description: html 
                       })}
+                      placeholder="Describe your role, responsibilities, achievements, and key contributions. Be specific about technologies used and impact made."
+                      enableSectionPresets={false}
+                      enableGalleries={false}
+                      minHeight="220px"
                     />
-                    <label className="label">
-                      <span className="label-text-alt">
-                        {editingExperience.description.length}/1000 characters
-                      </span>
-                    </label>
                   </div>
                 </div>
               </div>
@@ -479,7 +476,7 @@ const ExperienceManagement: React.FC = () => {
                           </div>
                           
                           <p className="text-sm text-base-content/80 line-clamp-3 mb-4">
-                            {experience.description}
+                            {experience.description.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()}
                           </p>
 
                           <div className="flex gap-2">

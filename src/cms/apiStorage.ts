@@ -4,7 +4,9 @@ export interface AboutData {
   _id?: string;
   description: string;
   imageURL: string;
-  imageCloudinaryId?: string;
+  imageCloudinaryId?: string | null;
+  cvURL?: string;
+  cvCloudinaryId?: string | null;
 }
 
 export interface TechTool {
@@ -594,6 +596,19 @@ export class CMSStorage {
       throw new Error(response.message || 'Failed to upload tech tool image');
     } catch (error) {
       console.error('Error uploading tech tool image:', error);
+      throw error;
+    }
+  }
+
+  static async uploadCV(file: File): Promise<{ cvURL: string; cvCloudinaryId: string }> {
+    try {
+      const result = await apiService.uploadCV(file);
+      return {
+        cvURL: result.url,
+        cvCloudinaryId: result.cloudinaryId
+      };
+    } catch (error) {
+      console.error('Error uploading CV to Cloudinary:', error);
       throw error;
     }
   }

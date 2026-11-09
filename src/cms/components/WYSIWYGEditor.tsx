@@ -9,7 +9,7 @@ import {
 import { Node, mergeAttributes } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { CMSStorage } from '../apiStorage';
-import { migrateContentToHtml, optimizeCloudinaryVideoUrl, STANDARD_SECTION_TITLES } from '../../utils/contentMigration';
+import { migrateContentToHtml, formatPublicDescription, optimizeCloudinaryVideoUrl, STANDARD_SECTION_TITLES } from '../../utils/contentMigration';
 import ImageLightboxModal, { LightboxImageItem } from '../../components/ImageLightboxModal';
 
 export type MediaSizeOption = '25%' | '33%' | '50%' | '75%' | '100%';
@@ -646,9 +646,19 @@ export interface WYSIWYGEditorProps {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
+  enableSectionPresets?: boolean;
+  enableGalleries?: boolean;
+  minHeight?: string;
 }
 
-const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({ value, onChange }) => {
+const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({
+  value,
+  onChange,
+  placeholder,
+  enableSectionPresets = true,
+  enableGalleries = true,
+  minHeight = '420px'
+}) => {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [showSectionMenu, setShowSectionMenu] = useState(false);
@@ -657,7 +667,9 @@ const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({ value, onChange }) => {
   const galleryFileInputRef = useRef<HTMLInputElement>(null);
   const sectionMenuRef = useRef<HTMLDivElement>(null);
 
-  const initialHtml = migrateContentToHtml(value || '');
+  const initialHtml = enableSectionPresets
+    ? migrateContentToHtml(value || '')
+    : formatPublicDescription(value || '');
   const lastEmittedHtmlRef = useRef<string>(initialHtml);
 
   const editor = useEditor({
@@ -687,7 +699,8 @@ const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({ value, onChange }) => {
     },
     editorProps: {
       attributes: {
-        class: 'prose max-w-none min-h-[420px] p-5 focus:outline-none text-gray-800'
+        class: 'prose max-w-none p-5 focus:outline-none text-gray-800',
+        style: `min-height: ${minHeight};`
       }
     }
   });
@@ -714,12 +727,14 @@ const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({ value, onChange }) => {
     if (value === lastEmittedHtmlRef.current || value === editor.getHTML()) {
       return;
     }
-    const migrated = migrateContentToHtml(value || '');
+    const migrated = enableSectionPresets
+      ? migrateContentToHtml(value || '')
+      : formatPublicDescription(value || '');
     if (migrated !== editor.getHTML()) {
       lastEmittedHtmlRef.current = migrated;
       editor.commands.setContent(migrated, { emitUpdate: false });
     }
-  }, [value, editor]);
+  }, [value, editor, enableSectionPresets]);
 
   const handleInsertSectionTitle = (title: string) => {
     if (!editor || !title.trim()) return;
@@ -847,76 +862,78 @@ const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({ value, onChange }) => {
       {/* Toolbar */}
       <div className="sticky top-0 z-20 flex flex-wrap items-center gap-1 p-2 bg-gray-100/95 backdrop-blur-xs border-b border-gray-300 shadow-xs">
         {/* Section Title Creator Dropdown */}
-        <div className="relative inline-block" ref={sectionMenuRef}>
-          <button
-            type="button"
-            onClick={() => setShowSectionMenu(!showSectionMenu)}
-            className={`px-2.5 py-1 text-xs font-semibold rounded flex items-center gap-1 transition-colors ${
-              showSectionMenu ? 'bg-indigo-700 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-            }`}
-            data-testid="section-title-dropdown-btn"
-            title="Create or insert a case study section title"
-          >
-            📑 Section Title ▾
-          </button>
-
-          {showSectionMenu && (
-            <div
-              className="absolute left-0 mt-1 w-72 bg-white rounded-lg shadow-xl border border-gray-200 z-50 p-2 text-xs"
-              data-testid="section-title-menu"
+        {enableSectionPresets && (
+          <div className="relative inline-block" ref={sectionMenuRef}>
+            <button
+              type="button"
+              onClick={() => setShowSectionMenu(!showSectionMenu)}
+              className={`px-2.5 py-1 text-xs font-semibold rounded flex items-center gap-1 transition-colors ${
+                showSectionMenu ? 'bg-indigo-700 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+              }`}
+              data-testid="section-title-dropdown-btn"
+              title="Create or insert a case study section title"
             >
-              <div className="font-semibold text-gray-700 px-2 py-1 mb-1 border-b border-gray-100 flex items-center justify-between">
-                <span>Standard Section Presets</span>
-                <span className="text-[10px] text-gray-400 font-normal">H2 Chapter</span>
-              </div>
-              <div className="space-y-1 mb-2">
-                {STANDARD_SECTION_TITLES.map((title) => (
-                  <button
-                    key={title}
-                    type="button"
-                    onClick={() => handleInsertSectionTitle(title)}
-                    className="w-full text-left px-2 py-1.5 rounded hover:bg-indigo-50 hover:text-indigo-700 text-gray-700 transition-colors flex items-center gap-1.5"
-                    data-testid={`preset-section-${title}`}
-                  >
-                    <span className="text-indigo-500 font-bold">›</span>
-                    <span className="truncate">{title}</span>
-                  </button>
-                ))}
-              </div>
+              📑 Section Title ▾
+            </button>
 
-              <div className="pt-2 border-t border-gray-100">
-                <label className="block text-[11px] font-medium text-gray-600 mb-1 px-1">
-                  Custom Section Title
-                </label>
-                <div className="flex gap-1">
-                  <input
-                    type="text"
-                    value={customSectionTitle}
-                    onChange={(e) => setCustomSectionTitle(e.target.value)}
-                    placeholder="e.g. 6. Key Learnings"
-                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleInsertSectionTitle(customSectionTitle);
-                      }
-                    }}
-                    data-testid="custom-section-input"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleInsertSectionTitle(customSectionTitle)}
-                    disabled={!customSectionTitle.trim()}
-                    className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded text-xs font-medium"
-                    data-testid="insert-custom-section-btn"
-                  >
-                    Insert
-                  </button>
+            {showSectionMenu && (
+              <div
+                className="absolute left-0 mt-1 w-72 bg-white rounded-lg shadow-xl border border-gray-200 z-50 p-2 text-xs"
+                data-testid="section-title-menu"
+              >
+                <div className="font-semibold text-gray-700 px-2 py-1 mb-1 border-b border-gray-100 flex items-center justify-between">
+                  <span>Standard Section Presets</span>
+                  <span className="text-[10px] text-gray-400 font-normal">H2 Chapter</span>
+                </div>
+                <div className="space-y-1 mb-2">
+                  {STANDARD_SECTION_TITLES.map((title) => (
+                    <button
+                      key={title}
+                      type="button"
+                      onClick={() => handleInsertSectionTitle(title)}
+                      className="w-full text-left px-2 py-1.5 rounded hover:bg-indigo-50 hover:text-indigo-700 text-gray-700 transition-colors flex items-center gap-1.5"
+                      data-testid={`preset-section-${title}`}
+                    >
+                      <span className="text-indigo-500 font-bold">›</span>
+                      <span className="truncate">{title}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="pt-2 border-t border-gray-100">
+                  <label className="block text-[11px] font-medium text-gray-600 mb-1 px-1">
+                    Custom Section Title
+                  </label>
+                  <div className="flex gap-1">
+                    <input
+                      type="text"
+                      value={customSectionTitle}
+                      onChange={(e) => setCustomSectionTitle(e.target.value)}
+                      placeholder="e.g. 6. Key Learnings"
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleInsertSectionTitle(customSectionTitle);
+                        }
+                      }}
+                      data-testid="custom-section-input"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleInsertSectionTitle(customSectionTitle)}
+                      disabled={!customSectionTitle.trim()}
+                      className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded text-xs font-medium"
+                      data-testid="insert-custom-section-btn"
+                    >
+                      Insert
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         <div className="h-4 w-px bg-gray-300 mx-1" />
 
@@ -1039,24 +1056,28 @@ const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({ value, onChange }) => {
         </button>
 
         {/* Direct Multi-Image/Video Gallery Upload */}
-        <input
-          ref={galleryFileInputRef}
-          type="file"
-          multiple
-          accept="image/*,video/*"
-          className="hidden"
-          data-testid="gallery-media-input"
-          onChange={handleGallerySelect}
-        />
-        <button
-          type="button"
-          onClick={() => galleryFileInputRef.current?.click()}
-          disabled={uploading}
-          className="px-2.5 py-1 text-xs font-medium rounded bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1"
-          title="Upload Multiple Images/Videos as a Gallery Section"
-        >
-          🖼️ Add Gallery Section
-        </button>
+        {enableGalleries && (
+          <>
+            <input
+              ref={galleryFileInputRef}
+              type="file"
+              multiple
+              accept="image/*,video/*"
+              className="hidden"
+              data-testid="gallery-media-input"
+              onChange={handleGallerySelect}
+            />
+            <button
+              type="button"
+              onClick={() => galleryFileInputRef.current?.click()}
+              disabled={uploading}
+              className="px-2.5 py-1 text-xs font-medium rounded bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1"
+              title="Upload Multiple Images/Videos as a Gallery Section"
+            >
+              🖼️ Add Gallery Section
+            </button>
+          </>
+        )}
       </div>
 
       {/* Upload Status Banner */}
@@ -1077,7 +1098,7 @@ const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({ value, onChange }) => {
       )}
 
       {/* Editor Content Area */}
-      <div className="min-h-[460px] max-h-[720px] overflow-y-auto">
+      <div style={{ minHeight }} className="max-h-[720px] overflow-y-auto">
         <EditorContent editor={editor} />
       </div>
     </div>

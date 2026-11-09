@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CMSLayout from '../components/CMSLayout';
 import { CMSStorage, EducationItem } from '../apiStorage';
+import WYSIWYGEditor from '../components/WYSIWYGEditor';
 
 const EducationManagement: React.FC = () => {
   const [educationItems, setEducationItems] = useState<EducationItem[]>([]);
@@ -251,12 +252,13 @@ const EducationManagement: React.FC = () => {
                     <label className="label">
                       <span className="label-text font-medium">Description</span>
                     </label>
-                    <textarea
-                      rows={8}
-                      className="textarea textarea-bordered w-full"
-                      placeholder="Describe what you learned, achievements, relevant coursework, etc."
+                    <WYSIWYGEditor
                       value={editingItem.description}
-                      onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
+                      onChange={(html) => setEditingItem({ ...editingItem, description: html })}
+                      placeholder="Describe what you learned, achievements, relevant coursework, etc."
+                      enableSectionPresets={false}
+                      enableGalleries={false}
+                      minHeight="200px"
                     />
                   </div>
                 </div>
@@ -322,7 +324,7 @@ const EducationManagement: React.FC = () => {
                           </div>
                           {item.description && (
                             <p className="text-base-content/80 text-sm leading-relaxed mb-2 line-clamp-2">
-                              {item.description}
+                              {item.description.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()}
                             </p>
                           )}
                           {item.link && (

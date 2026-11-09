@@ -85,7 +85,17 @@ Browser ──► API Service ──► Server Routes ──► AI Service ─�
 - **Dynamic Card Badge Overlays**: High-contrast, privacy-masked affiliation badges on public cards with vertical offsets for pinned projects.
 - **Project Creation Year**: Labeling and descending archive filter bar in `src/sections/portfolios/portfolio.tsx`.
 - **Direct Cloudinary Signed Uploads**: Client-side video uploads bypassing Vercel 4.5 MB serverless limit (`GET /api/upload/signature`).
-- **Test Suite**: 26 automated unit tests passing across 6 suites (`npm test`).
+
+#### 6. **WYSIWYG Expansion & Public View Semantic Formatting** ✅
+- **Expanded WYSIWYG Editor**: Configurable props (`enableSectionPresets`, `enableGalleries`, `minHeight`) integrated into Experience Management, Education Management, and About Me Management.
+- **Natural Content Preservation**: Non-portfolio descriptions use `formatPublicDescription` rather than case-study title standardizers, preserving clean subheadings and lists.
+- **Valid Public DOM & Styling**: Replaced invalid outer `<p>` tags with `<div className="wysiwyg-content">` and added Tailwind-override rules in `src/App.css` guaranteeing bullet points (`list-disc`), numbered lists (`list-decimal`), and proper spacing across Experience, Education, and About Me views.
+
+#### 7. **Cloudinary Hosted CV Upload & Dynamic Linking** ✅
+- **Direct Signed CV Upload**: Client-side signed upload to Cloudinary `portfolio-cms/cv` (`resource_type: 'raw'`) supporting PDF files up to 15MB.
+- **Automatic Asset Replacement**: Backend cleans up previous Cloudinary PDF files via `deleteImage(oldId, 'raw')`.
+- **Dynamic Public Integration**: "Download CV" buttons in Navbar and About Me section link dynamically to the uploaded Cloudinary PDF with `target="_blank" rel="noopener noreferrer"`, defaulting to `/Valen-Jehaut.pdf`.
+- **Automated Test Suite**: 45 unit tests passing across 9 test suites (`npm test`).
 
 ## 📁 File Structure
 

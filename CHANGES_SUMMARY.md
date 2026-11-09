@@ -266,36 +266,79 @@ This document provides a comprehensive, centralized record of all architecture i
 
 ---
 
-## 15. Files Created, Modified, or Removed
+## 15. WYSIWYG Expansion, Public View Formatting, and Cloudinary CV Upload
+
+### Feature Overview
+- **WYSIWYG Editor Expansion with Configurable Modes**:
+  - Enhanced `src/cms/components/WYSIWYGEditor.tsx` with `enableSectionPresets?: boolean`, `enableGalleries?: boolean`, and `minHeight?: string`.
+  - Bypassed case study chapter title rewrite (`standardizeSectionTitles`) when `enableSectionPresets` is `false`, ensuring non-portfolio content preserves natural headings without case study prefixes.
+  - Replaced legacy textareas in:
+    - Experience Management (`src/cms/pages/ExperienceManagement.tsx`) for role descriptions.
+    - Education Management (`src/cms/pages/EducationManagement.tsx`) for coursework and achievement descriptions.
+    - About Me Management (`src/cms/pages/AboutManagement.tsx`) for personal biographies.
+  - Stripped HTML tags (`replace(/<[^>]*>/g, ' ')`) in card list summaries for clean plain-text previews.
+- **Public View Rich Formatting & Valid DOM Hierarchy**:
+  - Created `formatPublicDescription` in `src/utils/contentMigration.ts` to parse legacy plain-text and markdown with `marked` while leaving semantic HTML intact without case study mutations.
+  - Replaced outer `<p>` wrappers in:
+    - Experience Section (`src/sections/experience/experience.tsx`)
+    - Education Cards (`src/sections/education/educationcard.tsx`)
+    - About Me Section (`src/sections/aboutme/aboutme.tsx`)
+    with `<div className="wysiwyg-content ...">`, preventing invalid DOM nesting (block elements inside `<p>`).
+  - Added dedicated styling rules in `src/App.css` under `.wysiwyg-content` guaranteeing list bullet styling (`list-disc`), decimal numbers (`list-decimal`), left alignment, and proper paragraph margins.
+- **Cloudinary CV Upload & Dynamic Navbar/About Link**:
+  - Updated `About` schema in `server/models/About.js` and `server/routes/about.js` with `cvURL` (default `'/Valen-Jehaut.pdf'`) and `cvCloudinaryId` (default `null`). Replaced Cloudinary CV assets are deleted via `deleteImage(oldId, 'raw')`.
+  - Implemented direct signed client-to-Cloudinary upload in `src/services/api.ts` (`uploadCV`) and `src/cms/apiStorage.ts` (`CMSStorage.uploadCV`) targeting `resource_type: 'raw'` and folder `portfolio-cms/cv`.
+  - Added CV Management Card in `src/cms/pages/AboutManagement.tsx` with file picker, PDF MIME guard, 15MB limit, and reset button.
+  - Dynamically bound `cvURL` to "Download CV" buttons in `src/sections/aboutme/aboutme.tsx` and `src/sections/nav/nav.tsx` (both desktop and mobile) with `target="_blank" rel="noopener noreferrer"`.
+- **Test Coverage**:
+  - `tests/publicFormatting.test.tsx`: 8 tests verifying list, paragraph, and legacy fallback rendering across all public sections.
+  - `tests/AboutManagement.test.tsx`: 3 tests verifying CV display, upload trigger, state update, and PDF validation.
+  - All 45 tests across 9 test files passing cleanly with 0 build errors.
+
+---
+
+## 16. Files Created, Modified, or Removed
 
 | File | Status | Description |
 | :--- | :--- | :--- |
+| `src/utils/contentMigration.ts` | Modified | Exported `formatPublicDescription(content)` without case study chapter rewriting. |
+| `src/cms/components/WYSIWYGEditor.tsx` | Modified | Added configurable props (`enableSectionPresets`, `enableGalleries`, `minHeight`) and conditional toolbar rendering. |
+| `server/models/About.js` | Modified | Added `cvURL` and `cvCloudinaryId` fields with defaults. |
+| `server/routes/about.js` | Modified | Added `cvURL` and `cvCloudinaryId` in GET/PUT routes; deletes replaced raw CV assets from Cloudinary. |
+| `src/services/api.ts` | Modified | Added `uploadCV` direct signed Cloudinary upload; updated `updateAbout` argument types. |
+| `src/cms/apiStorage.ts` | Modified | Updated `AboutData` interface; added `CMSStorage.uploadCV`. |
+| `src/App.css` | Modified | Added `.wysiwyg-content` styling for lists, bullets, numbers, paragraphs, and left alignment. |
+| `src/sections/experience/experience.tsx` | Modified | Replaced outer `<p>` with `<div className="wysiwyg-content">` and `formatPublicDescription`. |
+| `src/sections/education/educationcard.tsx` | Modified | Replaced outer `<p>` with `<div className="wysiwyg-content">` and `formatPublicDescription`. |
+| `src/sections/aboutme/aboutme.tsx` | Modified | Replaced `.split('\n')` with `formatPublicDescription`; bound dynamic `cvURL` with `target="_blank"`. |
+| `src/sections/nav/nav.tsx` | Modified | Fetches `CMSStorage.getAbout()` on mount and dynamically binds `cvUrl` (`target="_blank"`). |
+| `src/cms/pages/ExperienceManagement.tsx` | Modified | Integrated `WYSIWYGEditor`; stripped tags in list card previews. |
+| `src/cms/pages/EducationManagement.tsx` | Modified | Integrated `WYSIWYGEditor`; stripped tags in list card previews. |
+| `src/cms/pages/AboutManagement.tsx` | Modified | Integrated `WYSIWYGEditor`; added CV upload card and updated preview. |
+| `tests/publicFormatting.test.tsx` | Created | Automated tests for public Experience, Education, and About Me rich list/paragraph rendering. |
+| `tests/AboutManagement.test.tsx` | Created | Automated tests for About Management WYSIWYG integration and CV upload flow. |
+| `tests/PortfolioDetail.test.tsx` | Modified | Added `getAbout` to mock to support Navbar CV fetch. |
 | `src/cms/pages/PortfolioManagement.tsx` | Modified | Added `normalizeAndDeduplicateTech`, `handleAddCustomTech`, `techInputRef`, input group with `+ Add` button, and pre-save sync. |
 | `tests/PortfolioManagement.test.tsx` | Created | Automated Vitest suite for interactive tag creation, Enter/comma handling, duplicate suppression, and pre-save flushing. |
 | `server/routes/portfolio.js` | Modified | Updated GET `/api/portfolio` query filter to `{ isPublished: { $ne: false } }` for legacy record parity. |
-| `src/cms/apiStorage.ts` | Modified | Added `publishedOnly = false` parameter to `CMSStorage.getPortfolios`. |
 | `src/sections/portfolios/portfolio.tsx` | Modified | Public showcase queries published-only items and derives metadata filters strictly from published projects. |
 | `src/pages/PortfolioDetail.tsx` | Modified | Public detail route guards against unpublished items with fallback screen. |
 | `tests/portfolio.test.tsx` | Modified | Unit test asserting hidden portfolios and metadata are excluded from public showcase. |
-| `tests/PortfolioDetail.test.tsx` | Modified | Unit test asserting unpublished portfolio direct URLs trigger fallback view. |
 | `server/models/Portfolio.js` | Modified | Added `year`, `relatedExperience`, `relatedExperienceCompany`, `relatedEducation`, `relatedEducationInstitution`. |
 | `server/routes/upload.js` | Modified | Added `GET /api/upload/signature` for direct Cloudinary signed uploads. |
-| `src/services/api.ts` | Modified | Direct signed Cloudinary uploads, parameter interfaces updated for `year`, `relatedExperience`, `relatedEducation`. |
 | `src/pages/Home.tsx` | Modified | Reordered homepage section hierarchy and white background for My Works. |
 | `src/sections/portfolios/portfoliocard.tsx` | Modified | Dynamic badge overlay for experience/education with privacy masking and pinned offsets. |
 | `src/sections/education/education.tsx` | Modified | Standardized card container width to `w-96`. |
 | `tests/portfoliocard.test.tsx` | Modified | Unit tests for experience and education badge rendering and password masking. |
-| `src/cms/components/WYSIWYGEditor.tsx` | Created | Complete TipTap WYSIWYG editor with section presets, media upload, and gallery controls. |
 | `src/components/ImageLightboxModal.tsx` | Created | Full-screen image preview modal with gallery navigation. |
 | `src/components/ScrollProgressBar.tsx` | Created | Sticky case study progress bar with active section tracking. |
-| `src/utils/contentMigration.ts` | Created | Markdown-to-HTML converter and section heading standardizer. |
 | `server/scripts/migrateMarkdownToWYSIWYG.js` | Created | Database migration script standardizing portfolio records. |
 | `src/main.tsx` | Modified | Added `import './App.css'` to stylesheet pipeline. |
-| `src/App.css` | Modified | Section title typography, responsive gallery breakpoints, and lightbox badges. |
 | `server/config/cloudinary.js` | Modified | Custom CloudinaryStorage engine, video file filters, stream error handling. |
 | `server/services/aiService.js` | Modified | Updated AI prompt schemas for standardized case study sections. |
 | `tests/WYSIWYGEditor.test.tsx` | Created | Comprehensive tests for WYSIWYG editor, lists, and galleries. |
 | `tests/setup.ts` | Modified | Added `@testing-library/jest-dom/vitest`. |
 | `tsconfig.json` | Modified | Added `"tests"` to `"include"`. |
 | `src/components/CursorInverter/*` | Removed | Removed non-native cursor components. |
+
 

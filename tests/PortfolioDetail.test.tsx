@@ -8,7 +8,8 @@ import { CMSStorage } from '../src/cms/apiStorage';
 vi.mock('../src/cms/apiStorage', () => ({
   CMSStorage: {
     getPortfolios: vi.fn(),
-    getRoles: vi.fn().mockResolvedValue([{ id: '1', title: 'Fullstack Developer', color: 'info' }])
+    getRoles: vi.fn().mockResolvedValue([{ id: '1', title: 'Fullstack Developer', color: 'info' }]),
+    getAbout: vi.fn().mockResolvedValue({ cvURL: '/Valen-Jehaut.pdf' })
   }
 }));
 

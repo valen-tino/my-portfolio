@@ -1,5 +1,6 @@
 import React from 'react';
 import { EducationItem } from '../../cms/apiStorage';
+import { formatPublicDescription } from '../../utils/contentMigration';
 
 interface Props {
   item: EducationItem;
@@ -52,9 +53,12 @@ const EducationCard: React.FC<Props> = ({ item }) => {
 
         {/* Description */}
         {item.description && (
-          <p className="mb-4 font-normal text-base-content/70 text-sm leading-relaxed flex-grow">
-            {item.description}
-          </p>
+          <div className="mb-4 text-sm font-normal text-base-content/70 leading-relaxed flex-grow">
+            <div
+              className="wysiwyg-content"
+              dangerouslySetInnerHTML={{ __html: formatPublicDescription(item.description) }}
+            />
+          </div>
         )}
 
         {/* Link Action */}
