@@ -243,6 +243,7 @@ AI Integration:
 13. ✅ **Portfolio Embed Persistence & "My Works" Filter Redesign**: Eliminated TipTap attribute stripping on save, guaranteed crisp white text on "View Case Study" action button, and refactored portfolio filter into a modern two-row layout matching Blog & News with real-time search and 0-match empty states.
 14. ✅ **Portfolio Filter Z-Index Elevation & Color Badge Synchronization**: Elevated filter container stacking context (`z-30` vs grid `z-10`) preventing cards from rendering above the tech dropdown menu, applied brand cyan `#00BAFE` to active year pills, and synchronized role tab active/inactive outline styling with CMS badge colors.
 15. ✅ **Vercel Serverless Route Parity & Blog 404 Resolution**: Mounted `/api/blog` and `/api/blogs` in `api/serverless.js` eliminating the production 404 outage, implemented non-blocking latched cold-start skills migration, added Mongoose model re-compilation guards across all models, and added full serverless integration tests.
+16. ✅ **Mobile Viewport Layout Containment & Blog Tag Filter Z-Index**: Added `overflow-x: clip` to root containers preventing iOS Safari viewport blowouts and empty whitespace gutters, applied selective `:not(pre) > code` token wrapping while preserving multi-line code blocks, added responsive table/media constraints, elevated blog filter stacking context (`z-30`/`z-40` vs grid `z-10`) solving the tag dropdown clipping behind blog cards, and aligned active year pill styling to `#00BAFE`.
 
 ### **Future Enhancements**
 - [ ] Add AI model selection (chat vs reasoner)

@@ -140,12 +140,15 @@ const BlogSection: React.FC<BlogSectionProps> = ({ limit }) => {
                 Personal <span className="text-info">Blog</span>
               </h2>
               <p className="text-base text-base-content/70 max-w-2xl mx-auto">
-                Event recaps, project announcements, and personal engineering commentary.
+                Event recaps and personal comments about anything.
               </p>
             </div>
 
             {/* Latest Blogs Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            <div
+              className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8"
+              data-testid="blog-posts-grid-home"
+            >
               {latestBlogs.map((blog) => (
                 <BlogCard key={blog.id || blog._id} item={blog} />
               ))}
@@ -183,7 +186,10 @@ const BlogSection: React.FC<BlogSectionProps> = ({ limit }) => {
       </div>
 
       {/* Multi-Dimensional Filter Bar (Archive view only) */}
-      <div className="bg-base-200/60 backdrop-blur-sm p-4 sm:p-6 rounded-2xl border border-base-300 shadow-sm mb-10 space-y-4">
+      <div
+        className="blog-filter relative z-30 bg-base-200/60 backdrop-blur-sm p-4 sm:p-6 rounded-2xl border border-base-300 shadow-sm mb-10 space-y-4"
+        data-testid="blog-filter-bar"
+      >
         {/* Row 1: Category Pills & Search Input */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
           {/* Category Pills */}
@@ -241,8 +247,11 @@ const BlogSection: React.FC<BlogSectionProps> = ({ limit }) => {
                 <button
                   type="button"
                   onClick={() => setSelectedYear('All')}
-                  className={`btn btn-xs rounded-full ${selectedYear === 'All' ? 'btn-primary font-semibold' : 'btn-ghost'
-                    }`}
+                  className={`btn btn-xs rounded-full transition-all ${
+                    selectedYear === 'All'
+                      ? 'bg-[#00BAFE] text-white border-[#00BAFE] hover:bg-[#00BAFE]/90 font-semibold shadow-sm'
+                      : 'btn-ghost hover:bg-base-300'
+                  }`}
                   data-testid="year-filter-All"
                 >
                   All
@@ -252,8 +261,11 @@ const BlogSection: React.FC<BlogSectionProps> = ({ limit }) => {
                     key={yr}
                     type="button"
                     onClick={() => setSelectedYear(yr)}
-                    className={`btn btn-xs rounded-full ${selectedYear === yr ? 'btn-primary font-semibold' : 'btn-ghost'
-                      }`}
+                    className={`btn btn-xs rounded-full transition-all ${
+                      selectedYear === yr
+                        ? 'bg-[#00BAFE] text-white border-[#00BAFE] hover:bg-[#00BAFE]/90 font-semibold shadow-sm'
+                        : 'btn-ghost hover:bg-base-300'
+                    }`}
                     data-testid={`year-filter-${yr}`}
                   >
                     {yr}
@@ -264,7 +276,11 @@ const BlogSection: React.FC<BlogSectionProps> = ({ limit }) => {
 
             {/* Tags Dropdown */}
             {availableTags.length > 0 && (
-              <div className="relative inline-block" ref={tagDropdownRef}>
+              <div
+                className="relative inline-block z-40"
+                ref={tagDropdownRef}
+                data-testid="blog-tag-dropdown-anchor"
+              >
                 <button
                   type="button"
                   onClick={() => setTagDropdownOpen(!tagDropdownOpen)}
@@ -349,7 +365,10 @@ const BlogSection: React.FC<BlogSectionProps> = ({ limit }) => {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+        <div
+          className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8"
+          data-testid="blog-posts-grid"
+        >
           {displayedBlogs.map((blog) => (
             <BlogCard key={blog.id || blog._id} item={blog} />
           ))}

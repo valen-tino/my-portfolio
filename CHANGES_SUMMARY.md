@@ -27,7 +27,8 @@ This document provides a comprehensive, centralized record of all architecture i
 20. [Portfolio Embed Persistence & "My Works" Filter Redesign](#20-portfolio-embed-persistence--my-works-filter-redesign)
 21. [Portfolio Filter Z-Index Elevation & Color Badge Synchronization](#21-portfolio-filter-z-index-elevation--color-badge-synchronization)
 22. [Vercel Serverless Route Parity & Blog 404 Resolution](#22-vercel-serverless-route-parity--blog-404-resolution)
-23. [Files Created, Modified, or Removed](#23-files-created-modified-or-removed)
+23. [Mobile Viewport Layout Containment & Blog Tag Filter Z-Index Elevation](#23-mobile-viewport-layout-containment--blog-tag-filter-z-index-elevation)
+24. [Files Created, Modified, or Removed](#24-files-created-modified-or-removed)
 
 ---
 
@@ -457,10 +458,39 @@ This document provides a comprehensive, centralized record of all architecture i
 
 ---
 
-## 23. Files Created, Modified, or Removed
+## 23. Mobile Viewport Layout Containment & Blog Tag Filter Z-Index Elevation
+
+### Mobile Content Layout Shift & Viewport Bleed (Image 1)
+- **Problem**: On mobile viewports (e.g., iPhone / iOS Safari), portfolio case study details and blog articles shifted and compressed to the left (~60% width), leaving an empty white gutter on the right side. This occurred because unbroken inline tokens (such as URLs in code or text), markdown tables, and media elements exceeded the mobile viewport width without wrapping. Because `html, body, #root, .App` lacked horizontal containment, WebKit expanded the layout viewport to the widest child element and zoomed the document out.
+- **Root Cause & Technical Resolutions**:
+  - **`overflow-x: clip` Root Containment**: Applied `overflow-x: clip; max-width: 100%; width: 100%; -webkit-text-size-adjust: 100%;` to `html, body, #root, .App`. Unlike `overflow-x: hidden` (which forces `overflow-y` to compute to `auto` and creates an independent scroll box that permanently breaks `position: sticky` on reading progress bars and sticky sidebars), `overflow-x: clip` cleanly clips horizontal overflow at the padding-box boundary without breaking `position: sticky` or window momentum scrolling.
+  - **Selective Inline Code Wrapping vs Pre Code Block Preservation**: Targeted inline code tokens using `:not(pre) > code` with `overflow-wrap: anywhere !important; word-break: break-word !important; white-space: normal !important;`, while strictly preserving preformatted code blocks (`pre` & `pre code`) with `white-space: pre !important; overflow-x: auto !important; word-break: normal !important;` so syntax highlighting, tabs, and indentation remain pristine.
+  - **Responsive Tables & Embedded Media**: Forced markdown `<table>` elements to `display: block !important; width: 100% !important; max-width: 100% !important; overflow-x: auto !important;` and constrained embedded media (`img`, `iframe`, `video`) to `max-width: 100% !important; height: auto;`.
+  - **Flex `min-w-0` and Container Constraints**: Added `min-w-0 w-full max-w-full` to flex child `<main>` and `overflow-x-clip` to markdown bodies in `BlogDetail.tsx` and `PortfolioDetail.tsx` (while keeping wrapper ancestors free of `overflow-hidden` to protect `<ScrollProgressBar>`).
+  - **Button Word-Break Exclusion**: Scoped link breaking to `a:not(.btn)` to prevent button text splitting (e.g. "Visit Project").
+
+### Blog Tag Filter Dropdown Z-Index Stacking (Image 2)
+- **Problem**: On the Blog Archive page (`/blogs`), opening the `🏷️ Filter by Tag ▾` dropdown rendered the menu underneath the blog card directly below it because the filter bar was statically positioned while blog cards possessed `position: relative` with `z-10` badges.
+- **Resolution**:
+  - Applied `relative z-30` to the filter bar container (`src/sections/blog/blog.tsx`).
+  - Applied `relative inline-block z-40` to the tag dropdown anchor.
+  - Retained `z-50` on the dropdown popover menu.
+  - Applied `relative z-10` to the blog posts grid container.
+  - Harmonized active year filter buttons (both `"All"` and numeric years) to cyan `#00BAFE` (`bg-[#00BAFE] text-white border-[#00BAFE] hover:bg-[#00BAFE]/90 font-semibold shadow-sm`), matching the portfolio archive implementation.
+  - Added explicit test IDs (`blog-filter-bar`, `blog-tag-dropdown-anchor`, `blog-posts-grid`) and unit tests in `tests/blog.test.tsx`.
+
+---
+
+## 24. Files Created, Modified, or Removed
 
 | File | Status | Description |
 | :--- | :--- | :--- |
+| `src/App.css` | Modified | Added root `overflow-x: clip`, `:not(pre) > code` wrapping, `pre` preservation, table/media overflow, and `a:not(.btn)` breaking. |
+| `src/sections/blog/blog.tsx` | Modified | Elevated filter bar (`z-30`), tag anchor (`z-40`), grid (`z-10`), added test IDs, and styled year filter with `#00BAFE`. |
+| `src/pages/BlogDetail.tsx` | Modified | Added `min-w-0` to flex child `<main>` and `overflow-x-clip` to article content body. |
+| `src/pages/PortfolioDetail.tsx` | Modified | Added `w-full min-w-0` to wrappers and `overflow-x-clip` to markdown details container. |
+| `tests/blog.test.tsx` | Modified | Added assertions for filter bar `z-30`, tag anchor `z-40`, grid `z-10`, `#00BAFE` year pills, and article containment. |
+| `tests/PortfolioDetail.test.tsx` | Modified | Verified that `<ScrollProgressBar>` maintains `sticky` positioning and is not inside an `overflow-hidden` container. |
 | `api/serverless.js` | Modified | Imported and mounted `/api/blog` and `/api/blogs`, added latched non-blocking skills migration. |
 | `server/index.js` | Modified | Mounted `/api/blogs` compatibility alias alongside `/api/blog`. |
 | `server/models/Blog.js` | Modified | Added `mongoose.models?.Blog` recompilation guard. |

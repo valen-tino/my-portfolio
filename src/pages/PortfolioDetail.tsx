@@ -213,7 +213,7 @@ const PortfolioDetail: React.FC = () => {
         {/* Mobile Layout */}
         <div className="block lg:hidden">
           <div className="section-container">
-            <div className="max-w-4xl mx-auto px-4 sm:px-16">
+            <div className="max-w-4xl w-full min-w-0 mx-auto px-4 sm:px-16">
               {/* Breadcrumb */}
               <div className="breadcrumbs text-sm mb-8 overflow-hidden">
                 <ul>
@@ -304,7 +304,7 @@ const PortfolioDetail: React.FC = () => {
                 <div className="mb-12">
                   <h2 className="text-2xl font-bold mb-6">Project Details</h2>
                   <div
-                    className="prose lg:prose-xl max-w-none portfolio-markdown"
+                    className="prose lg:prose-xl max-w-none portfolio-markdown w-full min-w-0 overflow-x-clip"
                     data-color-mode="light"
                     onClick={handleDetailsClick}
                     dangerouslySetInnerHTML={{ __html: migrateContentToHtml(portfolio.projectDetails, portfolio.title) }}
@@ -458,7 +458,7 @@ const PortfolioDetail: React.FC = () => {
                 <div className="mb-12">
                   <h2 className="text-2xl font-bold mb-6">Project Details</h2>
                   <div
-                    className="prose lg:prose-lg max-w-none portfolio-markdown"
+                    className="prose lg:prose-lg max-w-none portfolio-markdown w-full min-w-0 overflow-x-clip"
                     data-color-mode="light"
                     onClick={handleDetailsClick}
                     dangerouslySetInnerHTML={{ __html: migrateContentToHtml(portfolio.projectDetails, portfolio.title) }}

@@ -1,11 +1,30 @@
-/* Custom global styles */
-.App {
-  @apply min-h-screen;
+/* Custom global styles & Viewport Containment */
+html,
+body {
+  scroll-behavior: smooth;
+  overflow-x: clip;
+  max-width: 100%;
+  width: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
-/* Smooth scroll behavior */
-html {
-  scroll-behavior: smooth;
+#root,
+.App {
+  @apply min-h-screen;
+  overflow-x: clip;
+  max-width: 100%;
+  width: 100%;
+  min-width: 0;
+}
+
+@supports not (overflow-x: clip) {
+  html,
+  body,
+  #root,
+  .App {
+    overflow-x: hidden;
+  }
 }
 
 /* Section spacing */
@@ -154,6 +173,96 @@ html {
 
 .portfolio-markdown pre {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace !important;
+}
+
+/* Typography Containers Overflow & Word-Break Containment */
+.portfolio-markdown,
+.wysiwyg-content,
+.prose {
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Headings wrapping */
+.portfolio-section-title,
+.portfolio-markdown h1,
+.portfolio-markdown h2,
+.portfolio-markdown h3,
+.portfolio-markdown h4,
+.portfolio-markdown h5,
+.portfolio-markdown h6,
+.wysiwyg-content h1,
+.wysiwyg-content h2,
+.wysiwyg-content h3,
+.wysiwyg-content h4,
+.wysiwyg-content h5,
+.wysiwyg-content h6 {
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+/* Inline code only: wrap long tokens and URLs without breaking pre code blocks */
+.portfolio-markdown :not(pre) > code,
+.wysiwyg-content :not(pre) > code,
+.prose :not(pre) > code {
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  white-space: normal !important;
+  max-width: 100% !important;
+}
+
+/* Preformatted code blocks: preserve indentation, spaces, and enable horizontal scrolling */
+.portfolio-markdown pre,
+.wysiwyg-content pre,
+.prose pre {
+  max-width: 100% !important;
+  width: 100% !important;
+  overflow-x: auto !important;
+  white-space: pre !important;
+  word-break: normal !important;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box !important;
+}
+
+.portfolio-markdown pre code,
+.wysiwyg-content pre code,
+.prose pre code {
+  white-space: pre !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+}
+
+/* Markdown & WYSIWYG responsive tables */
+.portfolio-markdown table,
+.wysiwyg-content table,
+.prose table {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+}
+
+/* Embedded media responsiveness */
+.portfolio-markdown img,
+.wysiwyg-content img,
+.portfolio-markdown iframe,
+.wysiwyg-content iframe,
+.portfolio-markdown video,
+.wysiwyg-content video {
+  max-width: 100% !important;
+  height: auto;
+  box-sizing: border-box !important;
+}
+
+.portfolio-embed-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 /* WYSIWYG Portfolio Gallery Responsive Layout */
@@ -342,11 +451,14 @@ figure.gallery-item {
   margin: 0 !important;
 }
 
-.portfolio-markdown a,
-.ProseMirror a {
+.portfolio-markdown a:not(.btn),
+.wysiwyg-content a:not(.btn),
+.ProseMirror a:not(.btn) {
   color: #3b82f6;
   text-decoration: underline;
-  word-break: break-word;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  max-width: 100% !important;
 }
 
 /* Portfolio Embed Card Action Button - Override prose & ProseMirror link colors */

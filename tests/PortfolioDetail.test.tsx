@@ -121,6 +121,8 @@ describe('PortfolioDetail Component - Cloudinary Video & WYSIWYG Rendering', () 
     await waitFor(() => {
       const progressBars = screen.getAllByTestId('case-study-progress-bar');
       expect(progressBars.length).toBeGreaterThan(0);
+      expect(progressBars[0].className).toContain('sticky');
+      expect(progressBars[0].parentElement?.className).not.toContain('overflow-hidden');
       const pctElement = screen.getAllByTestId('progress-percentage')[0];
       expect(pctElement.textContent).not.toContain('read');
       expect(pctElement.textContent).toMatch(/^\d+%/);

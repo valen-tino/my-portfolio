@@ -93,7 +93,7 @@ const BlogDetail: React.FC = () => {
     <div className="App min-h-screen flex flex-col bg-base-100">
       <Navbar />
 
-      <main className="flex-1 pt-28 pb-24">
+      <main className="flex-1 min-w-0 w-full max-w-full pt-28 pb-24">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Breadcrumb / Back Button */}
           <div className="mb-8">
@@ -189,7 +189,7 @@ const BlogDetail: React.FC = () => {
 
               {/* Main Content Body */}
               <div
-                className="wysiwyg-content portfolio-markdown prose prose-lg max-w-none text-base-content/90 leading-relaxed text-left py-4"
+                className="wysiwyg-content portfolio-markdown prose prose-lg max-w-none text-base-content/90 leading-relaxed text-left py-4 w-full min-w-0 overflow-x-clip"
                 dangerouslySetInnerHTML={{ __html: formatPublicDescription(blog.content || '') }}
                 onClick={handleContentClick}
                 data-testid="blog-content-body"
