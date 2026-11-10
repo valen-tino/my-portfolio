@@ -3,7 +3,6 @@ import { migrateContentToHtml } from './contentMigration';
 
 export const AI_MODEL_CONFIG = {
   provider: 'opencode-go',
-  apiKey: 'oc_sk_c26451b97d8f_PeNlC8VXODkpok9xUXa2RwUZzOMUUic4',
   model: 'deepseek-v4.1-flash',
   maxTokens: 8192,
   envKeyName: 'DEEPSEEK_API_KEY',

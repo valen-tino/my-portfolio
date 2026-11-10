@@ -7,7 +7,6 @@ export interface AIResponse {
 }
 
 export const OPENCODE_AI_CONFIG = {
-  apiKey: 'oc_sk_c26451b97d8f_PeNlC8VXODkpok9xUXa2RwUZzOMUUic4',
   model: 'deepseek-v4.1-flash',
   maxTokens: 8192,
   baseUrl: 'https://api.opencodego.com/v1'

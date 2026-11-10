@@ -1,7 +1,7 @@
 const OpenAI = require('openai');
 
 // Opencode Go / Deepseek API configuration (aligned with Vercel DEEPSEEK_API_KEY & DEEPSEEK_BASE_URL)
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'oc_sk_c26451b97d8f_PeNlC8VXODkpok9xUXa2RwUZzOMUUic4';
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL || 'https://api.opencodego.com/v1';
 const AI_MODEL = 'deepseek-v4.1-flash';
 const MAX_TOKENS = 8192;

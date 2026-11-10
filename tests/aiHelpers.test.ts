@@ -9,14 +9,16 @@ import {
 import { OPENCODE_AI_CONFIG } from '../src/services/ai';
 
 describe('AI Helpers & Opencode Go Configuration', () => {
-  it('configures Opencode Go key and deepseek-v4.1-flash model with max tokens and Vercel env alignment', () => {
-    expect(AI_MODEL_CONFIG.apiKey).toBe('oc_sk_c26451b97d8f_PeNlC8VXODkpok9xUXa2RwUZzOMUUic4');
+  it('configures Opencode Go deepseek-v4.1-flash model without exposing static API keys in client bundles', () => {
+    // Client-side configs must not expose static API keys
+    expect(AI_MODEL_CONFIG).not.toHaveProperty('apiKey');
+    expect(OPENCODE_AI_CONFIG).not.toHaveProperty('apiKey');
+
     expect(AI_MODEL_CONFIG.model).toBe('deepseek-v4.1-flash');
     expect(AI_MODEL_CONFIG.maxTokens).toBe(8192);
     expect(AI_MODEL_CONFIG.envKeyName).toBe('DEEPSEEK_API_KEY');
     expect(AI_MODEL_CONFIG.envBaseUrlName).toBe('DEEPSEEK_BASE_URL');
 
-    expect(OPENCODE_AI_CONFIG.apiKey).toBe('oc_sk_c26451b97d8f_PeNlC8VXODkpok9xUXa2RwUZzOMUUic4');
     expect(OPENCODE_AI_CONFIG.model).toBe('deepseek-v4.1-flash');
     expect(OPENCODE_AI_CONFIG.maxTokens).toBe(8192);
   });

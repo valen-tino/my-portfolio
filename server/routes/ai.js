@@ -209,7 +209,7 @@ router.get('/test-connection', authMiddleware, async (req, res) => {
 // @access  Private
 router.get('/status', authMiddleware, async (req, res) => {
   try {
-    const hasApiKey = !!(process.env.DEEPSEEK_API_KEY || 'oc_sk_c26451b97d8f_PeNlC8VXODkpok9xUXa2RwUZzOMUUic4');
+    const hasApiKey = !!process.env.DEEPSEEK_API_KEY;
     const hasService = !!aiService;
 
     res.json({

@@ -28,7 +28,8 @@ This document provides a comprehensive, centralized record of all architecture i
 21. [Portfolio Filter Z-Index Elevation & Color Badge Synchronization](#21-portfolio-filter-z-index-elevation--color-badge-synchronization)
 22. [Vercel Serverless Route Parity & Blog 404 Resolution](#22-vercel-serverless-route-parity--blog-404-resolution)
 23. [Mobile Viewport Layout Containment & Blog Tag Filter Z-Index Elevation](#23-mobile-viewport-layout-containment--blog-tag-filter-z-index-elevation)
-24. [Files Created, Modified, or Removed](#24-files-created-modified-or-removed)
+24. [Removal of All Static AI Keys & Client-Side Credential Isolation](#24-removal-of-all-static-ai-keys--client-side-credential-isolation)
+25. [Files Created, Modified, or Removed](#25-files-created-modified-or-removed)
 
 ---
 
@@ -481,10 +482,29 @@ This document provides a comprehensive, centralized record of all architecture i
 
 ---
 
-## 24. Files Created, Modified, or Removed
+## 24. Removal of All Static AI Keys & Client-Side Credential Isolation
+
+### Security Hardening & Zero Static Credentials
+- **Problem**: Hardcoded API key literals (`oc_sk_c26451b97d8f_PeNlC8VXODkpok9xUXa2RwUZzOMUUic4`) were present as fallback defaults in server service and route files, and exposed in frontend configuration constants bundled to client browsers.
+- **Resolutions**:
+  - **Server Service Isolation (`server/services/aiService.js`)**: Removed static fallback literal; `DEEPSEEK_API_KEY` is now derived strictly from runtime `process.env.DEEPSEEK_API_KEY`.
+  - **Server Route Status Check (`server/routes/ai.js`)**: Updated `hasApiKey` check to `!!process.env.DEEPSEEK_API_KEY`, eliminating the static string fallback.
+  - **Client-Side Credential Stripping (`src/services/ai.ts`, `src/utils/aiHelpers.ts`)**: Removed `apiKey` property entirely from `OPENCODE_AI_CONFIG` and `AI_MODEL_CONFIG`. Because the browser never calls AI providers directly (all generation and rewriting requests are routed through authenticated `/api/ai/*` backend endpoints), client bundles now contain zero credential exposure.
+  - **Documentation & Examples (`.env.example`)**: Replaced the active key literal with a generic placeholder `DEEPSEEK_API_KEY=your-deepseek-or-opencode-api-key`.
+  - **Automated Regression Defense (`tests/aiHelpers.test.ts`)**: Added unit test assertions verifying that client configurations (`AI_MODEL_CONFIG`, `OPENCODE_AI_CONFIG`) do not expose an `apiKey` property.
+
+---
+
+## 25. Files Created, Modified, or Removed
 
 | File | Status | Description |
 | :--- | :--- | :--- |
+| `server/services/aiService.js` | Modified | Removed static fallback key literal; strictly relies on `process.env.DEEPSEEK_API_KEY`. |
+| `server/routes/ai.js` | Modified | Updated `hasApiKey` status check to evaluate `process.env.DEEPSEEK_API_KEY` without fallbacks. |
+| `src/services/ai.ts` | Modified | Removed `apiKey` property from `OPENCODE_AI_CONFIG`. |
+| `src/utils/aiHelpers.ts` | Modified | Removed `apiKey` property from `AI_MODEL_CONFIG`. |
+| `.env.example` | Modified | Replaced active key literal with generic placeholder. |
+| `tests/aiHelpers.test.ts` | Modified | Updated test assertions to verify client configs never expose `apiKey`. |
 | `src/App.css` | Modified | Added root `overflow-x: clip`, `:not(pre) > code` wrapping, `pre` preservation, table/media overflow, and `a:not(.btn)` breaking. |
 | `src/sections/blog/blog.tsx` | Modified | Elevated filter bar (`z-30`), tag anchor (`z-40`), grid (`z-10`), added test IDs, and styled year filter with `#00BAFE`. |
 | `src/pages/BlogDetail.tsx` | Modified | Added `min-w-0` to flex child `<main>` and `overflow-x-clip` to article content body. |
