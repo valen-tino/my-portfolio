@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import App from '../src/App';
@@ -168,5 +168,48 @@ describe('App Component - Redesign Hierarchy & Floating Navigation', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Design system' })).toBeInTheDocument();
     });
+
+    const referencesRegion = screen.getByRole('region', { name: 'Design references' });
+    const referenceLinks = within(referencesRegion).getAllByRole('link');
+
+    expect(
+      referenceLinks.map((link) => ({
+        name: link.textContent?.trim(),
+        href: link.getAttribute('href'),
+        target: link.getAttribute('target'),
+        rel: link.getAttribute('rel'),
+      })),
+    ).toEqual([
+      {
+        name: 'Daniella Marynova',
+        href: 'https://hellodani.co/?ref=killerportfolio',
+        target: '_blank',
+        rel: 'noopener noreferrer',
+      },
+      {
+        name: 'Marijana Pavlinić',
+        href: 'https://marijanapav.com/',
+        target: '_blank',
+        rel: 'noopener noreferrer',
+      },
+      {
+        name: 'Pentagram',
+        href: 'https://www.pentagram.com',
+        target: '_blank',
+        rel: 'noopener noreferrer',
+      },
+      {
+        name: 'Studio Lenzing',
+        href: 'https://www.studiolenzing.com',
+        target: '_blank',
+        rel: 'noopener noreferrer',
+      },
+      {
+        name: 'It’s Nice That',
+        href: 'https://www.itsnicethat.com',
+        target: '_blank',
+        rel: 'noopener noreferrer',
+      },
+    ]);
   });
 });

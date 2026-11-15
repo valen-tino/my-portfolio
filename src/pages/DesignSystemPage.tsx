@@ -27,6 +27,42 @@ const COLORS = [
   { name: 'Paper', value: '#F8F8FA', token: 'paper', usage: 'Quiet background fields' },
 ];
 
+interface DesignReference {
+  name: string;
+  url: string;
+  description: string;
+}
+
+const DESIGN_REFERENCES: readonly DesignReference[] = [
+  {
+    name: 'Daniella Marynova',
+    url: 'https://hellodani.co/?ref=killerportfolio',
+    description:
+      'Warm minimal typography, spacious layout pacing, and clear product design case study framing.',
+  },
+  {
+    name: 'Marijana Pavlinić',
+    url: 'https://marijanapav.com/',
+    description:
+      'Minimalist typographic index table, grid/list view switching, and quiet hover project previews.',
+  },
+  {
+    name: 'Pentagram',
+    url: 'https://www.pentagram.com',
+    description: 'Clear navigation and large, rectangular project images.',
+  },
+  {
+    name: 'Studio Lenzing',
+    url: 'https://www.studiolenzing.com',
+    description: 'Simple navigation, clear headings, and layouts with columns of different sizes.',
+  },
+  {
+    name: 'It’s Nice That',
+    url: 'https://www.itsnicethat.com',
+    description: 'Articles with flat image areas and clear captions.',
+  },
+];
+
 export default function DesignSystemPage({ onOpenCVModal }: DesignSystemPageProps) {
   const navigate = useNavigate();
   const [status, setStatus] = useState('');
@@ -352,33 +388,20 @@ export default function DesignSystemPage({ onOpenCVModal }: DesignSystemPageProp
             These websites helped guide the layout. This portfolio keeps its own colors, content,
             and Plus Jakarta Sans font.
           </p>
-          <div className="mt-10 grid gap-8 sm:grid-cols-3">
-            {[
-              [
-                'Pentagram',
-                'https://www.pentagram.com',
-                'Clear navigation and large, rectangular project images.',
-              ],
-              [
-                'Studio Lenzing',
-                'https://www.studiolenzing.com',
-                'Simple navigation, clear headings, and layouts with columns of different sizes.',
-              ],
-              [
-                'It’s Nice That',
-                'https://www.itsnicethat.com',
-                'Articles with flat image areas and clear captions.',
-              ],
-            ].map(([name, url, text]) => (
-              <div key={name}>
-                <a href={url} target="_blank" rel="noreferrer" className="text-link">
+          <ul
+            role="list"
+            className="mt-10 grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3"
+          >
+            {DESIGN_REFERENCES.map(({ name, url, description }) => (
+              <li key={url}>
+                <a href={url} target="_blank" rel="noopener noreferrer" className="text-link">
                   {name}
                   <ArrowRightIcon className="size-4" />
                 </a>
-                <p className="mt-4 text-sm leading-relaxed text-muted-600">{text}</p>
-              </div>
+                <p className="mt-4 text-sm leading-relaxed text-muted-600">{description}</p>
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
       </main>
 
