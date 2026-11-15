@@ -20,10 +20,12 @@ import {
   PROJECTS,
   SOCIAL_LINKS,
   TECH_TOOLS,
+  WORK_PROCESS_STEPS,
   mapCMSBlogToPost,
   mapCMSEducationToView,
   mapCMSExperienceToView,
   mapCMSTechToolToView,
+  mapCMSWorkProcessToView,
   mapPortfolioItemToProject,
 } from '../data/portfolioData';
 import { getGreetingText } from '../others/greeting';
@@ -34,6 +36,7 @@ import type {
   Experience,
   Project,
   TechToolView,
+  WorkProcessStep,
 } from '../types/portfolio';
 import { formatPublicDescription } from '../utils/contentMigration';
 import { sortByLatestEndDate } from '../utils/dateFormat';
@@ -57,6 +60,7 @@ export default function Home({ onOpenCVModal }: HomeProps) {
     sortByLatestEndDate(EDUCATION_LIST),
   );
   const [techTools, setTechTools] = useState<TechToolView[]>(TECH_TOOLS);
+  const [workProcessSteps, setWorkProcessSteps] = useState<WorkProcessStep[]>(WORK_PROCESS_STEPS);
   const [aboutData, setAboutData] = useState<AboutData | null>(null);
   const [portraitError, setPortraitError] = useState(false);
 
@@ -85,6 +89,7 @@ export default function Home({ onOpenCVModal }: HomeProps) {
         toolsRes,
         educationRes,
         experiencesRes,
+        workProcessRes,
       ] = await Promise.allSettled([
         CMSStorage.getPortfolios(true),
         CMSStorage.getBlogs(true),
@@ -92,6 +97,9 @@ export default function Home({ onOpenCVModal }: HomeProps) {
         CMSStorage.getTechTools(true),
         CMSStorage.getEducation(),
         apiService.getExperiences(true),
+        typeof CMSStorage.getWorkProcesses === 'function'
+          ? CMSStorage.getWorkProcesses(true)
+          : Promise.resolve([]),
       ]);
 
       if (!active) return;
@@ -135,6 +143,14 @@ export default function Home({ onOpenCVModal }: HomeProps) {
         experiencesRes.value.data.length > 0
       ) {
         setExperiences(sortByLatestEndDate(experiencesRes.value.data.map(mapCMSExperienceToView)));
+      }
+
+      if (
+        workProcessRes.status === 'fulfilled' &&
+        Array.isArray(workProcessRes.value) &&
+        workProcessRes.value.length > 0
+      ) {
+        setWorkProcessSteps(workProcessRes.value.map(mapCMSWorkProcessToView));
       }
     }
 
@@ -320,7 +336,7 @@ export default function Home({ onOpenCVModal }: HomeProps) {
         </div>
       </section>
 
-      <WorkProcessSection />
+      <WorkProcessSection steps={workProcessSteps} />
 
       <section
         id="about"

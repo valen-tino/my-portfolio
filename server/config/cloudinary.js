@@ -140,11 +140,23 @@ const editorMediaFileFilter = (_req, file, cb) => {
   }
 };
 
+// Profile image file filter
+const profileImageFileFilter = (_req, file, cb) => {
+  const allowedExtensions = /\.(jpg|jpeg|png|gif|webp|svg)$/i;
+  const isImageMime = file.mimetype && file.mimetype.startsWith('image/');
+  if (isImageMime || allowedExtensions.test(file.originalname || '')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Unsupported image format. Please use PNG, JPG, GIF, or WebP.'));
+  }
+};
+
 // Multer upload middleware
 const uploadProfile = multer({ 
   storage: profileStorage,
+  fileFilter: profileImageFileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: 10 * 1024 * 1024 // 10MB limit matching CMS UI
   }
 });
 

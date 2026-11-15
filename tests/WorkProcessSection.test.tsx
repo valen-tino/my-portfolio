@@ -3,10 +3,16 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { WorkProcessSection } from '../src/components/WorkProcessSection';
 
 describe('WorkProcessSection', () => {
-  it('renders single-row tablist with all 5 Design Thinking steps', () => {
+  it('renders single-row tablist with all 6 work process steps and updated subtitle', () => {
     render(<WorkProcessSection />);
 
-    const tablist = screen.getByRole('tablist', { name: 'Design Thinking steps' });
+    expect(
+      screen.getByText(
+        /I combine design thinking with spec-driven development—from research and prototyping through structured engineering, automated testing, and iterative delivery\./i
+      )
+    ).toBeInTheDocument();
+
+    const tablist = screen.getByRole('tablist', { name: 'Work process steps' });
     expect(tablist.className).toContain('flex-nowrap');
 
     const tabs = screen.getAllByRole('tab');
@@ -15,6 +21,7 @@ describe('WorkProcessSection', () => {
       'Define',
       'Ideate',
       'Prototype',
+      'Development',
       'Test',
     ]);
 
@@ -23,7 +30,7 @@ describe('WorkProcessSection', () => {
     expect(panel).toHaveTextContent('Empathize');
   });
 
-  it('supports keyboard navigation (ArrowRight, ArrowLeft, End, Home) and prev/next buttons', () => {
+  it('supports keyboard navigation (ArrowRight, ArrowLeft, End, Home) and prev/next buttons across 6 steps', () => {
     render(<WorkProcessSection />);
 
     const tabs = screen.getAllByRole('tab');
@@ -35,25 +42,44 @@ describe('WorkProcessSection', () => {
     expect(screen.getByRole('tabpanel')).toHaveTextContent('Define');
 
     fireEvent.keyDown(tabs[1], { key: 'End' });
-    expect(tabs[4]).toHaveAttribute('aria-selected', 'true');
-    expect(document.activeElement).toBe(tabs[4]);
+    expect(tabs[5]).toHaveAttribute('aria-selected', 'true');
+    expect(document.activeElement).toBe(tabs[5]);
     expect(screen.getByRole('tabpanel')).toHaveTextContent('Test');
 
-    fireEvent.keyDown(tabs[4], { key: 'Home' });
+    fireEvent.keyDown(tabs[5], { key: 'Home' });
     expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
     expect(document.activeElement).toBe(tabs[0]);
 
     fireEvent.keyDown(tabs[0], { key: 'ArrowLeft' });
-    expect(tabs[4]).toHaveAttribute('aria-selected', 'true');
+    expect(tabs[5]).toHaveAttribute('aria-selected', 'true');
 
     const prevBtn = screen.getByRole('button', { name: 'Previous process step' });
     const nextBtn = screen.getByRole('button', { name: 'Next process step' });
     expect(nextBtn).toBeDisabled();
 
     fireEvent.click(prevBtn);
-    expect(tabs[3]).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('tabpanel')).toHaveTextContent('Prototype');
+    expect(tabs[4]).toHaveAttribute('aria-selected', 'true');
+    const devPanel = screen.getByRole('tabpanel');
+    expect(devPanel).toHaveTextContent('Development');
+    expect(devPanel).toHaveTextContent(/Spec-Driven Development/i);
+    expect(devPanel).toHaveTextContent(/PRD/i);
+    expect(devPanel).toHaveTextContent(/ERD/i);
     expect(nextBtn).not.toBeDisabled();
+  });
+
+  it('renders custom CMS steps when provided and falls back to defaults when empty', () => {
+    const customSteps = [
+      { id: '1', title: 'Discover', description: 'Research goals and constraints.' },
+      { id: '2', title: 'Ship', description: 'Release cleanly to production.' },
+    ];
+
+    const { rerender } = render(<WorkProcessSection steps={customSteps} />);
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Discover', 'Ship']);
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('Research goals and constraints.');
+
+    rerender(<WorkProcessSection steps={[]} />);
+    expect(screen.getAllByRole('tab')).toHaveLength(6);
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('Empathize');
   });
 });
 

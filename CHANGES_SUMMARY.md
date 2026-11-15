@@ -34,7 +34,8 @@ This document provides a comprehensive, centralized record of all architecture i
 27. [Contact Consolidation, Structure Cleanup, Experience/Education Tabs, Hover CTA & End-Date Sorting](#27-contact-consolidation-structure-cleanup-experienceeducation-tabs-hover-cta--end-date-sorting)
 28. [Work Page Filter Overhaul, Grid/Table Switcher & Responsive Mobile Table/Filter Dialog](#28-work-page-filter-overhaul-gridtable-switcher--responsive-mobile-tablefilter-dialog)
 29. [16:9 Portfolio Media, Hero Carousel All-Items/Toggletip, Code Block Fix & Blue Resume Pill](#29-169-portfolio-media-hero-carousel-all-itemstoggletip-code-block-fix--blue-resume-pill)
-30. [Files Created, Modified, or Removed](#30-files-created-modified-or-removed)
+30. [Design System Inspirations, 6-Step Spec-Driven Work Process CRUD, CMS Light Theme & About Upload Fix](#30-design-system-inspirations-6-step-spec-driven-work-process-crud-cms-light-theme--about-upload-fix)
+31. [Files Created, Modified, or Removed](#31-files-created-modified-or-removed)
 
 ---
 
@@ -561,9 +562,35 @@ This document provides a comprehensive, centralized record of all architecture i
 
 ---
 
-## 30. Files Created, Modified, or Removed
+## 30. Design System Inspirations, 6-Step Spec-Driven Work Process CRUD, CMS Light Theme & About Upload Fix
+
+- **Design System Page Reference Links (`src/pages/DesignSystemPage.tsx`, `tests/App.test.tsx`)**: Added `Daniella Marynova` (`https://hellodani.co/?ref=killerportfolio`) and `Marijana Pavlinić` (`https://marijanapav.com/`) at the top of `DESIGN_REFERENCES` ahead of Pentagram, Studio Lenzing, and It’s Nice That, rendering structured `<ul role="list">` / `<li>` cards (`rel="noopener noreferrer"`) with automated assertions in `tests/App.test.tsx`.
+- **6-Step Spec-Driven Work Process & Full-Stack CRUD**:
+  - Inserted **`Development`** right after **`Prototype`** in `src/data/portfolioData.ts` (`Empathize` → `Define` → `Ideate` → `Prototype` → `Development` → `Test`), presenting plain-paragraph descriptions covering Spec-Driven Development with AI-assisted workflows (`PRD` → `ERD` → `Design Brief` → `Local Development` → `Unit Tests` → `CI/CD Pipeline` → `Staging` → `In Production` → Agile methodology).
+  - Updated `src/components/WorkProcessSection.tsx` subtitle to `"I combine design thinking with spec-driven development—from research and prototyping through structured engineering, automated testing, and iterative delivery."`, changed the tablist `aria-label` to `"Work process steps"`, added dynamic `steps?: WorkProcessStep[]` support (falling back to `WORK_PROCESS_STEPS`), and connected `src/pages/Home.tsx` to `CMSStorage.getWorkProcesses(true)`.
+  - Added backend model, defaults, seed script, and API routes in `server/data/defaultWorkProcessSteps.js`, `server/models/WorkProcess.js`, `server/routes/workProcess.js` (`GET /`, `GET /:id`, `POST /seed`, `POST /`, `PUT /:id`, `DELETE /:id`), mounted `/api/work-process` in both `server/index.js` and `api/serverless.js`, and added initial database seeding in `server/scripts/initDatabase.js`.
+  - Wired `src/types/portfolio.ts`, `src/services/api.ts`, and `src/cms/apiStorage.ts` (`CMSWorkProcessStep`), created `src/cms/pages/WorkProcessManagement.tsx` (Create, Edit, Delete, Up/Down ordering, Publish/Hide toggle, `Import Default 6 Steps`), registered `/cms/work-process` in `src/App.tsx`, and added **`Work Process`** as a top-level item in `src/cms/components/CMSLayout.tsx`.
+- **CMS Light Theme Lock (`tailwind.config.cjs`, `index.html`, `src/index.css`, `src/cms/*`)**:
+  - Locked DaisyUI v5 to `themes: ['light --default']` in `tailwind.config.cjs` to eliminate generated `@media (prefers-color-scheme: dark)` CSS rules, and set `<html lang="en" data-theme="light">`, `<meta name="color-scheme" content="light" />` (`index.html`), and `color-scheme: light;` (`src/index.css`).
+  - Applied explicit `data-theme="light"` and high-contrast light surface/input/badge classes (removing dark-inverting `bg-base-*`, `text-base-content*`, `border-base-*`, `badge-neutral`, and dark inputs) across `CMSLayout.tsx`, `Login.tsx`, `AboutManagement.tsx`, `ExperienceManagement.tsx`, `BlogManagement.tsx`, `EducationManagement.tsx`, `PortfolioManagement.tsx`, `RolesManagement.tsx`, `TechToolsManagement.tsx`, `AITest.tsx`, `WYSIWYGEditor.tsx`, and `AIPortfolioModal.tsx`.
+- **About Me Profile Image Upload Fix (`src/cms/pages/AboutManagement.tsx`, `src/services/api.ts`, `server/config/cloudinary.js`, `server/routes/upload.js`)**:
+  - Updated `apiService.uploadProfileImage(file)` to use direct signed Cloudinary upload (`profiles` folder) first with `/upload/profile` fallback; increased Multer `uploadProfile` limit from 5MB to `10MB` with `profileImageFileFilter` (`server/config/cloudinary.js`) and JSON `400` error wrapping on `POST /api/upload/profile` (`server/routes/upload.js`).
+  - Converted the profile image dropzone into a full-surface clickable `<label data-testid="profile-image-dropzone">` and drag-and-drop area with MIME/10MB validation, file-input reset in `finally`, server error extraction, and staged preview state (`'Profile image uploaded! Click "Save Changes" below to publish it.'`) until **Save Changes** is submitted.
+- **Test & Build Verification**: Updated `tests/WorkProcessSection.test.tsx` and `tests/AboutManagement.test.tsx`, and added `tests/WorkProcessManagement.test.tsx` and `tests/serverlessWorkProcess.test.ts`; full suite passes (**23 test files, 104 tests**), `npm run build` (`tsc && vite build`) succeeds with zero errors, and `dist/assets/*.css` contains zero `prefers-color-scheme: dark` blocks.
+
+---
+
+## 31. Files Created, Modified, or Removed
 
 | File | Status | Description |
+| :--- | :--- | :--- |
+| `src/cms/pages/WorkProcessManagement.tsx`, `server/models/WorkProcess.js`, `server/routes/workProcess.js`, `server/data/defaultWorkProcessSteps.js` | Created | Full-stack Work Process CRUD module, Mongoose schema, Express/Vercel API router (`/api/work-process`), and default 6-step seed data. |
+| `tests/WorkProcessManagement.test.tsx`, `tests/serverlessWorkProcess.test.ts` | Created | Unit, component, and HTTP integration tests covering CMS Work Process management and `/api/work-process` serverless endpoints. |
+| `tailwind.config.cjs`, `index.html`, `src/index.css` | Modified | Locked DaisyUI v5 to `['light --default']` and enforced `data-theme="light"` / `color-scheme: light` to stop OS dark-mode CSS leakage. |
+| `src/pages/DesignSystemPage.tsx`, `src/data/portfolioData.ts`, `src/components/WorkProcessSection.tsx`, `src/pages/Home.tsx`, `src/types/portfolio.ts`, `src/services/api.ts`, `src/cms/apiStorage.ts`, `src/App.tsx` | Modified | Added `hellodani.co` & `marijanapav.com` inspirations, 6-step `Development` Work Process copy/state wiring, direct Cloudinary `uploadProfileImage`, `/cms/work-process` route, and defensive `Home` fetching. |
+| `src/cms/components/CMSLayout.tsx`, `WYSIWYGEditor.tsx`, `AIPortfolioModal.tsx`, `src/cms/pages/Login.tsx`, `AboutManagement.tsx`, `ExperienceManagement.tsx`, `BlogManagement.tsx`, `EducationManagement.tsx`, `PortfolioManagement.tsx`, `RolesManagement.tsx`, `TechToolsManagement.tsx`, `AITest.tsx` | Modified | Added top-level `Work Process` CMS navigation, eliminated dark-on-dark `base-*` classes across CMS forms/cards, and rebuilt `AboutManagement` full-box clickable/drag-and-drop staged portrait uploads. |
+| `server/index.js`, `api/serverless.js`, `server/scripts/initDatabase.js`, `server/config/cloudinary.js`, `server/routes/upload.js` | Modified | Mounted `/api/work-process`, added Work Process initialization seeding, expanded `uploadProfile` Multer limit to 10MB, and wrapped `/api/upload/profile` errors cleanly. |
+| `tests/App.test.tsx`, `tests/WorkProcessSection.test.tsx`, `tests/AboutManagement.test.tsx` | Modified | Verified Design System references, 6-step Work Process keyboard/CMS rendering, light-mode CMS theme lock, and staged profile image click/drag/drop validation. |
 | :--- | :--- | :--- |
 | `src/components/FloatingNavigation.tsx`, `Footer.tsx`, `HeroProjectStrip.tsx`, `ProjectCard.tsx`, `BlogCard.tsx`, `WorkProcessSection.tsx`, `EditorialCarousel.tsx`, `CVModal.tsx`, `ExperienceEducationSection.tsx`, `PortfolioFilterControls.tsx`, `MobileFilterDialog.tsx`, `PortfolioTable.tsx`, `Icons.tsx`, `ImagePlaceholder.tsx` | Created | Editorial UI components consolidated under `src/components/`, including pill nav with `.dock-item-primary` Résumé CTA, swipeable all-project `16:9` hero carousel with toggletip, accessible tab sections, mobile filter `<dialog>`, and responsive portfolio table. |
 | `src/data/portfolioData.ts`, `src/types/portfolio.ts`, `src/types/polyfills.d.ts` | Created | Unified portfolio/blog/experience/education/tech types, static fallback datasets, and CMS adapter mappers. |

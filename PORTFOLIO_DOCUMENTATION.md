@@ -64,13 +64,15 @@ A full-stack portfolio website with an integrated Content Management System (CMS
                     │                                      │
                     │  Collections:                       │
                     │  - users                            │
-                    │  - portfolios                        │
-                    │  - experiences                       │
-                    │  - education                         │
-                    │  - techtools                         │
-                    │  - roles                             │
-                    │  - contacts                          │
-                    │  - about                             │
+                    │  - portfolios                       │
+                    │  - blogs                            │
+                    │  - experiences                      │
+                    │  - workprocesses                    │
+                    │  - education                        │
+                    │  - techtools                        │
+                    │  - roles                            │
+                    │  - contacts                         │
+                    │  - abouts                           │
                     └──────────────────────────────────────┘
                     
                     ┌──────────────────────────────────────┐
@@ -98,7 +100,7 @@ A full-stack portfolio website with an integrated Content Management System (CMS
 - **TypeScript 5.9.2**: Type-safe development
 - **Vite 7.1.4**: Next-generation frontend tooling and bundler (dev server port `5173`)
 - **React Router v7**: Client-side routing (`react-router-dom`)
-- **DaisyUI 5.1.7**: Component library built on Tailwind CSS
+- **DaisyUI 5.1.7**: Component library built on Tailwind CSS (`themes: ['light --default']` + `color-scheme: light`)
 - **Tailwind CSS 3.4.4**: Utility-first CSS framework (`tailwind.config.cjs` editorial palette tokens + `Plus Jakarta Sans`)
 - **GSAP 3.15.1**: Reduced-motion-aware entrance and ScrollTrigger animations (`src/utils/gsapAnimations.ts`)
 - **TipTap / ProseMirror**: Rich WYSIWYG editor with custom node views
@@ -152,7 +154,7 @@ my-portfolio/
 │   │   ├── PortfolioDetail.tsx # Split-screen case study detail (sticky left column & light code styling)
 │   │   ├── BlogPage.tsx       # Public journal archive (/blogs)
 │   │   ├── BlogDetail.tsx     # Single journal article view (/blogs/:id)
-│   │   └── DesignSystemPage.tsx # Unlisted design system reference (/design-system)
+│   │   └── DesignSystemPage.tsx # Unlisted design system reference (/design-system) with curated inspirations
 │   │
 │   ├── components/            # Consolidated public & shared UI components
 │   │   ├── FloatingNavigation.tsx      # Bottom pill dock nav, mobile More drawer & brand blue Résumé CTA
@@ -160,7 +162,7 @@ my-portfolio/
 │   │   ├── ProjectCard.tsx             # 16:9 portfolio card with hover/focus CTA & lock gate
 │   │   ├── BlogCard.tsx                # Journal article card with hover/focus CTA & ISO-formatted dates
 │   │   ├── ExperienceEducationSection.tsx # Accessible WAI-ARIA Experiences / Education tab switcher
-│   │   ├── WorkProcessSection.tsx      # Single-row ARIA tablist work-process section
+│   │   ├── WorkProcessSection.tsx      # Single-row 6-step ARIA tablist work-process section (CMS-backed)
 │   │   ├── EditorialCarousel.tsx       # Scroll-snap editorial carousel with keyboard & ARIA controls
 │   │   ├── PortfolioFilterControls.tsx # Shared Role, Year, Tech & search filter controls
 │   │   ├── PortfolioTable.tsx          # Left-aligned desktop table & minimal 2-column mobile index table
@@ -191,8 +193,8 @@ my-portfolio/
 │   ├── others/                # Miscellaneous helpers
 │   │   └── greeting.tsx       # Time-of-day dynamic greeting helper (getGreetingText)
 │   │
-│   ├── cms/                   # CMS System
-│   │   ├── pages/             # CMS admin pages (Login, Dashboard, Portfolio, Blog, Experience, Education, TechTools, Roles, Contacts, About, AITest)
+│   ├── cms/                   # CMS System (locked bright light-mode styling)
+│   │   ├── pages/             # CMS admin pages (Login, Dashboard, Portfolio, Blog, Experience, WorkProcess, Education, TechTools, Roles, Contacts, About, AITest)
 │   │   ├── components/        # CMSLayout, WYSIWYGEditor, ProtectedRoute, AIPortfolioModal
 │   │   ├── apiStorage.ts      # API integration layer
 │   │   ├── auth.ts            # Authentication utilities
@@ -204,8 +206,9 @@ my-portfolio/
 │
 ├── server/                    # Express backend (port 5001)
 │   ├── index.js               # Server entry point
-│   ├── models/                # Mongoose schemas (User, Portfolio, Blog, Experience, Education, TechTool, Role, Contact, About)
-│   ├── routes/                # API routes (auth, about, portfolio, blog, experiences, education, techTools, roles, contact, upload, ai)
+│   ├── data/                  # Default seed datasets (defaultWorkProcessSteps.js)
+│   ├── models/                # Mongoose schemas (User, Portfolio, Blog, Experience, WorkProcess, Education, TechTool, Role, Contact, About)
+│   ├── routes/                # API routes (auth, about, portfolio, blog, experiences, workProcess, education, techTools, roles, contact, upload, ai)
 │   ├── utils/                 # skillMigration.js
 │   ├── scripts/               # initDatabase.js, migrateMarkdownToWYSIWYG.js, syncExistingPortfolioSkills.js
 │   ├── services/              # aiService.js
@@ -217,7 +220,7 @@ my-portfolio/
 │   ├── [...path].js           # Catch-all Vercel route handler
 │   ├── index.js / test.js / diag.js / diag2.js
 │
-├── tests/                     # Automated Vitest test suites (21 files, 93 tests)
+├── tests/                     # Automated Vitest test suites (23 files, 104 tests)
 ├── .gitignore
 ├── package.json
 ├── tailwind.config.cjs
@@ -242,8 +245,9 @@ my-portfolio/
 - **All-Project Marquee Carousel (`HeroProjectStrip`)**: Displays **all** published `16:9` (`aspect-video`) project visuals without clickable links, titles, or overlay arrows; supports touch swipe, pointer-drag panning, arrow step buttons, Play/Pause icon toggle button, and an accessible `popover="hint"` `"i"` toggletip (`tooltipPolyfills.ts`).
 - GSAP entrance and scroll-triggered section animations (`gsapAnimations.ts`), disabled automatically when `prefers-reduced-motion: reduce`.
 
-#### About Me & Work Process
-- Personal profile image, rich WYSIWYG biography (`formatPublicDescription`), interactive **Work Process** horizontal ARIA tablist (`WorkProcessSection`), and published Tech Tools list.
+#### About Me, Work Process & Design System
+- Personal profile image, rich WYSIWYG biography (`formatPublicDescription`), published Tech Tools list, and curated `/design-system` reference page (`DesignSystemPage`) featuring inspirations led by Daniella Marynova (`hellodani.co`) and Marijana Pavlinić (`marijanapav.com`) ahead of Pentagram, Studio Lenzing, and It’s Nice That.
+- **6-Step Spec-Driven Work Process (`WorkProcessSection`)**: Horizontal single-row ARIA tablist covering **Empathize**, **Define**, **Ideate**, **Prototype**, **Development** (Spec-Driven Development using AI-assisted workflows from PRD → ERD → Design Brief → Local Development → Unit Tests → CI/CD Pipeline → Staging → In Production → Agile iteration), and **Test** in plain paragraph prose, powered dynamically by `GET /api/work-process?published=true` with static fallback.
 
 #### Experience & Education Tabbed Timeline (`ExperienceEducationSection`)
 - WAI-ARIA `tablist`/`tab`/`tabpanel` separating **Experiences** and **Education** with arrow/`Home`/`End` keyboard switching, `#education` / `#experience` hash linking, and `hidden="until-found"` (`beforematch`) searchability.
@@ -280,10 +284,10 @@ my-portfolio/
 #### Content Management Modules
 
 ##### About Management
-- Profile image upload
-- Description editor
-- Real-time preview
-- Image optimization via Cloudinary
+- Profile photo upload with direct signed Cloudinary upload (`profiles` folder) and `/api/upload/profile` 10MB fallback
+- Full-surface clickable & drag-and-drop dropzone with MIME/10MB client validation and staged preview persistence until **Save Changes** is submitted
+- Dedicated PDF Curriculum Vitae upload (`cvURL`, `cvCloudinaryId`) synced to public CV buttons and modal
+- Rich WYSIWYG description editor and real-time public preview
 
 ##### Portfolio Management
 - CRUD operations for projects
@@ -325,6 +329,12 @@ my-portfolio/
 - Month/year date pickers
 - Rich text descriptions
 - Publication control
+
+##### Work Process Management
+- Top-level CMS navigation module (`/cms/work-process`)
+- Full CRUD for plain-paragraph process stages (`title`, `description`, `order`, `isPublished`)
+- One-click **Import Default 6 Steps** seeding (`Empathize` → `Define` → `Ideate` → `Prototype` → `Development` → `Test`)
+- Instant **Up** / **Down** reordering and visibility toggles (`Published` / `Hidden`)
 
 ##### Education Management
 - Degree/certification management
@@ -520,6 +530,21 @@ my-portfolio/
   description: String (required),
   imageURL: String,
   imageCloudinaryId: String,
+  cvURL: String,
+  cvCloudinaryId: String,
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+#### workprocesses
+```javascript
+{
+  _id: ObjectId,
+  title: String (required),
+  description: String (required),
+  order: Number,
+  isPublished: Boolean,
   createdAt: Date,
   updatedAt: Date
 }
@@ -594,9 +619,31 @@ Update about section.
 {
   "description": "About me text...",
   "imageURL": "https://...",
-  "imageCloudinaryId": "..."
+  "imageCloudinaryId": "...",
+  "cvURL": "https://...",
+  "cvCloudinaryId": "..."
 }
 ```
+
+#### Work Process
+
+**GET /api/work-process**
+List work process steps sorted by `order` (supports `?published=true`).
+
+**GET /api/work-process/:id**
+Fetch a single process step.
+
+**POST /api/work-process** (Protected)
+Create a new process step (`title`, `description`, `order`, `isPublished`).
+
+**POST /api/work-process/seed** (Protected)
+Seed the default 6 steps (`Empathize` through `Test`) when empty (or with `{ "force": true }`).
+
+**PUT /api/work-process/:id** (Protected)
+Update an existing process step or reorder/toggle publication.
+
+**DELETE /api/work-process/:id** (Protected)
+Delete a process step.
 
 #### Portfolio Management
 
@@ -736,17 +783,29 @@ Delete contact message.
 
 ### File Upload Endpoints
 
-**POST /api/upload/profile-image** (Protected)
-Upload profile image.
+**GET /api/upload/signature** (Protected)
+Generate signed upload parameters for direct Cloudinary transfers.
 
-**POST /api/upload/portfolio-image** (Protected)
-Upload portfolio image.
+**POST /api/upload/profile** (Protected)
+Upload profile portrait image (10MB Multer limit with structured JSON errors).
 
-**POST /api/upload/tech-tool-image** (Protected)
+**POST /api/upload/portfolio** (Protected)
+Upload portfolio hero image.
+
+**POST /api/upload/portfolio-video** (Protected)
+Upload portfolio hero video.
+
+**POST /api/upload/editor-media** & **POST /api/upload/editor-gallery** (Protected)
+Upload single or batch WYSIWYG media assets.
+
+**POST /api/upload/tech-tool** (Protected)
 Upload tech tool icon.
 
-**POST /api/upload/experience-logo** (Protected)
+**POST /api/upload/experience** (Protected)
 Upload company logo.
+
+**DELETE /api/upload/:cloudinaryId** (Protected)
+Delete an uploaded Cloudinary asset.
 
 ### AI Endpoints
 
@@ -905,21 +964,24 @@ User Input → Component State → API Call → Database Update
 #### Navigation Structure
 ```
 CMS Dashboard
-├── About Management
-├── Portfolio Projects
-├── Work Experience
-├── Education & Certificates
-├── Tech Skills
-├── Professional Roles
-├── Contact Messages
-└── AI Tools (Beta)
+├── Dashboard
+├── Portfolios
+├── Blogs & News
+├── Experiences
+├── Work Process
+├── Contact Entries
+└── About Me ▾
+    ├── About Me Content
+    ├── Tech Tools
+    ├── Roles
+    ├── Education
+    └── AI Diagnostics
 ```
 
-#### Responsive Design
-- Mobile-optimized forms
-- Touch-friendly controls
-- Adaptive layouts
-- Progressive enhancement
+#### Light Theme Lock & Responsive Design
+- Explicit `data-theme="light"`, `color-scheme: light`, DaisyUI `themes: ['light --default']`, and high-contrast light Tailwind cards/inputs preventing OS Dark Mode color inversion across all CMS views
+- Mobile-optimized forms and touch-friendly controls
+- Adaptive layouts and progressive enhancement
 
 ---
 
@@ -1252,7 +1314,7 @@ const handleAIGenerate = async () => {
 
 ### Automated Testing (Vitest & Testing Library)
 
-Run the full automated suite (currently **21 test files, 93 tests**) and production TypeScript + Vite build:
+Run the full automated suite (currently **23 test files, 104 tests**) and production TypeScript + Vite build:
 
 ```bash
 npm test -- --run
@@ -1262,7 +1324,7 @@ npm run build
 Automated coverage spans:
 - Public pages & navigation (`App.test.tsx`, `HomeRedesign.test.tsx`, `FloatingNavigation.test.tsx`, `PortfolioPage.test.tsx`, `PortfolioDetail.test.tsx`, `BlogPage.test.tsx`, `blog.test.tsx`)
 - Interactive widgets & dialogs (`CVModal.test.tsx`, `WorkProcessSection.test.tsx`, `EditorialCarousel.test.tsx`, `portfoliocard.test.tsx`)
-- Formatting, CMS CRUD, serverless routing & AI safety (`dateFormat.test.ts`, `publicFormatting.test.tsx`, `PortfolioManagement.test.tsx`, `BlogManagement.test.tsx`, `AboutManagement.test.tsx`, `WYSIWYGEditor.test.tsx`, `techToolAutoSync.test.tsx`, `serverlessBlog.test.ts`, `aiHelpers.test.ts`)
+- Formatting, CMS CRUD, serverless routing & AI safety (`dateFormat.test.ts`, `publicFormatting.test.tsx`, `PortfolioManagement.test.tsx`, `BlogManagement.test.tsx`, `WorkProcessManagement.test.tsx`, `AboutManagement.test.tsx`, `WYSIWYGEditor.test.tsx`, `techToolAutoSync.test.tsx`, `serverlessBlog.test.ts`, `serverlessWorkProcess.test.ts`, `aiHelpers.test.ts`)
 
 ---
 

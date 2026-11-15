@@ -696,8 +696,8 @@ const PortfolioEmbedNodeView: React.FC<NodeViewProps> = ({ node, deleteNode, sel
       </div>
 
       {/* Embedded Portfolio Card Preview */}
-      <div className="portfolio-embed-card p-4 sm:p-5 rounded-2xl bg-base-100 border border-base-300 shadow-md flex flex-col sm:flex-row gap-5 items-center">
-        <div className="w-full sm:w-48 aspect-video rounded-xl overflow-hidden shrink-0 bg-base-200">
+      <div className="portfolio-embed-card p-4 sm:p-5 rounded-2xl bg-white border border-gray-200 shadow-md flex flex-col sm:flex-row gap-5 items-center">
+        <div className="w-full sm:w-48 aspect-video rounded-xl overflow-hidden shrink-0 bg-gray-100">
           <img
             src={resolvedImage}
             alt={title || 'Portfolio thumbnail'}
@@ -707,14 +707,14 @@ const PortfolioEmbedNodeView: React.FC<NodeViewProps> = ({ node, deleteNode, sel
         <div className="flex-1 text-left w-full">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="badge badge-primary badge-sm font-semibold">💼 Case Study</span>
-            {year && <span className="text-xs text-base-content/60 font-medium">📅 {year}</span>}
-            {affiliation && <span className="badge badge-outline badge-sm text-xs">{affiliation}</span>}
+            {year && <span className="text-xs text-gray-500 font-medium">📅 {year}</span>}
+            {affiliation && <span className="badge badge-outline badge-sm text-xs text-gray-700 border-gray-300">{affiliation}</span>}
           </div>
-          <h4 className="text-lg font-bold text-base-content mb-1">{title || 'Untitled Project'}</h4>
-          <p className="text-sm text-base-content/70 line-clamp-2 mb-3 leading-relaxed">{desc || ''}</p>
+          <h4 className="text-lg font-bold text-gray-900 mb-1">{title || 'Untitled Project'}</h4>
+          <p className="text-sm text-gray-600 line-clamp-2 mb-3 leading-relaxed">{desc || ''}</p>
           <div className="flex flex-wrap gap-1 mb-3">
             {techList.slice(0, 4).map((t, idx) => (
-              <span key={idx} className="badge badge-outline badge-xs sm:badge-sm mr-1">{t}</span>
+              <span key={idx} className="badge badge-outline badge-xs sm:badge-sm text-gray-700 border-gray-300 mr-1">{t}</span>
             ))}
           </div>
           <a
@@ -796,7 +796,7 @@ export const PortfolioEmbedNode = Node.create({
 
     const techBadges = techList.slice(0, 4).map(t => [
       'span',
-      { class: 'badge badge-outline badge-xs sm:badge-sm mr-1' },
+      { class: 'badge badge-outline badge-xs sm:badge-sm text-gray-700 border-gray-300 mr-1' },
       t
     ]);
 
@@ -804,10 +804,10 @@ export const PortfolioEmbedNode = Node.create({
       ['span', { class: 'badge badge-primary badge-sm font-semibold' }, '💼 Case Study']
     ];
     if (year) {
-      metaBadges.push(['span', { class: 'text-xs text-base-content/60 font-medium' }, `📅 ${year}`]);
+      metaBadges.push(['span', { class: 'text-xs text-gray-500 font-medium' }, `📅 ${year}`]);
     }
     if (affiliation) {
-      metaBadges.push(['span', { class: 'badge badge-outline badge-sm text-xs' }, affiliation]);
+      metaBadges.push(['span', { class: 'badge badge-outline badge-sm text-xs text-gray-700 border-gray-300' }, affiliation]);
     }
 
     const resolvedImage = resolvePortfolioImageUrl(imageURL);
@@ -825,11 +825,11 @@ export const PortfolioEmbedNode = Node.create({
         'data-roles': JSON.stringify(rolesList),
         'data-year': year,
         'data-affiliation': affiliation,
-        class: 'portfolio-embed-card not-prose my-6 p-4 sm:p-5 rounded-2xl bg-base-100 border border-base-300 shadow-md flex flex-col sm:flex-row gap-5 items-center transition-all hover:shadow-xl'
+        class: 'portfolio-embed-card not-prose my-6 p-4 sm:p-5 rounded-2xl bg-white border border-gray-200 shadow-md flex flex-col sm:flex-row gap-5 items-center transition-all hover:shadow-xl'
       }),
       [
         'div',
-        { class: 'w-full sm:w-48 aspect-video rounded-xl overflow-hidden shrink-0 bg-base-200' },
+        { class: 'w-full sm:w-48 aspect-video rounded-xl overflow-hidden shrink-0 bg-gray-100' },
         [
           'img',
           {
@@ -847,8 +847,8 @@ export const PortfolioEmbedNode = Node.create({
           { class: 'flex items-center gap-2 mb-1 flex-wrap' },
           ...metaBadges
         ],
-        ['h4', { class: 'text-lg font-bold text-base-content mb-1' }, title || 'Untitled Project'],
-        ['p', { class: 'text-sm text-base-content/70 line-clamp-2 mb-3 leading-relaxed' }, desc || ''],
+        ['h4', { class: 'text-lg font-bold text-gray-900 mb-1' }, title || 'Untitled Project'],
+        ['p', { class: 'text-sm text-gray-600 line-clamp-2 mb-3 leading-relaxed' }, desc || ''],
         ['div', { class: 'flex flex-wrap gap-1 mb-3' }, ...techBadges],
         [
           'a',
@@ -939,7 +939,7 @@ export const PortfolioSelectModal: React.FC<PortfolioSelectModalProps> = ({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search portfolios by title, description, or technology..."
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 text-sm bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             data-testid="portfolio-search-input"
             autoFocus
           />
@@ -995,7 +995,11 @@ export const PortfolioSelectModal: React.FC<PortfolioSelectModalProps> = ({
         </div>
 
         <div className="p-3 border-t border-gray-200 bg-gray-50 flex justify-end">
-          <button type="button" onClick={onClose} className="btn btn-sm btn-ghost">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100"
+          >
             Cancel
           </button>
         </div>

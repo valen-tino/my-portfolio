@@ -176,7 +176,7 @@ const RolesManagement: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                       placeholder="e.g., UI/UX Designer, Web Developer"
                       value={editingRole.title}
                       onChange={(e) => setEditingRole({ ...editingRole, title: e.target.value })}
@@ -189,7 +189,7 @@ const RolesManagement: React.FC = () => {
                     </label>
                     <textarea
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Brief description of this role"
                       value={editingRole.description || ''}
                       onChange={(e) => setEditingRole({ ...editingRole, description: e.target.value })}

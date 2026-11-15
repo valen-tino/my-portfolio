@@ -38,7 +38,11 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center p-4">
+    <div
+      data-theme="light"
+      style={{ colorScheme: 'light' }}
+      className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 text-gray-900 flex items-center justify-center p-4"
+    >
       <div className="max-w-md w-full">
         <div className="text-center mb-8">          
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Valen's Portfolio CMS</h1>
@@ -59,7 +63,7 @@ const Login: React.FC = () => {
 
               <div className="form-control">
                 <label htmlFor="cms-login-email" className="label">
-                  <span className="label-text font-medium">Email Address</span>
+                  <span className="label-text font-medium text-gray-700">Email Address</span>
                 </label>
                 <input
                   id="cms-login-email"
@@ -70,7 +74,7 @@ const Login: React.FC = () => {
                   autoCapitalize="none"
                   spellCheck={false}
                   placeholder="Enter your email"
-                  className="input input-bordered focus:input-primary w-full"
+                  className="input input-bordered bg-white text-gray-900 placeholder:text-gray-400 border-gray-300 focus:border-blue-500 w-full"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -80,7 +84,7 @@ const Login: React.FC = () => {
 
               <div className="form-control">
                 <label htmlFor="cms-login-password" className="label">
-                  <span className="label-text font-medium">Password</span>
+                  <span className="label-text font-medium text-gray-700">Password</span>
                 </label>
                 <input
                   id="cms-login-password"
@@ -88,7 +92,7 @@ const Login: React.FC = () => {
                   type="password"
                   autoComplete="current-password"
                   placeholder="Enter your password"
-                  className="input input-bordered focus:input-primary w-full"
+                  className="input input-bordered bg-white text-gray-900 placeholder:text-gray-400 border-gray-300 focus:border-blue-500 w-full"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required

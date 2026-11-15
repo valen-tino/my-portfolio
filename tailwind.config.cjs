@@ -73,5 +73,5 @@ module.exports = {
       }
     },
   },
-  plugins: [daisyui.default],
+  plugins: [daisyui.default({ themes: ['light --default'] })],
 }

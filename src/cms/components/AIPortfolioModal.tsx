@@ -168,7 +168,7 @@ const AIPortfolioModal: React.FC<AIPortfolioModalProps> = ({
                 </label>
                 <textarea
                   rows={8}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Describe your project in detail. Include:
 • What the project does and its purpose
 • Technologies you used (React, Node.js, Python, etc.)

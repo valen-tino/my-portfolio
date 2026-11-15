@@ -138,5 +138,114 @@ describe('AboutManagement - WYSIWYG & CV Upload', () => {
       expect(screen.getByText(/please select a valid pdf file/i)).toBeInTheDocument();
     });
   });
+
+  it('stages uploaded profile image via file input until Save Changes is clicked', async () => {
+    const uploadedUrl = 'https://res.cloudinary.com/demo/image/upload/new-avatar.webp';
+    vi.mocked(CMSStorage.uploadProfileImage).mockResolvedValue({
+      imageURL: uploadedUrl,
+      imageCloudinaryId: 'cloudinary-avatar-1',
+    });
+    vi.mocked(CMSStorage.updateAbout).mockResolvedValue(undefined);
+
+    const { container } = render(
+      <MemoryRouter>
+        <AboutManagement />
+      </MemoryRouter>
+    );
+
+    const saveButton = await screen.findByRole('button', { name: /save changes/i });
+    expect(container.querySelector('[data-theme="light"]')).toBeInTheDocument();
+    expect(container.querySelector('.bg-base-100')).toBeNull();
+
+    const imageInput = screen.getByTestId('profile-image-input');
+    const imageFile = new File(['png-bytes'], 'avatar.png', { type: 'image/png' });
+
+    fireEvent.change(imageInput, { target: { files: [imageFile] } });
+
+    await waitFor(() => {
+      expect(CMSStorage.uploadProfileImage).toHaveBeenCalledWith(imageFile);
+    });
+
+    expect(
+      await screen.findByText(/profile image uploaded! click "save changes" below to publish it\./i)
+    ).toBeInTheDocument();
+    expect(CMSStorage.updateAbout).not.toHaveBeenCalled();
+
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(CMSStorage.updateAbout).toHaveBeenCalledWith(
+        expect.objectContaining({
+          imageURL: uploadedUrl,
+          imageCloudinaryId: 'cloudinary-avatar-1',
+        })
+      );
+    });
+  });
+
+  it('supports drag-and-drop profile image upload on the dropzone', async () => {
+    const uploadedUrl = 'https://res.cloudinary.com/demo/image/upload/dropped.jpg';
+    vi.mocked(CMSStorage.uploadProfileImage).mockResolvedValue({
+      imageURL: uploadedUrl,
+      imageCloudinaryId: 'cloudinary-avatar-2',
+    });
+
+    render(
+      <MemoryRouter>
+        <AboutManagement />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole('button', { name: /save changes/i });
+
+    const dropzone = screen.getByTestId('profile-image-dropzone');
+    const droppedFile = new File(['jpg-bytes'], 'portrait.jpg', { type: 'image/jpeg' });
+
+    fireEvent.dragOver(dropzone);
+    fireEvent.drop(dropzone, { dataTransfer: { files: [droppedFile] } });
+
+    await waitFor(() => {
+      expect(CMSStorage.uploadProfileImage).toHaveBeenCalledWith(droppedFile);
+    });
+
+    expect(
+      await screen.findByText(/profile image uploaded! click "save changes" below to publish it\./i)
+    ).toBeInTheDocument();
+  });
+
+  it('rejects invalid MIME types and files over 10MB for profile images, and surfaces upload errors', async () => {
+    vi.mocked(CMSStorage.uploadProfileImage).mockRejectedValue(
+      new Error('Cloudinary upload preset rejected request')
+    );
+
+    render(
+      <MemoryRouter>
+        <AboutManagement />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole('button', { name: /save changes/i });
+
+    const imageInput = screen.getByTestId('profile-image-input');
+
+    const invalidTypeFile = new File(['%PDF'], 'doc.pdf', { type: 'application/pdf' });
+    fireEvent.change(imageInput, { target: { files: [invalidTypeFile] } });
+    expect(CMSStorage.uploadProfileImage).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText(/please select a valid image file \(png, jpg, gif, webp, or svg\)\./i)
+    ).toBeInTheDocument();
+
+    const oversizedFile = new File(['x'], 'huge.png', { type: 'image/png' });
+    Object.defineProperty(oversizedFile, 'size', { value: 11 * 1024 * 1024 });
+    fireEvent.change(imageInput, { target: { files: [oversizedFile] } });
+    expect(CMSStorage.uploadProfileImage).not.toHaveBeenCalled();
+    expect(await screen.findByText(/profile image exceeds 10mb limit\./i)).toBeInTheDocument();
+
+    const validFile = new File(['ok'], 'valid.webp', { type: 'image/webp' });
+    fireEvent.change(imageInput, { target: { files: [validFile] } });
+    expect(
+      await screen.findByText(/cloudinary upload preset rejected request/i)
+    ).toBeInTheDocument();
+  });
 });
 

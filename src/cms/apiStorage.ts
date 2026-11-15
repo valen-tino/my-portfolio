@@ -118,6 +118,17 @@ export interface Experience {
   updatedAt?: string;
 }
 
+export interface CMSWorkProcessStep {
+  id: string | number;
+  _id?: string;
+  title: string;
+  description: string;
+  order?: number;
+  isPublished?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface CMSData {
   about: AboutData;
   techTools: TechTool[];
@@ -584,6 +595,20 @@ export class CMSStorage {
     };
   }
 
+  private static mapWorkProcessData(data: any): CMSWorkProcessStep {
+    return {
+      ...data,
+      id: data._id || data.id,
+      _id: data._id,
+      title: data.title || '',
+      description: data.description || '',
+      order: typeof data.order === 'number' ? data.order : 0,
+      isPublished: data.isPublished !== undefined ? data.isPublished : true,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt
+    };
+  }
+
   // File upload methods
   static async uploadProfileImage(file: File): Promise<{ imageURL: string; imageCloudinaryId: string }> {
     try {
@@ -824,6 +849,76 @@ export class CMSStorage {
       return response;
     } catch (error) {
       console.error('Error uploading blog image:', error);
+      throw error;
+    }
+  }
+
+  // Work process methods
+  static async getWorkProcesses(publishedOnly = false): Promise<CMSWorkProcessStep[]> {
+    try {
+      const response = await apiService.getWorkProcesses(publishedOnly);
+      if (response.success && Array.isArray(response.data)) {
+        return response.data.map((item: any) => this.mapWorkProcessData(item));
+      }
+      throw new Error('Failed to fetch work process steps');
+    } catch (error) {
+      console.error('Error fetching work process steps:', error);
+      throw error;
+    }
+  }
+
+  static async addWorkProcess(step: Omit<CMSWorkProcessStep, 'id' | '_id'>): Promise<CMSWorkProcessStep> {
+    try {
+      const response = await apiService.createWorkProcess(step);
+      if (response.success) {
+        return this.mapWorkProcessData(response.data);
+      }
+      throw new Error(response.message || 'Failed to create work process step');
+    } catch (error) {
+      console.error('Error creating work process step:', error);
+      throw error;
+    }
+  }
+
+  static async updateWorkProcess(
+    id: string | number,
+    step: Partial<CMSWorkProcessStep>
+  ): Promise<CMSWorkProcessStep> {
+    try {
+      const idString = typeof id === 'string' ? id : id.toString();
+      const response = await apiService.updateWorkProcess(idString, step);
+      if (response.success) {
+        return this.mapWorkProcessData(response.data);
+      }
+      throw new Error(response.message || 'Failed to update work process step');
+    } catch (error) {
+      console.error('Error updating work process step:', error);
+      throw error;
+    }
+  }
+
+  static async deleteWorkProcess(id: string | number): Promise<void> {
+    try {
+      const idString = typeof id === 'string' ? id : id.toString();
+      const response = await apiService.deleteWorkProcess(idString);
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to delete work process step');
+      }
+    } catch (error) {
+      console.error('Error deleting work process step:', error);
+      throw error;
+    }
+  }
+
+  static async seedWorkProcesses(force = false): Promise<CMSWorkProcessStep[]> {
+    try {
+      const response = await apiService.seedWorkProcesses(force);
+      if (response.success && Array.isArray(response.data)) {
+        return response.data.map((item: any) => this.mapWorkProcessData(item));
+      }
+      throw new Error(response.message || 'Failed to seed default work process steps');
+    } catch (error) {
+      console.error('Error seeding work process steps:', error);
       throw error;
     }
   }

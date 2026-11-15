@@ -121,8 +121,9 @@ A full-stack portfolio website with an integrated Content Management System (CMS
                     │  - education                        │
                     │  - techtools                        │
                     │  - roles                            │
+                    │  - workprocesses                    │
                     │  - contacts                         │
-                    │  - about                            │
+                    │  - abouts                           │
                     └─────────────────────────────────────┘
                     
                     ┌─────────────────────────────────────┐
@@ -149,7 +150,7 @@ A full-stack portfolio website with an integrated Content Management System (CMS
 - **React 19.1.1**: Component-based UI framework
 - **TypeScript 5.9.2**: Type-safe development
 - **React Router v7**: Client-side routing (`react-router-dom`)
-- **DaisyUI 5.1.7**: Component library built on Tailwind CSS
+- **DaisyUI 5.1.7**: Component library built on Tailwind CSS (explicitly configured with `themes: ['light --default']` and `color-scheme: light`)
 - **Tailwind CSS 3.4.4**: Utility-first CSS framework (`tailwind.config.cjs` editorial palette tokens + `Plus Jakarta Sans`)
 - **GSAP 3.15.1**: Reduced-motion-safe entrance and ScrollTrigger animations (`src/utils/gsapAnimations.ts`)
 - **Marked 18.1.3 & TipTap 3.33.0**: Markdown-to-HTML migration and rich WYSIWYG case study editing
@@ -195,14 +196,14 @@ my-portfolio/
 │   │   ├── PortfolioDetail.tsx   # Split-screen case study detail (sticky left column & light code formatting)
 │   │   ├── BlogPage.tsx          # Public journal archive (/blogs)
 │   │   ├── BlogDetail.tsx        # Single journal article view (/blogs/:id)
-│   │   └── DesignSystemPage.tsx  # Unlisted design-system reference (/design-system)
+│   │   └── DesignSystemPage.tsx  # Unlisted design-system reference (/design-system) with curated inspirations
 │   │
 │   ├── components/               # Consolidated UI components (legacy src/sections/ & src/hook/ removed)
 │   │   ├── FloatingNavigation.tsx       # Bottom dock pill nav, mobile More drawer & brand-blue Résumé CTA
 │   │   ├── HeroProjectStrip.tsx         # All-project 16:9 swipeable marquee, toggletip & Play/Pause button
 │   │   ├── ProjectCard.tsx / BlogCard.tsx # Editorial cards with hover/focus CTA reveal & 16:9 project media
 │   │   ├── ExperienceEducationSection.tsx # WAI-ARIA Experiences/Education tab switcher with hidden="until-found"
-│   │   ├── WorkProcessSection.tsx       # Single-row ARIA tablist process showcase
+│   │   ├── WorkProcessSection.tsx       # Single-row 6-step ARIA tablist process showcase (CMS-backed with fallback)
 │   │   ├── EditorialCarousel.tsx        # Scroll-snap carousel with inert off-screen slides & arrow buttons
 │   │   ├── PortfolioFilterControls.tsx  # Shared Role, Year, Tech & keyword search filter controls
 │   │   ├── PortfolioTable.tsx           # Left-aligned desktop table & minimal 2-column mobile index table
@@ -211,9 +212,9 @@ my-portfolio/
 │   │   ├── Footer.tsx                   # Vibrant CTA footer, Bali WITA clock, sitemap & social pills
 │   │   ├── Icons.tsx / ImagePlaceholder.tsx / ScrollProgressBar.tsx / ImageLightboxModal.tsx / PasswordProtectionModal.tsx
 │   │
-│   ├── cms/                      # Complete CMS system
+│   ├── cms/                      # Complete CMS system (locked bright light-mode styling)
 │   │   ├── components/           # CMS-specific components (CMSLayout, WYSIWYGEditor, ProtectedRoute, AIPortfolioModal)
-│   │   ├── pages/                # CMS pages (Dashboard, Portfolios, Blogs, Experiences, Education, TechTools, Roles, Contacts, About, AITest)
+│   │   ├── pages/                # CMS pages (Dashboard, Portfolios, Blogs, Experiences, WorkProcess, Education, TechTools, Roles, Contacts, About, AITest)
 │   │   ├── apiStorage.ts         # Client-side API storage helper
 │   │   ├── auth.ts               # Authentication utilities
 │   │   └── education.ts          # Fallback education seed
@@ -226,9 +227,10 @@ my-portfolio/
 │
 ├── server/                       # Express backend
 │   ├── config/                   # Configuration (Cloudinary, Database)
+│   ├── data/                     # Default seed datasets (defaultWorkProcessSteps.js)
 │   ├── middleware/               # Auth middlewares
-│   ├── models/                   # Mongoose schemas (Portfolio, Blog, Experience, Education, TechTool, Role, Contact, About, User)
-│   ├── routes/                   # Express route handlers (about, ai, auth, blog, contact, education, experiences, portfolio, roles, techTools, upload)
+│   ├── models/                   # Mongoose schemas (Portfolio, Blog, Experience, WorkProcess, Education, TechTool, Role, Contact, About, User)
+│   ├── routes/                   # Express route handlers (about, ai, auth, blog, contact, education, experiences, portfolio, roles, techTools, upload, workProcess)
 │   ├── utils/                    # Utility modules (skillMigration.js)
 │   ├── scripts/                  # Seed & maintenance scripts (initDatabase.js, migrateMarkdownToWYSIWYG.js, syncExistingPortfolioSkills.js)
 │   ├── services/                 # Server services (aiService.js)
@@ -238,7 +240,7 @@ my-portfolio/
 │   ├── [...path].js              # Catch-all serverless handler
 │   └── serverless.js             # Express app serverless wrapper
 │
-├── tests/                        # Automated Vitest suite (21 test files, 93 tests)
+├── tests/                        # Automated Vitest suite (23 test files, 104 tests)
 ├── tailwind.config.cjs           # Tailwind & DaisyUI theme tokens
 ├── vercel.json                   # Vercel deployment configuration
 └── package.json                  # Project dependencies & scripts
@@ -376,12 +378,26 @@ my-portfolio/
 }
 ```
 
+### Work Process Collection
+```javascript
+{
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  order: { type: Number, default: 0 },
+  isPublished: { type: Boolean, default: true },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+}
+```
+
 ### About Collection
 ```javascript
 {
   description: { type: String, required: true },
   imageURL: { type: String, required: true },
   imageCloudinaryId: { type: String },
+  cvURL: { type: String, default: '/Valen-Jehaut.pdf' },
+  cvCloudinaryId: { type: String, default: null },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 }
@@ -402,6 +418,7 @@ my-portfolio/
 ### Content Management Endpoints
 - **About**: `GET /api/about`, `PUT /api/about`
 - **Blogs**: `GET /api/blogs` (supports `?category=...&search=...&published=true`), `POST /api/blogs`, `GET /api/blogs/:id`, `PUT /api/blogs/:id`, `DELETE /api/blogs/:id`
+- **Work Process**: `GET /api/work-process` (supports `?published=true`), `GET /api/work-process/:id`, `POST /api/work-process`, `POST /api/work-process/seed`, `PUT /api/work-process/:id`, `DELETE /api/work-process/:id`
 - **Tech Tools**: `GET /api/tech-tools` (supports `?published=true`), `POST /api/tech-tools`, `POST /api/tech-tools/sync-from-portfolios` (auto-sync), `PUT /api/tech-tools/:id`, `DELETE /api/tech-tools/:id`
 - **Roles**: `GET /api/roles`, `POST /api/roles`, `PUT /api/roles/:id`, `DELETE /api/roles/:id`
 - **Education**: `GET /api/education`, `POST /api/education`, `PUT /api/education/:id`, `DELETE /api/education/:id`
@@ -410,10 +427,15 @@ my-portfolio/
 - **Contacts**: `GET /api/contact`, `POST /api/contact`, `DELETE /api/contact/:id`
 
 ### File Upload Endpoints (Cloudinary)
-- **POST `/api/upload/portfolio-image`**: Upload portfolio hero media
-- **POST `/api/upload/profile-image`**: Upload about section portrait
-- **POST `/api/upload/tech-tool-image`**: Upload tech tool logo/icon
-- **POST `/api/upload/experience-logo`**: Upload company logo
+- **GET `/api/upload/signature`**: Generate signed parameters for direct client-side Cloudinary uploads
+- **POST `/api/upload/profile`**: Upload About portrait image (10MB Multer limit with JSON error responses)
+- **POST `/api/upload/portfolio`**: Upload portfolio hero image
+- **POST `/api/upload/portfolio-video`**: Upload portfolio hero video
+- **POST `/api/upload/editor-media`**: Upload TipTap WYSIWYG single image/video
+- **POST `/api/upload/editor-gallery`**: Upload TipTap WYSIWYG multi-item gallery media
+- **POST `/api/upload/tech-tool`**: Upload tech tool logo/icon
+- **POST `/api/upload/experience`**: Upload company logo
+- **DELETE `/api/upload/:cloudinaryId`**: Delete uploaded asset from Cloudinary
 
 ### AI Endpoints
 - **POST `/api/ai/rewrite-project-details`**: Rewrite project markdown content
@@ -513,7 +535,9 @@ All media uploads go through Cloudinary via custom Multer storage engine:
 - **All-Project Hero Carousel & `16:9` Portfolio Media**: `HeroProjectStrip` displays all published portfolios (`aspect-video` non-clickable previews, swipe/drag/arrow navigation, accessible `popover="hint"` toggletip via `tooltipPolyfills.ts`, Play/Pause icon button); `ProjectCard`, `PortfolioTable`, `PortfolioDetail`, and `ImagePlaceholder` share unified `16:9` proportions and hover/focus CTA reveal (`.card-hover-cta`)
 - **Accessible Tabs & Date Ordering**: `ExperienceEducationSection` separates Experiences and Education with WAI-ARIA tabs and `hidden="until-found"` (`beforematch`); `dateFormat.ts` handles timezone-safe ISO date display (`Oct 2025` / `Oct 1, 2025`) and descending `sortByLatestEndDate` sorting mirrored in `GET /api/education`
 - **Work Page Grid/Table Views & Mobile Filters**: `PortfolioPage` pairs inline Role/Year/Tech filters (converting to `MobileFilterDialog` on small viewports) with a Grid / `?view=table` Table toggle (`PortfolioTable`, left-aligned on desktop/tablet and minimal two-column index rows on mobile)
-- **Automated Test Verification**: `npm test -- --run` runs **21 test suites (93 tests)** cleanly under Vitest + JSDOM, and `npm run build` validates TypeScript and Vite production bundling (`5173` frontend / `5001` backend)
+- **6-Step Spec-Driven Work Process & CMS CRUD**: `WorkProcessSection` combines 5 Design Thinking stages with **Development** right after **Prototype** (`Empathize` → `Define` → `Ideate` → `Prototype` → `Development` → `Test`) via plain-paragraph steps powered dynamically by `/api/work-process` and top-level CMS CRUD (`/cms/work-process`)
+- **CMS Light Theme Lock & Staged Portrait Upload**: `tailwind.config.cjs` (`themes: ['light --default']`), `index.html`, `src/index.css`, and explicit Tailwind surfaces keep CMS contrast clean under OS dark mode; `AboutManagement` pairs direct Cloudinary / 10MB `/api/upload/profile` fallback with full-box drag-and-drop and staged previews until `Save Changes`
+- **Automated Test Verification**: `npm test -- --run` runs **23 test suites (104 tests)** cleanly under Vitest + JSDOM, and `npm run build` validates TypeScript and Vite production bundling (`5173` frontend / `5001` backend)
 
 > For full changelog history across every iteration, see [CHANGES_SUMMARY.md](file:///Users/valentinojehaut/Documents/GitHub/my-portfolio/CHANGES_SUMMARY.md).
 

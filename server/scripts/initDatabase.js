@@ -4,6 +4,8 @@ const About = require('../models/About');
 const TechTool = require('../models/TechTool');
 const Education = require('../models/Education');
 const Portfolio = require('../models/Portfolio');
+const WorkProcess = require('../models/WorkProcess');
+const DEFAULT_WORK_PROCESS_STEPS = require('../data/defaultWorkProcessSteps');
 require('dotenv').config();
 
 const initializeDatabase = async () => {
@@ -180,6 +182,17 @@ I make this as a final project for getting a certificate in Junior Web Programme
       console.log(`ℹ️  ${existingPortfolios} portfolio items already exist`);
     }
 
+    // Initialize default work process steps
+    console.log('🔄 Initializing Work Process steps...');
+    const existingWorkProcesses = await WorkProcess.countDocuments();
+
+    if (existingWorkProcesses === 0) {
+      await WorkProcess.insertMany(DEFAULT_WORK_PROCESS_STEPS);
+      console.log(`✅ ${DEFAULT_WORK_PROCESS_STEPS.length} work process steps created`);
+    } else {
+      console.log(`ℹ️  ${existingWorkProcesses} work process steps already exist`);
+    }
+
     console.log('🎉 Database initialization completed successfully!');
     console.log('\n📋 Summary:');
     console.log(`- User: valentinojehaut@gmail.com (password: Valen23tino$)`);
@@ -187,6 +200,7 @@ I make this as a final project for getting a certificate in Junior Web Programme
     console.log(`- ${await TechTool.countDocuments()} tech tools`);
     console.log(`- ${await Education.countDocuments()} education items`);
     console.log(`- ${await Portfolio.countDocuments()} portfolio items`);
+    console.log(`- ${await WorkProcess.countDocuments()} work process steps`);
     
     process.exit(0);
   } catch (error) {

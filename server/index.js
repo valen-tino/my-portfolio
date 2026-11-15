@@ -101,6 +101,7 @@ const roleRoutes = require('./routes/roles');
 const aiRoutes = require('./routes/ai');
 const experienceRoutes = require('./routes/experiences');
 const blogRoutes = require('./routes/blog');
+const workProcessRoutes = require('./routes/workProcess');
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -115,6 +116,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/experiences', experienceRoutes);
 app.use('/api/blog', blogRoutes);
 app.use('/api/blogs', blogRoutes); // Parity alias
+app.use('/api/work-process', workProcessRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

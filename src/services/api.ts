@@ -295,8 +295,33 @@ class ApiService {
     return response.data;
   }
 
+  private isCloudinaryClientError(error: unknown): boolean {
+    return (
+      axios.isAxiosError(error) &&
+      Boolean(error.response?.status && error.response.status >= 400 && error.response.status < 500) &&
+      Boolean(error.config?.url?.includes('cloudinary.com'))
+    );
+  }
+
   // File upload methods
   async uploadProfileImage(file: File) {
+    try {
+      const result = await this.uploadDirectFileToCloudinary(file, 'profiles');
+      return {
+        success: true,
+        message: 'Profile image uploaded successfully',
+        data: {
+          imageURL: result.url,
+          imageCloudinaryId: result.cloudinaryId,
+        },
+      };
+    } catch (directUploadError) {
+      if (this.isCloudinaryClientError(directUploadError)) {
+        throw directUploadError;
+      }
+      console.warn('Direct Cloudinary profile upload unavailable, falling back to server upload:', directUploadError);
+    }
+
     const formData = new FormData();
     formData.append('image', file);
     const response = await this.api.post('/upload/profile', formData, {
@@ -713,6 +738,52 @@ class ApiService {
 
   async deleteBlog(id: string) {
     const response = await this.api.delete(`/blog/${id}`);
+    return response.data;
+  }
+
+  // Work process methods
+  async getWorkProcesses(publishedOnly = false) {
+    const params = publishedOnly ? { published: 'true' } : {};
+    const response = await this.api.get('/work-process', { params });
+    return response.data;
+  }
+
+  async getWorkProcess(id: string) {
+    const response = await this.api.get(`/work-process/${id}`);
+    return response.data;
+  }
+
+  async createWorkProcess(data: {
+    title: string;
+    description: string;
+    order?: number;
+    isPublished?: boolean;
+  }) {
+    const response = await this.api.post('/work-process', data);
+    return response.data;
+  }
+
+  async updateWorkProcess(
+    id: string,
+    data: {
+      title?: string;
+      description?: string;
+      order?: number;
+      isPublished?: boolean;
+    }
+  ) {
+    const response = await this.api.put(`/work-process/${id}`, data);
+    return response.data;
+  }
+
+  async deleteWorkProcess(id: string) {
+    const response = await this.api.delete(`/work-process/${id}`);
+    return response.data;
+  }
+
+  async seedWorkProcesses(force = false) {
+    const params = force ? { force: 'true' } : {};
+    const response = await this.api.post('/work-process/seed', { force }, { params });
     return response.data;
   }
 

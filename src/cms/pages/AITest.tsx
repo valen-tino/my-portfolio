@@ -150,7 +150,7 @@ const AITest: React.FC = () => {
             </button>
             <button
               onClick={clearResults}
-              className="btn btn-ghost"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
             >
               Clear Results
             </button>
@@ -162,7 +162,7 @@ const AITest: React.FC = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Test Results</h2>
           <div className="bg-gray-900 text-gray-100 p-4 rounded-lg h-64 overflow-y-auto font-mono text-sm">
             {testResults.length === 0 ? (
-              <p className="text-gray-500">No tests run yet. Click a test button above to start.</p>
+              <p className="text-gray-400">No tests run yet. Click a test button above to start.</p>
             ) : (
               testResults.map((result, index) => (
                 <div key={index} className="mb-1">{result}</div>
@@ -183,7 +183,7 @@ const AITest: React.FC = () => {
               <textarea
                 value={rewriteTest.input}
                 onChange={(e) => setRewriteTest(prev => ({ ...prev, input: e.target.value }))}
-                className="w-full h-32 px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full h-32 px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md"
               />
             </div>
             <div>
@@ -191,7 +191,7 @@ const AITest: React.FC = () => {
               <textarea
                 value={rewriteTest.output}
                 readOnly
-                className="w-full h-32 px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                className="w-full h-32 px-3 py-2 text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-md bg-gray-50"
                 placeholder="AI rewritten content will appear here..."
               />
             </div>
@@ -207,7 +207,7 @@ const AITest: React.FC = () => {
               <textarea
                 value={portfolioTest.input}
                 onChange={(e) => setPortfolioTest(prev => ({ ...prev, input: e.target.value }))}
-                className="w-full h-48 px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full h-48 px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md"
               />
             </div>
             <div>
@@ -215,7 +215,7 @@ const AITest: React.FC = () => {
               <textarea
                 value={portfolioTest.output}
                 readOnly
-                className="w-full h-48 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 font-mono text-xs"
+                className="w-full h-48 px-3 py-2 text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-md bg-gray-50 font-mono text-xs"
                 placeholder="Generated portfolio data will appear here..."
               />
             </div>

@@ -63,30 +63,40 @@ router.get('/signature', authMiddleware, (req, res) => {
 // @route   POST /api/upload/profile
 // @desc    Upload profile image
 // @access  Private
-router.post('/profile', authMiddleware, uploadProfile.single('image'), async (req, res) => {
-  try {
-    if (!req.file) {
+router.post('/profile', authMiddleware, (req, res) => {
+  uploadProfile.single('image')(req, res, (uploadErr) => {
+    if (uploadErr) {
+      console.error('Upload profile image error:', uploadErr);
       return res.status(400).json({
         success: false,
-        message: 'No file uploaded'
+        message: uploadErr.message || 'Error uploading profile image'
       });
     }
 
-    res.json({
-      success: true,
-      message: 'Profile image uploaded successfully',
-      data: {
-        imageURL: req.file.path,
-        imageCloudinaryId: req.file.filename
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No file uploaded'
+        });
       }
-    });
-  } catch (error) {
-    console.error('Upload profile image error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error during image upload'
-    });
-  }
+
+      res.json({
+        success: true,
+        message: 'Profile image uploaded successfully',
+        data: {
+          imageURL: req.file.path,
+          imageCloudinaryId: req.file.filename
+        }
+      });
+    } catch (error) {
+      console.error('Upload profile image error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error during image upload'
+      });
+    }
+  });
 });
 
 // @route   POST /api/upload/portfolio

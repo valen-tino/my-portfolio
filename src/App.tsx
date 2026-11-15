@@ -22,6 +22,7 @@ import Login from './cms/pages/Login';
 import PortfolioManagement from './cms/pages/PortfolioManagement';
 import RolesManagement from './cms/pages/RolesManagement';
 import TechToolsManagement from './cms/pages/TechToolsManagement';
+import WorkProcessManagement from './cms/pages/WorkProcessManagement';
 import { CMSStorage, type AboutData } from './cms/apiStorage';
 import {
   EDUCATION_LIST,
@@ -186,6 +187,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ContactEntries />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/cms/work-process"
+          element={
+            <ProtectedRoute>
+              <WorkProcessManagement />
             </ProtectedRoute>
           }
         />

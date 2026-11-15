@@ -7,8 +7,11 @@ export type PageView =
   | 'design-system';
 
 export interface WorkProcessStep {
+  id?: string;
   title: string;
   description: string;
+  order?: number;
+  isPublished?: boolean;
 }
 
 export interface Project {

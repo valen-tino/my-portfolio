@@ -13,12 +13,12 @@ const ExperienceManagement: React.FC = () => {
   const [logoUploading, setLogoUploading] = useState(false);
 
   const statusOptions = [
-    { value: 'Current', label: 'Current', color: 'badge-success' },
-    { value: 'Past', label: 'Past', color: 'badge-neutral' },
-    { value: 'Contract', label: 'Contract', color: 'badge-info' },
-    { value: 'Internship', label: 'Internship', color: 'badge-warning' },
-    { value: 'Freelance', label: 'Freelance', color: 'badge-accent' },
-    { value: 'Volunteer', label: 'Volunteer', color: 'badge-secondary' }
+    { value: 'Current', label: 'Current', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+    { value: 'Past', label: 'Past', color: 'bg-gray-100 text-gray-800 border-gray-300' },
+    { value: 'Contract', label: 'Contract', color: 'bg-blue-100 text-blue-800 border-blue-200' },
+    { value: 'Internship', label: 'Internship', color: 'bg-amber-100 text-amber-800 border-amber-200' },
+    { value: 'Freelance', label: 'Freelance', color: 'bg-teal-100 text-teal-800 border-teal-200' },
+    { value: 'Volunteer', label: 'Volunteer', color: 'bg-purple-100 text-purple-800 border-purple-200' }
   ];
 
   useEffect(() => {
@@ -162,7 +162,7 @@ const ExperienceManagement: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     const statusOption = statusOptions.find(opt => opt.value === status);
-    return statusOption ? statusOption.color : 'badge-neutral';
+    return statusOption ? statusOption.color : 'bg-gray-100 text-gray-800 border-gray-300';
   };
 
   const formatDate = (dateString: string | undefined) => {
@@ -172,16 +172,16 @@ const ExperienceManagement: React.FC = () => {
 
   return (
     <CMSLayout>
-      <div className="container mx-auto max-w-7xl p-4 space-y-6">
+      <div className="container mx-auto max-w-7xl p-4 space-y-6 text-gray-900">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Experience Management</h1>
-            <p className="text-base-content/70 mt-2">Manage your work and other professional experiences</p>
+            <h1 className="text-3xl font-bold text-gray-900">Experience Management</h1>
+            <p className="text-gray-600 mt-2">Manage your work and other professional experiences</p>
           </div>
           <button
             onClick={handleAdd}
-            className="btn btn-primary"
+            className="btn btn-primary text-white"
             disabled={editingExperience !== null}
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -193,8 +193,15 @@ const ExperienceManagement: React.FC = () => {
 
         {/* Messages */}
         {message.text && (
-          <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'}`}>
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div
+            role="status"
+            className={`p-4 rounded-lg border flex items-center gap-3 ${
+              message.type === 'success'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                : 'bg-red-50 border-red-200 text-red-800'
+            }`}
+          >
+            <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                 d={message.type === 'success' ? 
                   "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" :
@@ -208,9 +215,9 @@ const ExperienceManagement: React.FC = () => {
 
         {/* Edit/Add Form */}
         {editingExperience && (
-          <div className="card bg-base-100 shadow-xl">
-            <div className="card-body">
-              <h2 className="card-title text-xl mb-6">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">
                 {isAddingNew ? 'Add New Experience' : 'Edit Experience'}
               </h2>
               
@@ -219,11 +226,11 @@ const ExperienceManagement: React.FC = () => {
                 <div className="space-y-4">
                   <div className="form-control">
                     <label className="label">
-                      <span className="label-text font-medium">Job Title *</span>
+                      <span className="label-text font-medium text-gray-700">Job Title *</span>
                     </label>
                     <input
                       type="text"
-                      className="input input-bordered w-full"
+                      className="input input-bordered bg-white text-gray-900 placeholder:text-gray-400 border-gray-300 w-full"
                       placeholder="e.g., Senior Software Developer"
                       value={editingExperience.title}
                       onChange={(e) => setEditingExperience({ 
@@ -235,11 +242,11 @@ const ExperienceManagement: React.FC = () => {
 
                   <div className="form-control">
                     <label className="label">
-                      <span className="label-text font-medium">Company Name *</span>
+                      <span className="label-text font-medium text-gray-700">Company Name *</span>
                     </label>
                     <input
                       type="text"
-                      className="input input-bordered w-full"
+                      className="input input-bordered bg-white text-gray-900 placeholder:text-gray-400 border-gray-300 w-full"
                       placeholder="e.g., Tech Company Inc."
                       value={editingExperience.companyName}
                       onChange={(e) => setEditingExperience({ 
@@ -251,10 +258,10 @@ const ExperienceManagement: React.FC = () => {
 
                   <div className="form-control">
                     <label className="label">
-                      <span className="label-text font-medium">Status *</span>
+                      <span className="label-text font-medium text-gray-700">Status *</span>
                     </label>
                     <select
-                      className="select select-bordered w-full"
+                      className="select select-bordered bg-white text-gray-900 border-gray-300 w-full"
                       value={editingExperience.status}
                       onChange={(e) => setEditingExperience({ 
                         ...editingExperience, 
@@ -272,11 +279,11 @@ const ExperienceManagement: React.FC = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="form-control">
                       <label className="label">
-                        <span className="label-text font-medium">Start Date *</span>
+                        <span className="label-text font-medium text-gray-700">Start Date *</span>
                       </label>
                       <input
                         type="month"
-                        className="input input-bordered w-full"
+                        className="input input-bordered bg-white text-gray-900 border-gray-300 w-full"
                         value={editingExperience.startDate}
                         onChange={(e) => setEditingExperience({ 
                           ...editingExperience, 
@@ -286,11 +293,11 @@ const ExperienceManagement: React.FC = () => {
                     </div>
                     <div className="form-control">
                       <label className="label">
-                        <span className="label-text font-medium">End Date</span>
+                        <span className="label-text font-medium text-gray-700">End Date</span>
                       </label>
                       <input
                         type="month"
-                        className="input input-bordered w-full"
+                        className="input input-bordered bg-white text-gray-900 border-gray-300 w-full"
                         value={editingExperience.endDate || ''}
                         onChange={(e) => setEditingExperience({ 
                           ...editingExperience, 
@@ -298,14 +305,14 @@ const ExperienceManagement: React.FC = () => {
                         })}
                       />
                       <label className="label">
-                        <span className="label-text-alt">Leave empty if ongoing</span>
+                        <span className="label-text-alt text-gray-500">Leave empty if ongoing</span>
                       </label>
                     </div>
                   </div>
 
                   <div className="form-control">
                     <label className="label">
-                      <span className="label-text font-medium">Company Logo</span>
+                      <span className="label-text font-medium text-gray-700">Company Logo</span>
                     </label>
                     
                     {editingExperience.logoURL && (
@@ -313,31 +320,31 @@ const ExperienceManagement: React.FC = () => {
                         <img
                           src={editingExperience.logoURL}
                           alt="Company logo preview"
-                          className="w-20 h-20 object-contain rounded-lg border border-base-300 bg-base-200"
+                          className="w-20 h-20 object-contain rounded-lg border border-gray-200 bg-gray-50"
                         />
-                        <p className="text-sm text-base-content/70 mt-1">Current logo</p>
+                        <p className="text-sm text-gray-600 mt-1">Current logo</p>
                       </div>
                     )}
                     
                     <input
                       type="file"
                       accept="image/*"
-                      className={`file-input file-input-bordered w-full ${logoUploading ? 'loading' : ''}`}
+                      className={`file-input file-input-bordered bg-white text-gray-800 border-gray-300 w-full ${logoUploading ? 'loading' : ''}`}
                       onChange={handleLogoUpload}
                       disabled={logoUploading}
                     />
                     <label className="label">
-                      <span className="label-text-alt">Upload company logo (PNG, JPG, GIF)</span>
+                      <span className="label-text-alt text-gray-500">Upload company logo (PNG, JPG, GIF)</span>
                     </label>
                   </div>
 
                   <div className="form-control">
                     <label className="label">
-                      <span className="label-text font-medium">Order</span>
+                      <span className="label-text font-medium text-gray-700">Order</span>
                     </label>
                     <input
                       type="number"
-                      className="input input-bordered w-full"
+                      className="input input-bordered bg-white text-gray-900 border-gray-300 w-full"
                       placeholder="0"
                       value={editingExperience.order || 0}
                       onChange={(e) => setEditingExperience({ 
@@ -346,13 +353,13 @@ const ExperienceManagement: React.FC = () => {
                       })}
                     />
                     <label className="label">
-                      <span className="label-text-alt">Lower numbers appear first</span>
+                      <span className="label-text-alt text-gray-500">Lower numbers appear first</span>
                     </label>
                   </div>
 
                   <div className="form-control">
                     <label className="label cursor-pointer">
-                      <span className="label-text font-medium">Published</span>
+                      <span className="label-text font-medium text-gray-700">Published</span>
                       <input
                         type="checkbox"
                         className="toggle toggle-success"
@@ -370,7 +377,7 @@ const ExperienceManagement: React.FC = () => {
                 <div className="space-y-4">
                   <div className="form-control">
                     <label className="label">
-                      <span className="label-text font-medium">Description *</span>
+                      <span className="label-text font-medium text-gray-700">Description *</span>
                     </label>
                     <WYSIWYGEditor
                       value={editingExperience.description}
@@ -387,17 +394,18 @@ const ExperienceManagement: React.FC = () => {
                 </div>
               </div>
 
-              <div className="card-actions justify-end mt-6 gap-3">
+              <div className="flex justify-end mt-6 gap-3">
                 <button
+                  type="button"
                   onClick={handleCancel}
-                  className="btn btn-ghost"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={loading || logoUploading}
-                  className={`btn btn-primary ${loading ? 'loading' : ''}`}
+                  className={`btn btn-primary text-white ${loading ? 'loading' : ''}`}
                 >
                   {loading ? 'Saving...' : (isAddingNew ? 'Add Experience' : 'Save Changes')}
                 </button>
@@ -407,21 +415,21 @@ const ExperienceManagement: React.FC = () => {
         )}
 
         {/* Experience List */}
-        <div className="card bg-base-100 shadow-xl">
-          <div className="card-body">
-            <h2 className="card-title text-xl mb-4">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
               Your Experiences ({experiences.length})
             </h2>
             
             {experiences.length === 0 ? (
               <div className="text-center py-12">
-                <svg className="w-16 h-16 text-base-content/30 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2V6z" />
                 </svg>
-                <p className="text-base-content/70">No experiences added yet.</p>
+                <p className="text-gray-600">No experiences added yet.</p>
                 <button
                   onClick={handleAdd}
-                  className="btn btn-primary mt-4"
+                  className="btn btn-primary text-white mt-4"
                 >
                   Add Your First Experience
                 </button>
@@ -431,9 +439,9 @@ const ExperienceManagement: React.FC = () => {
                 {experiences.map((experience) => (
                   <div
                     key={experience.id}
-                    className="card bg-base-200/50 border border-base-300 hover:shadow-md transition-shadow"
+                    className="rounded-xl bg-gray-50/70 border border-gray-200 hover:shadow-md transition-shadow"
                   >
-                    <div className="card-body p-6">
+                    <div className="p-6">
                       <div className="flex flex-col lg:flex-row lg:items-start gap-4">
                         {/* Logo */}
                         <div className="flex-shrink-0">
@@ -441,11 +449,11 @@ const ExperienceManagement: React.FC = () => {
                             <img
                               src={experience.logoURL}
                               alt={`${experience.companyName} logo`}
-                              className="w-16 h-16 object-contain rounded-lg border border-base-300 bg-base-100"
+                              className="w-16 h-16 object-contain rounded-lg border border-gray-200 bg-white p-1"
                             />
                           ) : (
-                            <div className="w-16 h-16 bg-base-300 rounded-lg flex items-center justify-center">
-                              <svg className="w-8 h-8 text-base-content/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                               </svg>
                             </div>
@@ -456,30 +464,32 @@ const ExperienceManagement: React.FC = () => {
                         <div className="flex-grow">
                           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
                             <div>
-                              <h3 className="text-lg font-semibold">{experience.title}</h3>
-                              <p className="text-base-content/70 font-medium">{experience.companyName}</p>
-                              <p className="text-sm text-base-content/60">
+                              <h3 className="text-lg font-semibold text-gray-900">{experience.title}</h3>
+                              <p className="text-gray-700 font-medium">{experience.companyName}</p>
+                              <p className="text-sm text-gray-500">
                                 {formatDate(experience.startDate)} - {formatDate(experience.endDate)}
                               </p>
                             </div>
                             <div className="flex items-center gap-2">
-                              <div className={`badge ${getStatusBadge(experience.status)}`}>
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadge(experience.status)}`}>
                                 {experience.status}
-                              </div>
+                              </span>
                               {!experience.isPublished && (
-                                <div className="badge badge-outline">Draft</div>
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white text-gray-700 border border-gray-300">
+                                  Draft
+                                </span>
                               )}
                             </div>
                           </div>
                           
-                          <p className="text-sm text-base-content/80 line-clamp-3 mb-4">
+                          <p className="text-sm text-gray-700 line-clamp-3 mb-4">
                             {experience.description.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()}
                           </p>
 
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleEdit(experience)}
-                              className="btn btn-sm btn-outline"
+                              className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50"
                               disabled={editingExperience !== null}
                             >
                               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -489,7 +499,7 @@ const ExperienceManagement: React.FC = () => {
                             </button>
                             <button
                               onClick={() => handleDelete(experience.id)}
-                              className="btn btn-sm btn-outline btn-error"
+                              className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50"
                               disabled={editingExperience !== null}
                             >
                               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -509,8 +519,8 @@ const ExperienceManagement: React.FC = () => {
         </div>
 
         {/* Instructions */}
-        <div className="alert alert-info">
-          <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-blue-50 border border-blue-200 text-blue-900 rounded-xl p-4 flex items-start gap-3">
+          <svg className="w-6 h-6 flex-shrink-0 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div>

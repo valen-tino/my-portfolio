@@ -245,7 +245,7 @@ const BlogManagement: React.FC = () => {
                     value={editingBlog.title}
                     onChange={(e) => setEditingBlog({ ...editingBlog, title: e.target.value })}
                     placeholder="e.g. Speaking at Google I/O 2026: The Future of Agents"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     data-testid="blog-title-input"
                   />
                 </div>
@@ -256,7 +256,7 @@ const BlogManagement: React.FC = () => {
                   <select
                     value={editingBlog.category}
                     onChange={(e) => setEditingBlog({ ...editingBlog, category: e.target.value as any })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     data-testid="blog-category-select"
                   >
                     {CATEGORIES.map(c => (
@@ -276,7 +276,7 @@ const BlogManagement: React.FC = () => {
                     type="date"
                     value={editingBlog.date}
                     onChange={(e) => setEditingBlog({ ...editingBlog, date: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -288,7 +288,7 @@ const BlogManagement: React.FC = () => {
                     value={editingBlog.readTime || ''}
                     onChange={(e) => setEditingBlog({ ...editingBlog, readTime: e.target.value })}
                     placeholder="e.g. 4 min read"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -300,7 +300,7 @@ const BlogManagement: React.FC = () => {
                     value={editingBlog.location || ''}
                     onChange={(e) => setEditingBlog({ ...editingBlog, location: e.target.value })}
                     placeholder="e.g. Mountain View, CA"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -312,7 +312,7 @@ const BlogManagement: React.FC = () => {
                     value={editingBlog.link || ''}
                     onChange={(e) => setEditingBlog({ ...editingBlog, link: e.target.value })}
                     placeholder="https://..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -340,7 +340,7 @@ const BlogManagement: React.FC = () => {
                       accept="image/*"
                       onChange={handleImageUpload}
                       disabled={imageUploading}
-                      className="file-input file-input-bordered file-input-sm w-full max-w-xs"
+                      className="file-input file-input-bordered file-input-sm bg-white text-gray-800 border-gray-300 w-full max-w-xs"
                       data-testid="blog-cover-input"
                     />
                     {imageUploading && (
@@ -365,7 +365,7 @@ const BlogManagement: React.FC = () => {
                   onChange={(e) => setEditingBlog({ ...editingBlog, desc: e.target.value })}
                   rows={2}
                   placeholder="A concise 1-2 sentence teaser for cards and previews..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  className="w-full px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   data-testid="blog-desc-input"
                 />
               </div>
@@ -388,24 +388,27 @@ const BlogManagement: React.FC = () => {
                       }
                     }}
                     placeholder="Enter tags separated by commas, e.g. AI, React, Architecture..."
-                    className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-3 py-1.5 text-sm bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <button
                     type="button"
                     onClick={handleAddTag}
-                    className="btn btn-sm btn-outline"
+                    className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100"
                   >
                     Add Tag
                   </button>
                 </div>
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-1.5">
                   {(editingBlog.tags || []).map((tag) => (
-                    <span key={tag} className="badge badge-neutral gap-1 text-xs py-2 px-2.5">
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-1 rounded-full bg-gray-100 text-gray-800 border border-gray-300 text-xs py-1 px-2.5"
+                    >
                       #{tag}
                       <button
                         type="button"
                         onClick={() => handleRemoveTag(tag)}
-                        className="hover:text-red-300 ml-1 font-bold"
+                        className="text-gray-500 hover:text-red-600 ml-1 font-bold"
                       >
                         ✕
                       </button>
@@ -468,7 +471,7 @@ const BlogManagement: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="btn btn-ghost"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
                   Cancel
                 </button>
@@ -476,7 +479,7 @@ const BlogManagement: React.FC = () => {
                   type="button"
                   onClick={handleSave}
                   disabled={loading || imageUploading}
-                  className="btn btn-primary"
+                  className="btn btn-primary text-white"
                   data-testid="blog-save-btn"
                 >
                   {loading ? 'Saving...' : (isAddingNew ? 'Create Post' : 'Save Changes')}
@@ -495,7 +498,11 @@ const BlogManagement: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setFilterCategory('All')}
-                className={`btn btn-xs ${filterCategory === 'All' ? 'btn-primary' : 'btn-ghost'}`}
+                className={`px-2.5 py-1 text-xs font-medium rounded-md border ${
+                  filterCategory === 'All'
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                }`}
               >
                 All ({blogs.length})
               </button>
@@ -506,7 +513,11 @@ const BlogManagement: React.FC = () => {
                     key={cat}
                     type="button"
                     onClick={() => setFilterCategory(cat)}
-                    className={`btn btn-xs ${filterCategory === cat ? 'btn-primary' : 'btn-ghost'}`}
+                    className={`px-2.5 py-1 text-xs font-medium rounded-md border ${
+                      filterCategory === cat
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                    }`}
                   >
                     {cat} ({count})
                   </button>
@@ -521,7 +532,7 @@ const BlogManagement: React.FC = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search posts..."
-                className="w-full px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-1.5 text-xs bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 data-testid="blog-search-filter"
               />
             </div>
@@ -600,7 +611,7 @@ const BlogManagement: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleEdit(blog)}
-                      className="btn btn-xs btn-outline"
+                      className="px-2.5 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-100"
                       data-testid={`edit-blog-${blog.id || blog._id}`}
                     >
                       Edit
@@ -608,7 +619,7 @@ const BlogManagement: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleDelete(blog.id || blog._id!)}
-                      className="btn btn-xs btn-error btn-outline"
+                      className="px-2.5 py-1 text-xs font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50"
                       data-testid={`delete-blog-${blog.id || blog._id}`}
                     >
                       Delete

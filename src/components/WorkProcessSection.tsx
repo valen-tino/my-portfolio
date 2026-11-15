@@ -1,16 +1,24 @@
 import { useId, useRef, useState } from 'react';
 import { WORK_PROCESS_STEPS } from '../data/portfolioData';
+import type { WorkProcessStep } from '../types/portfolio';
 import { ArrowLeftIcon, ArrowRightIcon } from './Icons';
 
-export function WorkProcessSection() {
+interface WorkProcessSectionProps {
+  steps?: WorkProcessStep[];
+}
+
+export function WorkProcessSection({ steps }: WorkProcessSectionProps = {}) {
   const [index, setIndex] = useState(0);
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
   const id = useId();
-  const step = WORK_PROCESS_STEPS[index];
+  const resolvedSteps = steps && steps.length > 0 ? steps : WORK_PROCESS_STEPS;
+  const safeIndex = Math.min(index, resolvedSteps.length - 1);
+  const step = resolvedSteps[safeIndex];
 
   function select(next: number, focus = false) {
-    setIndex(next);
-    if (focus) tabs.current[next]?.focus();
+    const clamped = Math.max(0, Math.min(next, resolvedSteps.length - 1));
+    setIndex(clamped);
+    if (focus) tabs.current[clamped]?.focus();
   }
 
   return (
@@ -29,20 +37,20 @@ export function WorkProcessSection() {
               <span className="text-brand">.</span>
             </h2>
             <p className="mt-6 max-w-lg text-base leading-relaxed text-muted-600">
-              I use five steps to understand user needs, develop ideas, and test solutions.
+              I combine design thinking with spec-driven development—from research and prototyping through structured engineering, automated testing, and iterative delivery.
             </p>
           </div>
         </div>
         <div
           role="tablist"
-          aria-label="Design Thinking steps"
+          aria-label="Work process steps"
           className="flex flex-nowrap gap-3 overflow-x-auto pb-1"
         >
-          {WORK_PROCESS_STEPS.map((item, i) => {
-            const isSelected = i === index;
+          {resolvedSteps.map((item, i) => {
+            const isSelected = i === safeIndex;
             return (
               <button
-                key={item.title}
+                key={item.id || `${item.title}-${i}`}
                 type="button"
                 ref={(el) => {
                   tabs.current[i] = el;
@@ -56,11 +64,11 @@ export function WorkProcessSection() {
                 onKeyDown={(event) => {
                   let next: number | undefined;
                   if (event.key === 'ArrowRight' || event.key === 'ArrowDown')
-                    next = (i + 1) % WORK_PROCESS_STEPS.length;
+                    next = (i + 1) % resolvedSteps.length;
                   if (event.key === 'ArrowLeft' || event.key === 'ArrowUp')
-                    next = (i + WORK_PROCESS_STEPS.length - 1) % WORK_PROCESS_STEPS.length;
+                    next = (i + resolvedSteps.length - 1) % resolvedSteps.length;
                   if (event.key === 'Home') next = 0;
-                  if (event.key === 'End') next = WORK_PROCESS_STEPS.length - 1;
+                  if (event.key === 'End') next = resolvedSteps.length - 1;
                   if (next !== undefined) {
                     event.preventDefault();
                     select(next, true);
@@ -83,7 +91,7 @@ export function WorkProcessSection() {
           role="tabpanel"
           tabIndex={0}
           id={`${id}-panel`}
-          aria-labelledby={`${id}-tab-${index}`}
+          aria-labelledby={`${id}-tab-${safeIndex}`}
           className="mt-8 bg-white p-6 sm:p-10"
         >
           <h3 className="text-3xl font-medium tracking-tight">{step.title}</h3>
@@ -94,8 +102,8 @@ export function WorkProcessSection() {
             <button
               type="button"
               aria-label="Previous process step"
-              onClick={() => select(index - 1)}
-              disabled={index === 0}
+              onClick={() => select(safeIndex - 1)}
+              disabled={safeIndex === 0}
               className="icon-button"
             >
               <ArrowLeftIcon className="size-4" />
@@ -103,8 +111,8 @@ export function WorkProcessSection() {
             <button
               type="button"
               aria-label="Next process step"
-              onClick={() => select(index + 1)}
-              disabled={index === WORK_PROCESS_STEPS.length - 1}
+              onClick={() => select(safeIndex + 1)}
+              disabled={safeIndex === resolvedSteps.length - 1}
               className="icon-button"
             >
               <ArrowRightIcon className="size-4" />

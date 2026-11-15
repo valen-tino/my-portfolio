@@ -19,6 +19,7 @@ const experiencesRoutes = require('../server/routes/experiences');
 const uploadRoutes = require('../server/routes/upload');
 const aiRoutes = require('../server/routes/ai');
 const blogRoutes = require('../server/routes/blog');
+const workProcessRoutes = require('../server/routes/workProcess');
 const User = require('../server/models/User');
 const { syncAllPortfolioSkills } = require('../server/utils/skillMigration');
 
@@ -169,6 +170,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/blog', blogRoutes);
 app.use('/api/blogs', blogRoutes); // Parity alias
+app.use('/api/work-process', workProcessRoutes);
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {

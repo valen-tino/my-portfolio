@@ -558,7 +558,7 @@ const PortfolioManagement: React.FC = () => {
                     {editingItem.isPublished !== false ? (
                       <span className="badge badge-success badge-sm text-white">🌐 Public (Visible)</span>
                     ) : (
-                      <span className="badge badge-neutral badge-sm">🚫 Hidden from Public</span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-300">🚫 Hidden from Public</span>
                     )}
                     {editingItem.isPinned && (
                       <span className="badge badge-warning badge-sm">Pinned</span>
@@ -607,7 +607,7 @@ const PortfolioManagement: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3.5 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
+                    className="w-full px-3.5 py-2 bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
                     placeholder="e.g., E-commerce Website, Mobile App"
                     value={editingItem.title}
                     onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })}
@@ -620,7 +620,7 @@ const PortfolioManagement: React.FC = () => {
                   </label>
                   <textarea
                     rows={4}
-                    className="w-full px-3.5 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    className="w-full px-3.5 py-2 bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                     placeholder="Brief description that appears on portfolio cards (2-3 sentences)"
                     value={editingItem.desc}
                     onChange={(e) => setEditingItem({ ...editingItem, desc: e.target.value })}
@@ -633,7 +633,7 @@ const PortfolioManagement: React.FC = () => {
                   </label>
                   <input
                     type="url"
-                    className="w-full px-3.5 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    className="w-full px-3.5 py-2 bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                     placeholder="https://example.com"
                     value={editingItem.linkTo}
                     onChange={(e) => setEditingItem({ ...editingItem, linkTo: e.target.value })}
@@ -648,7 +648,7 @@ const PortfolioManagement: React.FC = () => {
                     type="text"
                     maxLength={4}
                     pattern="[0-9]{4}"
-                    className="w-full px-3.5 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    className="w-full px-3.5 py-2 bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                     placeholder="e.g., 2024"
                     value={editingItem.year || ''}
                     onChange={(e) => setEditingItem({ ...editingItem, year: e.target.value })}
@@ -945,7 +945,7 @@ const PortfolioManagement: React.FC = () => {
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => handleAddCustomTech()}
                         disabled={!techInput.trim()}
-                        className="btn btn-sm btn-outline text-xs px-3 shrink-0"
+                        className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 shrink-0"
                       >
                         + Add
                       </button>

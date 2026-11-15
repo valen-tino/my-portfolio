@@ -4,6 +4,7 @@ import type {
   Experience as CMSExperience,
   EducationItem as CMSEducationItem,
   TechTool as CMSTechTool,
+  CMSWorkProcessStep,
 } from '../cms/apiStorage';
 import type {
   Project,
@@ -43,6 +44,11 @@ export const WORK_PROCESS_STEPS: WorkProcessStep[] = [
   {
     title: 'Prototype',
     description: 'I make simple sketches or models to show how the proposed solutions could work.',
+  },
+  {
+    title: 'Development',
+    description:
+      'Following Spec-Driven Development with AI-assisted workflows, I build from PRD, ERD, and Design Brief through Local Development, Unit Tests, CI/CD Pipeline, Staging, and In Production—then repeat with Agile Methodology.',
   },
   {
     title: 'Test',
@@ -567,5 +573,15 @@ export function mapCMSTechToolToView(tool: CMSTechTool): TechToolView {
     symbol: safeTitle.slice(0, 4).toUpperCase(),
     bg: 'bg-paper',
     text: 'text-ink',
+  };
+}
+
+export function mapCMSWorkProcessToView(step: CMSWorkProcessStep): WorkProcessStep {
+  return {
+    id: step.id ? String(step.id) : step._id,
+    title: step.title,
+    description: step.description,
+    order: step.order,
+    isPublished: step.isPublished,
   };
 }

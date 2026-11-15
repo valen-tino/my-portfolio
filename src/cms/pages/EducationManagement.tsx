@@ -135,16 +135,16 @@ const EducationManagement: React.FC = () => {
 
   return (
     <CMSLayout>
-      <div className="container mx-auto max-w-6xl p-4 space-y-6">
+      <div className="container mx-auto max-w-6xl p-4 space-y-6 text-gray-900">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Education & Certificates</h1>
-            <p className="text-base-content/70 mt-2">Manage your educational background and certifications.</p>
+            <h1 className="text-3xl font-bold text-gray-900">Education &amp; Certificates</h1>
+            <p className="text-gray-600 mt-2">Manage your educational background and certifications.</p>
           </div>
           <button
             onClick={handleAdd}
-            className="btn btn-primary"
+            className="btn btn-primary text-white"
             disabled={editingItem !== null}
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,10 +156,15 @@ const EducationManagement: React.FC = () => {
 
         {/* Message */}
         {message.text && (
-          <div className={`alert ${
-            message.type === 'success' ? 'alert-success' : 'alert-error'
-          }`}>
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div
+            role="status"
+            className={`p-4 rounded-lg border flex items-center gap-3 ${
+              message.type === 'success'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                : 'bg-red-50 border-red-200 text-red-800'
+            }`}
+          >
+            <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                 d={message.type === 'success' ? 
                   "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" :
@@ -173,9 +178,9 @@ const EducationManagement: React.FC = () => {
 
         {/* Edit/Add Form */}
         {editingItem && (
-          <div className="card bg-base-100 shadow-xl">
-            <div className="card-body">
-              <h2 className="card-title text-xl mb-6">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">
                 {isAddingNew ? 'Add New Education Item' : 'Edit Education Item'}
               </h2>
               
@@ -183,11 +188,11 @@ const EducationManagement: React.FC = () => {
                 <div className="space-y-4">
                   <div className="form-control">
                     <label className="label">
-                      <span className="label-text font-medium">Title / Degree *</span>
+                      <span className="label-text font-medium text-gray-700">Title / Degree *</span>
                     </label>
                     <input
                       type="text"
-                      className="input input-bordered w-full"
+                      className="input input-bordered bg-white text-gray-900 placeholder:text-gray-400 border-gray-300 w-full"
                       placeholder="e.g., Bachelor of Computer Science, React Certificate"
                       value={editingItem.title}
                       onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })}
@@ -196,11 +201,11 @@ const EducationManagement: React.FC = () => {
 
                   <div className="form-control">
                     <label className="label">
-                      <span className="label-text font-medium">Institution / Provider *</span>
+                      <span className="label-text font-medium text-gray-700">Institution / Provider *</span>
                     </label>
                     <input
                       type="text"
-                      className="input input-bordered w-full"
+                      className="input input-bordered bg-white text-gray-900 placeholder:text-gray-400 border-gray-300 w-full"
                       placeholder="e.g., University of Technology, Coursera"
                       value={editingItem.institution}
                       onChange={(e) => setEditingItem({ ...editingItem, institution: e.target.value })}
@@ -210,38 +215,38 @@ const EducationManagement: React.FC = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="form-control">
                       <label className="label">
-                        <span className="label-text font-medium">Start Date</span>
+                        <span className="label-text font-medium text-gray-700">Start Date</span>
                       </label>
                       <input
                         type="month"
-                        className="input input-bordered w-full"
+                        className="input input-bordered bg-white text-gray-900 border-gray-300 w-full"
                         value={editingItem.startDate}
                         onChange={(e) => setEditingItem({ ...editingItem, startDate: e.target.value })}
                       />
                     </div>
                     <div className="form-control">
                       <label className="label">
-                        <span className="label-text font-medium">End Date</span>
+                        <span className="label-text font-medium text-gray-700">End Date</span>
                       </label>
                       <input
                         type="month"
-                        className="input input-bordered w-full"
+                        className="input input-bordered bg-white text-gray-900 border-gray-300 w-full"
                         value={editingItem.endDate}
                         onChange={(e) => setEditingItem({ ...editingItem, endDate: e.target.value })}
                       />
                       <label className="label">
-                        <span className="label-text-alt">Leave empty if ongoing</span>
+                        <span className="label-text-alt text-gray-500">Leave empty if ongoing</span>
                       </label>
                     </div>
                   </div>
 
                   <div className="form-control">
                     <label className="label">
-                      <span className="label-text font-medium">Certificate/Credential Link (optional)</span>
+                      <span className="label-text font-medium text-gray-700">Certificate/Credential Link (optional)</span>
                     </label>
                     <input
                       type="url"
-                      className="input input-bordered w-full"
+                      className="input input-bordered bg-white text-gray-900 placeholder:text-gray-400 border-gray-300 w-full"
                       placeholder="https://example.com/certificate"
                       value={editingItem.link || ''}
                       onChange={(e) => setEditingItem({ ...editingItem, link: e.target.value })}
@@ -252,7 +257,7 @@ const EducationManagement: React.FC = () => {
                 <div>
                   <div className="form-control">
                     <label className="label">
-                      <span className="label-text font-medium">Description</span>
+                      <span className="label-text font-medium text-gray-700">Description</span>
                     </label>
                     <WYSIWYGEditor
                       value={editingItem.description}
@@ -266,17 +271,17 @@ const EducationManagement: React.FC = () => {
                 </div>
               </div>
 
-              <div className="card-actions justify-end mt-6 gap-3">
+              <div className="flex justify-end mt-6 gap-3">
                 <button
                   onClick={handleCancel}
-                  className="btn btn-ghost"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={loading}
-                  className={`btn btn-primary ${loading ? 'loading' : ''}`}
+                  className={`btn btn-primary text-white ${loading ? 'loading' : ''}`}
                 >
                   {loading ? 'Saving...' : (isAddingNew ? 'Add Item' : 'Save Changes')}
                 </button>
@@ -286,21 +291,21 @@ const EducationManagement: React.FC = () => {
         )}
 
         {/* Education Items List */}
-        <div className="card bg-base-100 shadow-xl">
-          <div className="card-body">
-            <h2 className="card-title text-xl mb-4">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
               Current Education Items ({educationItems.length})
             </h2>
             
             {educationItems.length === 0 ? (
               <div className="text-center py-12">
-                <svg className="w-12 h-12 text-base-content/30 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
                 </svg>
-                <p className="text-base-content/70">No education items added yet.</p>
+                <p className="text-gray-600">No education items added yet.</p>
                 <button
                   onClick={handleAdd}
-                  className="btn btn-primary mt-4"
+                  className="btn btn-primary text-white mt-4"
                 >
                   Add Your First Item
                 </button>
@@ -310,22 +315,22 @@ const EducationManagement: React.FC = () => {
                 {educationItems.map((item) => (
                   <div
                     key={item.id}
-                    className="card bg-base-200/50 border border-base-300 hover:shadow-md transition-shadow"
+                    className="rounded-xl bg-gray-50/70 border border-gray-200 hover:shadow-md transition-shadow"
                   >
-                    <div className="card-body p-6">
-                      <div className="flex justify-between items-start">
+                    <div className="p-6">
+                      <div className="flex justify-between items-start gap-4">
                         <div className="flex-1">
                           <div className="flex items-start justify-between mb-2">
                             <div>
-                              <h3 className="text-base font-semibold">{item.title}</h3>
-                              <p className="text-primary font-medium text-sm">{item.institution}</p>
+                              <h3 className="text-base font-semibold text-gray-900">{item.title}</h3>
+                              <p className="text-blue-600 font-medium text-sm">{item.institution}</p>
                             </div>
-                            <p className="text-base-content/60 text-xs whitespace-nowrap ml-4">
+                            <p className="text-gray-500 text-xs whitespace-nowrap ml-4">
                               {formatDate(item.startDate)} - {formatDate(item.endDate || '')}
                             </p>
                           </div>
                           {item.description && (
-                            <p className="text-base-content/80 text-sm leading-relaxed mb-2 line-clamp-2">
+                            <p className="text-gray-700 text-sm leading-relaxed mb-2 line-clamp-2">
                               {item.description.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()}
                             </p>
                           )}
@@ -334,7 +339,7 @@ const EducationManagement: React.FC = () => {
                               href={item.link}
                               target="_blank"
                               rel="noreferrer"
-                              className="inline-flex items-center text-primary hover:text-primary/80 text-xs"
+                              className="inline-flex items-center text-blue-600 hover:text-blue-700 text-xs"
                             >
                               <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -344,10 +349,10 @@ const EducationManagement: React.FC = () => {
                           )}
                         </div>
                         
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 shrink-0">
                           <button
                             onClick={() => handleEdit(item)}
-                            className="btn btn-sm btn-outline"
+                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50"
                             disabled={editingItem !== null}
                           >
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -357,7 +362,7 @@ const EducationManagement: React.FC = () => {
                           </button>
                           <button
                             onClick={() => handleDelete(item.id)}
-                            className="btn btn-sm btn-outline btn-error"
+                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 disabled:opacity-50"
                             disabled={editingItem !== null}
                           >
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
