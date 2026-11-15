@@ -29,6 +29,7 @@ const app = express();
 
 // MongoDB connection with connection pooling for serverless
 let cachedDb = null;
+let cachedPromise = null;
 let adminBootstrapped = false;
 let skillsSynced = false;
 
@@ -37,29 +38,43 @@ async function connectToDatabase() {
     return cachedDb;
   }
 
-  try {
-    if (!process.env.MONGODB_URI) {
-      throw new Error('MONGODB_URI environment variable is not set');
-    }
-    
-    const connection = await mongoose.connect(process.env.MONGODB_URI, {
-      bufferCommands: false,
-      serverSelectionTimeoutMS: 10000,
-      maxPoolSize: 10,
-    });
-    
-    cachedDb = connection;
-    return connection;
-  } catch (error) {
-    console.error('MongoDB connection error:', error.message);
-    console.error('Connection string:', process.env.MONGODB_URI ? 'Set (hidden)' : 'NOT SET');
-    throw error;
+  if (!process.env.MONGODB_URI) {
+    throw new Error('MONGODB_URI environment variable is not set');
   }
+
+  if (cachedDb && mongoose.connection.readyState !== 1 && mongoose.connection.readyState !== 2) {
+    cachedDb = null;
+    cachedPromise = null;
+  }
+
+  if (!cachedPromise) {
+    cachedPromise = mongoose
+      .connect(process.env.MONGODB_URI, {
+        serverSelectionTimeoutMS: 15000,
+        maxPoolSize: 10,
+      })
+      .then((connection) => {
+        cachedDb = connection;
+        return connection;
+      })
+      .catch((error) => {
+        cachedPromise = null;
+        cachedDb = null;
+        console.error('MongoDB connection error:', error.message);
+        console.error('Connection string:', process.env.MONGODB_URI ? 'Set (hidden)' : 'NOT SET');
+        throw error;
+      });
+  }
+
+  return await cachedPromise;
 }
 
 // Middleware - CORS using VITE_APP_URL for allowed origins
 const vercelUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined;
 const vercelBranchUrl = process.env.VERCEL_BRANCH_URL ? `https://${process.env.VERCEL_BRANCH_URL}` : undefined;
+const vercelProdUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  : undefined;
 
 const allowedOrigins = [
   // Frontend URLs (env-specific)
@@ -73,16 +88,27 @@ const allowedOrigins = [
   // Vercel dynamic URLs
   vercelUrl,
   vercelBranchUrl,
+  vercelProdUrl,
   // Local dev
   'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:3001'
 ].filter(Boolean);
 
+const LAN_ORIGIN_RE =
+  /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+)(:\d+)?$/i;
+
+function isOriginAllowed(origin) {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+  if (origin.startsWith('https://') && origin.endsWith('.vercel.app')) return true;
+  if (LAN_ORIGIN_RE.test(origin)) return true;
+  return false;
+}
+
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
+    if (isOriginAllowed(origin)) return callback(null, true);
     return callback(null, false);
   },
   credentials: true,
@@ -102,7 +128,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (!origin) return next();
-  if (allowedOrigins.includes(origin)) {
+  if (isOriginAllowed(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Vary', 'Origin');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
@@ -111,6 +137,14 @@ app.use((req, res, next) => {
   }
   if (req.method === 'OPTIONS') {
     return res.sendStatus(204);
+  }
+  next();
+});
+
+// Normalize paths arriving without /api prefix (e.g., via stripped serverless path rewrites)
+app.use((req, _res, next) => {
+  if (req.url && !req.url.startsWith('/api')) {
+    req.url = `/api${req.url.startsWith('/') ? '' : '/'}${req.url}`;
   }
   next();
 });
@@ -194,7 +228,9 @@ app.get('/api/health', async (req, res) => {
         allowedOrigins
       },
       database: {
+        connected: dbStatus === 1,
         status: dbStatusText,
+        name: mongoose.connection?.name || null,
         mongoUri: process.env.MONGODB_URI ? 'Set' : 'Not set'
       },
       env: {

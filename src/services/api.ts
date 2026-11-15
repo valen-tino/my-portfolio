@@ -1,24 +1,87 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 
-// Resolve environment
-const APP_ENV = (import.meta.env.VITE_APP_ENV as string | undefined) || (import.meta.env.PROD ? 'production' : 'development');
+const PLACEHOLDER_DOMAINS = ['your-portfolio.vercel.app', 'your-preview-url.vercel.app'];
+const LOCALHOST_URL_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i;
+
+function isPlaceholderOrInvalidUrl(
+  url: string | undefined,
+  isProd: boolean,
+  currentHostname?: string
+): boolean {
+  if (!url) return true;
+  if (PLACEHOLDER_DOMAINS.some((domain) => url.includes(domain))) return true;
+  if (LOCALHOST_URL_RE.test(url)) {
+    if (isProd) return true;
+    if (currentHostname && currentHostname !== 'localhost' && currentHostname !== '127.0.0.1') {
+      return true;
+    }
+  }
+  return false;
+}
+
+export interface ResolveApiBaseUrlOptions {
+  isProd?: boolean;
+  viteAppEnv?: string;
+  viteApiUrl?: string;
+  viteApiUrlDev?: string;
+  viteApiUrlPreview?: string;
+  viteApiUrlProd?: string;
+  hostname?: string;
+}
+
+export function resolveApiBaseUrl(options: ResolveApiBaseUrlOptions = {}): string {
+  const isProd = options.isProd ?? Boolean(import.meta.env.PROD);
+  const rawEnv = options.viteAppEnv ?? (import.meta.env.VITE_APP_ENV as string | undefined);
+  const appEnv = isProd
+    ? (rawEnv === 'preview' ? 'preview' : 'production')
+    : (rawEnv || 'development');
+
+  const hostname =
+    options.hostname ?? (typeof window !== 'undefined' ? window.location.hostname : undefined);
+
+  const viteApiUrlProd =
+    options.viteApiUrlProd ?? (import.meta.env.VITE_API_URL_PROD as string | undefined);
+  const viteApiUrlPreview =
+    options.viteApiUrlPreview ?? (import.meta.env.VITE_API_URL_PREVIEW as string | undefined);
+  const viteApiUrlDev =
+    options.viteApiUrlDev ?? (import.meta.env.VITE_API_URL_DEV as string | undefined);
+  const viteApiUrl = options.viteApiUrl ?? (import.meta.env.VITE_API_URL as string | undefined);
+
+  const candidates = [
+    appEnv === 'production' ? viteApiUrlProd : undefined,
+    appEnv === 'preview' ? viteApiUrlPreview : undefined,
+    appEnv === 'development' ? viteApiUrlDev : undefined,
+    viteApiUrl,
+  ];
+
+  for (const candidate of candidates) {
+    if (!isPlaceholderOrInvalidUrl(candidate, isProd, hostname)) {
+      return candidate as string;
+    }
+  }
+
+  return '/api';
+}
+
+const currentIsProd = Boolean(import.meta.env.PROD);
+const currentAppEnv = currentIsProd
+  ? ((import.meta.env.VITE_APP_ENV as string | undefined) === 'preview' ? 'preview' : 'production')
+  : ((import.meta.env.VITE_APP_ENV as string | undefined) || 'development');
+const currentHostname = typeof window !== 'undefined' ? window.location.hostname : undefined;
+
+const rawAppUrl =
+  (currentAppEnv === 'production' && (import.meta.env.VITE_APP_URL_PROD as string | undefined)) ||
+  (currentAppEnv === 'preview' && (import.meta.env.VITE_APP_URL_PREVIEW as string | undefined)) ||
+  (currentAppEnv === 'development' && (import.meta.env.VITE_APP_URL_DEV as string | undefined)) ||
+  (import.meta.env.VITE_APP_URL as string | undefined);
 
 // Frontend app URL by environment (used for redirects)
-const APP_URL = (
-  (APP_ENV === 'production' && (import.meta.env.VITE_APP_URL_PROD as string | undefined)) ||
-  (APP_ENV === 'preview' && (import.meta.env.VITE_APP_URL_PREVIEW as string | undefined)) ||
-  (APP_ENV === 'development' && (import.meta.env.VITE_APP_URL_DEV as string | undefined)) ||
-  (import.meta.env.VITE_APP_URL as string | undefined)
-);
+const APP_URL = isPlaceholderOrInvalidUrl(rawAppUrl, currentIsProd, currentHostname)
+  ? undefined
+  : rawAppUrl;
 
 // API base URL by environment
-const API_BASE_URL = (
-  (APP_ENV === 'production' && (import.meta.env.VITE_API_URL_PROD as string | undefined)) ||
-  (APP_ENV === 'preview' && (import.meta.env.VITE_API_URL_PREVIEW as string | undefined)) ||
-  (APP_ENV === 'development' && (import.meta.env.VITE_API_URL_DEV as string | undefined)) ||
-  (import.meta.env.VITE_API_URL as string | undefined) ||
-  (import.meta.env.PROD ? '/api' : 'http://localhost:5001/api')
-);
+const API_BASE_URL = resolveApiBaseUrl();
 
 class ApiService {
   private api: AxiosInstance;

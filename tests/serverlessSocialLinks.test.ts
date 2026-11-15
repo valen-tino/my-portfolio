@@ -182,5 +182,20 @@ describe('Serverless /api/social-links routes', () => {
     expect(seedRes.data.data).toHaveLength(3);
     expect(insertSpy).toHaveBeenCalledWith(DEFAULT_SOCIAL_LINKS);
   });
+
+  it('reports live database status on GET /api/health and normalizes stripped /api paths', async () => {
+    const healthRes = await requestJson(app, 'GET', '/api/health');
+    expect(healthRes.status).toBe(200);
+    expect(healthRes.data.success).toBe(true);
+    expect(healthRes.data.database.connected).toBe(true);
+    expect(healthRes.data.database.status).toBe('connected');
+
+    const sortMock = vi.fn().mockResolvedValue([]);
+    vi.spyOn(SocialLink, 'find').mockReturnValue({ sort: sortMock } as any);
+
+    const normalizedRes = await requestJson(app, 'GET', '/social-links?published=true');
+    expect(normalizedRes.status).toBe(200);
+    expect(normalizedRes.data.success).toBe(true);
+  });
 });
 

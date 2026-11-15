@@ -36,7 +36,8 @@ This document provides a comprehensive, centralized record of all architecture i
 29. [16:9 Portfolio Media, Hero Carousel All-Items/Toggletip, Code Block Fix & Blue Resume Pill](#29-169-portfolio-media-hero-carousel-all-itemstoggletip-code-block-fix--blue-resume-pill)
 30. [Design System Inspirations, 6-Step Spec-Driven Work Process CRUD, CMS Light Theme & About Upload Fix](#30-design-system-inspirations-6-step-spec-driven-work-process-crud-cms-light-theme--about-upload-fix)
 31. [Full Frontend CMS Connectivity, Social Links CRUD, Extended Site Copy & Brand-Blue Loading Screen](#31-full-frontend-cms-connectivity-social-links-crud-extended-site-copy--brand-blue-loading-screen)
-32. [Files Created, Modified, or Removed](#32-files-created-modified-or-removed)
+32. [Database Connectivity Hardening, Vite API Proxy & iPhone Top/Bottom Browser Bar Fix](#32-database-connectivity-hardening-vite-api-proxy--iphone-topbottom-browser-bar-fix)
+33. [Files Created, Modified, or Removed](#33-files-created-modified-or-removed)
 
 ---
 
@@ -607,10 +608,31 @@ This document provides a comprehensive, centralized record of all architecture i
 
 ---
 
-## 32. Files Created, Modified, or Removed
+## 32. Database Connectivity Hardening, Vite API Proxy & iPhone Top/Bottom Browser Bar Fix
+
+- **Frontend API Base URL Resolution & Vite Proxy (`src/services/api.ts`, `vite.config.ts`, `.env`, `.env.example`)**:
+  - Exported and wired `resolveApiBaseUrl()` in `src/services/api.ts`: enforces `import.meta.env.PROD` over `VITE_APP_ENV=development` during production builds, ignores placeholder domains (`your-portfolio.vercel.app`, `your-preview-url.vercel.app`), and falls back to same-origin `'/api'` whenever a `localhost` / `127.0.0.1` URL is encountered on a non-localhost hostname (such as an iPhone on LAN or Vercel deployments). Also applied matching sanitization to `APP_URL`.
+  - Configured `server: { host: true, proxy: { '/api': { target: 'http://localhost:5001', changeOrigin: true } } }` in `vite.config.ts` and updated `.env` / `.env.example` so `npm run build` never bakes `http://localhost:5001/api` into `dist/assets/index-*.js`.
+- **Serverless & Express Database Connection Pooling & CORS (`api/serverless.js`, `server/index.js`)**:
+  - Cached the in-flight `cachedPromise` in `connectToDatabase()` across `api/serverless.js` and `server/index.js` (removing `bufferCommands: false` and resetting stale references on disconnect) so concurrent cold-start requests share the same `mongoose.connect()` handshake without racing.
+  - Added `/api` path prefix normalization middleware in `api/serverless.js`, expanded CORS (`isOriginAllowed`) to permit `VERCEL_PROJECT_PRODUCTION_URL`, `https://*.vercel.app` previews, and private LAN IPs (`192.168.x.x`, `10.x.x.x`, `172.16–31.x.x`), and updated `GET /api/health` in both `server/index.js` and `api/serverless.js` to report `database.connected`, `database.status`, and `database.name`.
+- **iPhone Top & Bottom Browser Bar Color Fix (`index.html`, `src/components/LoadingScreen.tsx`)**:
+  - Added `<meta name="theme-color" content="#f8f8fa" />` in `index.html` to keep iOS Safari's top status bar and bottom address/tab bar aligned with the light `#f8f8fa` page background.
+  - Updated `src/components/LoadingScreen.tsx` to preserve its 500ms `ease-in-out` fade-out transition when `isLoading` becomes `false` and then unmount (`return null`) via `onTransitionEnd` and a `550ms` fallback timer while keeping `meta[name="theme-color"]` synced to `#f8f8fa`, preventing iOS Safari from sampling a residual `fixed inset-0 bg-brand` element.
+- **Test & Build Verification**:
+  - Expanded `tests/LoadingScreen.test.tsx` (7 tests covering fade-out unmounting, `theme-color` sync, and `resolveApiBaseUrl`) and `tests/serverlessSocialLinks.test.ts` (4 tests including `GET /api/health` and stripped `/api` path normalization).
+  - Verified full Vitest suite passes (**26 test files, 122 tests**), `npm run build` (`tsc && vite build`) exits 0 with zero `http://localhost:5001/api` occurrences in `dist/assets/` and `<meta name="theme-color" content="#f8f8fa" />` in `dist/index.html`, and live concurrent requests against `api/serverless.js` connect to MongoDB Atlas (`portfolio_cms`).
+
+---
+
+## 33. Files Created, Modified, or Removed
 
 | File | Status | Description |
 | :--- | :--- | :--- |
+| `src/services/api.ts`, `vite.config.ts`, `.env`, `.env.example` | Modified | Added `resolveApiBaseUrl()`, sanitized `APP_URL`, enabled Vite LAN host + `/api` proxy, and removed `localhost:5001` / placeholder API URL leaks from production builds. |
+| `api/serverless.js`, `server/index.js` | Modified | Added in-flight `cachedPromise` connection pooling, stripped `/api` path normalization, LAN / `*.vercel.app` CORS rules, and live MongoDB `readyState` health reporting on `GET /api/health`. |
+| `index.html`, `src/components/LoadingScreen.tsx` | Modified | Added `<meta name="theme-color" content="#f8f8fa" />` and unmounted `<LoadingScreen />` cleanly after its 500ms `ease-in-out` fade-out completes to keep iPhone top/bottom bars light. |
+| `tests/LoadingScreen.test.tsx`, `tests/serverlessSocialLinks.test.ts` | Modified | Added tests for `LoadingScreen` DOM unmounting, `resolveApiBaseUrl()`, `/api/health` DB status, and stripped `/api` prefix routing (`26 test files, 122 tests`). |
 | `src/components/LoadingScreen.tsx`, `src/cms/pages/SocialLinksManagement.tsx`, `server/models/SocialLink.js`, `server/routes/socialLinks.js`, `server/data/defaultSocialLinks.js` | Created | Brand-blue `<LoadingScreen />` overlay (`/favicon.ico` + `ease-in-out` fade) and full-stack Social Links CRUD module, Mongoose schema, Express/Vercel API router (`/api/social-links`), and default links seed. |
 | `tests/LoadingScreen.test.tsx`, `tests/SocialLinksManagement.test.tsx`, `tests/serverlessSocialLinks.test.ts` | Created | Unit, component, and HTTP integration tests covering `<LoadingScreen />`, CMS Social Links management, and `/api/social-links` serverless endpoints. |
 | `server/models/About.js`, `server/routes/about.js`, `server/index.js`, `api/serverless.js`, `server/scripts/initDatabase.js` | Modified | Extended `About` schema/routes with 17 optional identity & site-copy fields, mounted `/api/social-links`, and added default Social Links seeding. |

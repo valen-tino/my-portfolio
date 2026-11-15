@@ -23,38 +23,86 @@ const allowedOrigins = [
   'http://localhost:3001'
 ].filter(Boolean);
 
+const LAN_ORIGIN_RE =
+  /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+)(:\d+)?$/i;
+
+function isOriginAllowed(origin) {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+  if (origin.startsWith('https://') && origin.endsWith('.vercel.app')) return true;
+  if (LAN_ORIGIN_RE.test(origin)) return true;
+  return false;
+}
+
 // CORS middleware
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  
+
   // Set CORS headers for allowed origins
-  if (origin && allowedOrigins.includes(origin)) {
+  if (origin && isOriginAllowed(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   } else if (!origin) {
     // For same-origin requests (no Origin header)
-    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5174');
+    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173');
   }
-  
+
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Max-Age', '86400');
-  
+
   // Handle OPTIONS preflight
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
-  
+
   next();
 });
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Bootstrap admin user once if configured
+// MongoDB Connection helper (ensures handshake completes before serving requests)
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/portfolio';
+let cachedDb = null;
+let cachedPromise = null;
+
+async function connectToDatabase() {
+  if (cachedDb && mongoose.connection.readyState === 1) {
+    return cachedDb;
+  }
+
+  if (cachedDb && mongoose.connection.readyState !== 1 && mongoose.connection.readyState !== 2) {
+    cachedDb = null;
+    cachedPromise = null;
+  }
+
+  if (!cachedPromise) {
+    cachedPromise = mongoose
+      .connect(MONGODB_URI, {
+        serverSelectionTimeoutMS: 15000,
+        maxPoolSize: 10,
+      })
+      .then((conn) => {
+        cachedDb = conn;
+        return conn;
+      })
+      .catch((err) => {
+        cachedPromise = null;
+        cachedDb = null;
+        throw err;
+      });
+  }
+
+  return await cachedPromise;
+}
+
+// Ensure database is connected before handling API requests & bootstrap admin once
 app.use(async (req, res, next) => {
   try {
+    await connectToDatabase();
+
     if (!adminBootstrapped) {
       const adminEmail = process.env.ADMIN_EMAIL;
       const adminPassword = process.env.ADMIN_PASSWORD;
@@ -66,16 +114,18 @@ app.use(async (req, res, next) => {
       }
       adminBootstrapped = true;
     }
-  } catch (e) {
-    console.error('Admin bootstrap error:', e?.message || e);
-  } finally {
+
     next();
+  } catch (e) {
+    console.error('Database middleware error:', e?.message || e);
+    res.status(500).json({
+      success: false,
+      message: 'Database connection failed',
+    });
   }
 });
 
-// MongoDB Connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/portfolio';
-mongoose.connect(MONGODB_URI)
+connectToDatabase()
 .then(async () => {
   console.log('✅ Connected to MongoDB');
   try {
@@ -122,7 +172,18 @@ app.use('/api/social-links', socialLinksRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Portfolio CMS API is running' });
+  const dbStatus = mongoose.connection.readyState;
+  const dbStatusText = ['disconnected', 'connected', 'connecting', 'disconnecting'][dbStatus] || 'unknown';
+  res.json({
+    success: dbStatus === 1,
+    status: dbStatus === 1 ? 'OK' : 'DEGRADED',
+    message: 'Portfolio CMS API is running',
+    database: {
+      connected: dbStatus === 1,
+      status: dbStatusText,
+      name: mongoose.connection?.name || null,
+    },
+  });
 });
 
 // Error handling middleware

@@ -135,7 +135,7 @@ A full-stack portfolio website with an integrated Content Management System (CMS
 
 ```
 my-portfolio/
-├── index.html                  # HTML entry point (Plus Jakarta Sans font loading)
+├── index.html                  # HTML entry point (Plus Jakarta Sans font + light theme-color #f8f8fa)
 ├── public/                     # Static assets
 │   ├── Valen-Jehaut.pdf       # Default résumé PDF fallback
 │   ├── favicon.ico            # Site icon
@@ -169,7 +169,7 @@ my-portfolio/
 │   │   ├── PortfolioTable.tsx          # Left-aligned desktop table & minimal 2-column mobile index table
 │   │   ├── MobileFilterDialog.tsx      # Native <dialog closedby="any"> mobile filter popup
 │   │   ├── CVModal.tsx                 # Native <dialog closedby="any"> interactive résumé preview (latest end date first)
-│   │   ├── LoadingScreen.tsx           # Brand-blue full-screen overlay with centered /favicon.ico & ease-in-out fade
+│   │   ├── LoadingScreen.tsx           # Brand-blue full-screen overlay with centered /favicon.ico (unmounts after fade-out)
 │   │   ├── Footer.tsx                  # Vibrant CTA banner footer, Bali WITA clock, sitemap & social links
 │   │   ├── Icons.tsx                   # Inline SVG icon system (aria-hidden by default)
 │   │   ├── ImagePlaceholder.tsx        # 16:9 editorial visual placeholder fallback
@@ -222,7 +222,7 @@ my-portfolio/
 │   ├── [...path].js           # Catch-all Vercel route handler
 │   ├── index.js / test.js / diag.js / diag2.js
 │
-├── tests/                     # Automated Vitest test suites (26 files, 116 tests)
+├── tests/                     # Automated Vitest test suites (26 files, 122 tests)
 ├── .gitignore
 ├── package.json
 ├── tailwind.config.cjs
@@ -238,7 +238,7 @@ my-portfolio/
 ### 1. Public Portfolio Website
 
 #### Navigation, Loading Screen, Transitions & Résumé Modal
-- **Brand-Blue Loading Screen (`LoadingScreen`)**: Full-screen overlay using the brand blue background (`bg-brand` / `#2563eb`), centered `/favicon.ico`, and smooth `ease-in-out` opacity transition (`transition-opacity duration-500 ease-in-out motion-reduce:duration-150`, toggling `opacity-100` to `opacity-0 pointer-events-none`) integrated in `App.tsx`, `PortfolioDetail.tsx`, and `BlogDetail.tsx`.
+- **Brand-Blue Loading Screen (`LoadingScreen`)**: Full-screen overlay using the brand blue background (`bg-brand` / `#2563eb`), centered `/favicon.ico`, and smooth `ease-in-out` opacity transition (`transition-opacity duration-500 ease-in-out motion-reduce:duration-150`, toggling `opacity-100` to `opacity-0 pointer-events-none`) that unmounts from the DOM once fade-out completes (`onTransitionEnd` + `550ms` fallback), working together with `<meta name="theme-color" content="#f8f8fa" />` (`index.html`) so iPhone (iOS Safari) top and bottom browser bars stay light (`#f8f8fa`). Integrated in `App.tsx`, `PortfolioDetail.tsx`, and `BlogDetail.tsx`.
 - **Floating Pill Navigation (`FloatingNavigation`)**: Persistent bottom dock (`Home`, `Selected Work`, `Work`, `Journal`, `About`, `Contact`, mobile `More` drawer, and primary brand-blue `.dock-item-primary` `Résumé` action button with white text & `DownloadIcon`).
 - **Native View Transitions (`viewTransitions.ts`)**: Combines `@view-transition { navigation: auto; }` CSS keyframes with `document.startViewTransition()` on route changes and focus handoff to destination `<h1>`/`<main>`.
 - **Interactive Résumé Dialog (`CVModal`)**: Native `<dialog closedby="any">` summarizing CMS `name`, `location`, `email`, `resumeSummary`, experience, and the full `educationList` sorted latest-end-date-first (`sortByLatestEndDate`) plus direct PDF download (`aboutData.cvURL`).
@@ -1134,13 +1134,13 @@ vercel
 
 #### 6. Update API URLs
 
-In your frontend code, update the API URL:
+`src/services/api.ts` automatically resolves the API base URL via `resolveApiBaseUrl()`, defaulting to same-origin `'/api'` in both development (forwarded by Vite's `/api` proxy in `vite.config.ts`) and production (handled by Vercel rewrites in `vercel.json`):
 
-```javascript
+```typescript
 // src/services/api.ts
-const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://your-app.vercel.app/api'
-  : 'http://localhost:5001/api';
+// Uses relative '/api' in production and on non-localhost devices (e.g. iPhone LAN preview),
+// ignoring VITE_APP_ENV=development and placeholder domains when bundled with Vite.
+const API_BASE_URL = resolveApiBaseUrl();
 ```
 
 #### 7. Redeploy
@@ -1378,7 +1378,7 @@ const handleAIGenerate = async () => {
 
 ### Automated Testing (Vitest & Testing Library)
 
-Run the full automated suite (currently **26 test files, 116 tests**) and production TypeScript + Vite build:
+Run the full automated suite (currently **26 test files, 122 tests**) and production TypeScript + Vite build:
 
 ```bash
 npm test -- --run
