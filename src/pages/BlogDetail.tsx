@@ -1,76 +1,100 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { CMSStorage, BlogItem } from '../cms/apiStorage';
-import Navbar from '../sections/nav/nav';
-import Footer from '../sections/footer/footer';
-import ImageLightboxModal, { LightboxImageItem } from '../components/ImageLightboxModal';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { CMSStorage } from '../cms/apiStorage';
+import { Footer } from '../components/Footer';
+import { ArrowLeftIcon, ExternalLinkIcon } from '../components/Icons';
+import ImageLightboxModal, { type LightboxImageItem } from '../components/ImageLightboxModal';
+import { ImagePlaceholder } from '../components/ImagePlaceholder';
+import { BLOG_POSTS, mapCMSBlogToPost } from '../data/portfolioData';
+import type { BlogPost } from '../types/portfolio';
 import { formatPublicDescription } from '../utils/contentMigration';
+import { formatFullDate, toISODateAttribute } from '../utils/dateFormat';
+import { useGSAPPageEntrance } from '../utils/gsapAnimations';
+import { navigateWithTransition } from '../utils/viewTransitions';
 
-const CATEGORY_STYLES: Record<string, string> = {
-  Event: 'badge-secondary',
-  News: 'badge-info',
-  Tech: 'badge-accent',
-  Personal: 'badge-primary'
-};
-
-const BlogDetail: React.FC = () => {
+export default function BlogDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [blog, setBlog] = useState<BlogItem | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  const [post, setPost] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [imgError, setImgError] = useState(false);
+
   const [lightboxImages, setLightboxImages] = useState<LightboxImageItem[]>([]);
-  const [lightboxIndex, setLightboxIndex] = useState<number>(0);
-  const [lightboxOpen, setLightboxOpen] = useState<boolean>(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  useGSAPPageEntrance(rootRef, [post?.id, loading]);
 
   useEffect(() => {
-    const fetchBlogPost = async () => {
-      if (!id) return;
+    let active = true;
+    setImgError(false);
+
+    async function fetchBlogPost() {
+      if (!id) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       setError(null);
       try {
         const data = await CMSStorage.getBlog(id);
+        if (!active) return;
         if (!data) {
           setError('Article not found');
+          setPost(null);
         } else {
-          setBlog(data);
+          setPost(mapCMSBlogToPost(data));
         }
-      } catch (err: any) {
-        console.error('Error fetching blog detail:', err);
-        setError('Article not found or server error');
+      } catch {
+        if (!active) return;
+        const staticMatch = BLOG_POSTS.find((b) => b.id === id || b.slug === id);
+        if (staticMatch) {
+          setPost(staticMatch);
+        } else {
+          setError('Article not found or server error');
+          setPost(null);
+        }
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
-    };
+    }
 
     fetchBlogPost();
+    return () => {
+      active = false;
+    };
   }, [id]);
 
-  // Delegated click handler for SPA links and gallery lightboxes
   const handleContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
 
-    // 1. Intercept relative anchor tags (e.g., /portfolio/...)
     const anchor = target.closest('a');
     if (anchor) {
       const href = anchor.getAttribute('href');
       if (href && href.startsWith('/')) {
         e.preventDefault();
-        navigate(href);
+        navigateWithTransition(navigate, href);
         return;
       }
     }
 
-    // 2. Open lightbox on gallery or content image clicks
-    const figureEl = target.closest('figure.gallery-item[data-media-type="image"], figure.gallery-image-clickable');
-    const imgEl = (figureEl ? figureEl.querySelector('img') : target.closest('img')) as HTMLImageElement | null;
+    const figureEl = target.closest(
+      'figure.gallery-item[data-media-type="image"], figure.gallery-image-clickable',
+    );
+    const imgEl = (
+      figureEl ? figureEl.querySelector('img') : target.closest('img')
+    ) as HTMLImageElement | null;
+
     if (imgEl && imgEl.src && !target.closest('.portfolio-embed-card')) {
       const galleryContainer = imgEl.closest('.portfolio-gallery');
       if (galleryContainer) {
         const allImgs = Array.from(galleryContainer.querySelectorAll('img'));
         const items: LightboxImageItem[] = allImgs.map((img) => ({
           src: img.getAttribute('src') || img.src,
-          alt: img.getAttribute('alt') || 'Article gallery image'
+          alt: img.getAttribute('alt') || 'Article gallery image',
         }));
         const clickedIdx = allImgs.indexOf(imgEl);
         setLightboxImages(items);
@@ -80,8 +104,8 @@ const BlogDetail: React.FC = () => {
         setLightboxImages([
           {
             src: imgEl.getAttribute('src') || imgEl.src,
-            alt: imgEl.getAttribute('alt') || blog?.title || 'Article image'
-          }
+            alt: imgEl.getAttribute('alt') || post?.title || 'Article image',
+          },
         ]);
         setLightboxIndex(0);
         setLightboxOpen(true);
@@ -90,135 +114,174 @@ const BlogDetail: React.FC = () => {
   };
 
   return (
-    <div className="App min-h-screen flex flex-col bg-base-100">
-      <Navbar />
-
-      <main className="flex-1 min-w-0 w-full max-w-full pt-28 pb-24">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Breadcrumb / Back Button */}
-          <div className="mb-8">
-            <Link
-              to="/blogs"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline group"
-              data-testid="back-to-blogs-link"
-            >
-              <span className="transition-transform group-hover:-translate-x-1">←</span>
-              Back to Blog & News
+    <div ref={rootRef} className="min-h-screen bg-white text-ink">
+      <main className="page-shell py-12 sm:py-20">
+        {loading ? (
+          <div className="py-24 text-center">
+            <span className="loading loading-spinner loading-lg text-brand" />
+            <p className="mt-4 text-sm text-muted-600">Loading article...</p>
+          </div>
+        ) : error || !post ? (
+          <div className="py-24 text-center">
+            <h1 className="text-3xl font-medium tracking-tight">Article Not Found</h1>
+            <p className="mt-4 text-base text-muted-600">
+              The article you are looking for does not exist or may have been unpublished.
+            </p>
+            <Link to="/blogs" className="flat-button flat-button-blue mt-8">
+              <ArrowLeftIcon className="size-4" />
+              Return to journal archive
             </Link>
           </div>
-
-          {loading ? (
-            <div className="py-28 text-center text-base-content/50 flex flex-col items-center justify-center gap-3">
-              <span className="loading loading-spinner loading-lg text-primary"></span>
-              <p className="text-sm font-medium">Loading article...</p>
-            </div>
-          ) : error || !blog ? (
-            <div className="py-24 text-center">
-              <div className="text-5xl mb-4">📰</div>
-              <h1 className="text-2xl font-bold text-base-content mb-2">
-                Article Not Found
-              </h1>
-              <p className="text-base-content/60 mb-6">
-                The article you are looking for does not exist or may have been unpublished.
-              </p>
-              <Link to="/blogs" className="btn btn-primary btn-sm">
-                Return to Blog Archive
+        ) : (
+          <article className="mx-auto max-w-3xl" data-testid="blog-article-detail">
+            <nav
+              aria-label="Breadcrumb"
+              data-gsap="hero-item"
+              className="mb-8 flex flex-wrap items-center gap-3 text-xs leading-relaxed text-muted-600"
+            >
+              <Link to="/" className="inline-flex min-h-8 items-center hover:underline">
+                Home
               </Link>
-            </div>
-          ) : (
-            <article className="space-y-8" data-testid="blog-article-detail">
-              {/* Header Metadata */}
-              <header className="space-y-4 text-left">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`badge ${CATEGORY_STYLES[blog.category] || 'badge-neutral'} font-semibold`}>
-                    {blog.category}
-                  </span>
-                  {blog.isPinned && (
-                    <span className="badge badge-warning font-semibold">📌 Pinned</span>
-                  )}
-                  <span className="text-sm text-base-content/60">
-                    📅 {blog.date}
-                  </span>
-                  {blog.readTime && (
-                    <span className="text-sm text-base-content/60">
-                      • ⏱️ {blog.readTime}
-                    </span>
-                  )}
-                  {blog.location && (
-                    <span className="text-sm text-base-content/60">
-                      • 📍 {blog.location}
-                    </span>
-                  )}
-                </div>
+              <span aria-hidden="true">/</span>
+              <Link to="/blogs" className="inline-flex min-h-8 items-center hover:underline">
+                Journal
+              </Link>
+              <span aria-hidden="true">/</span>
+              <span aria-current="page">{post.title}</span>
+            </nav>
 
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-base-content tracking-tight leading-tight">
-                  {blog.title}
-                </h1>
+            <Link to="/blogs" className="text-link mb-10" data-testid="back-to-blogs-link">
+              <ArrowLeftIcon className="size-4" />
+              Back to journal
+            </Link>
 
-                {blog.desc && (
-                  <p className="text-lg sm:text-xl text-base-content/80 font-normal leading-relaxed pt-1">
-                    {blog.desc}
-                  </p>
-                )}
-
-                <div className="flex items-center justify-between pt-2 border-t border-base-300/60 text-xs text-base-content/60">
-                  <span>Written by <strong className="text-base-content">{blog.author || 'Valentino Jehaut'}</strong></span>
-                  {blog.link && (
-                    <a
-                      href={blog.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-xs btn-outline btn-primary gap-1"
-                    >
-                      External Event Link ↗
-                    </a>
-                  )}
-                </div>
-              </header>
-
-              {/* Hero Cover Image */}
-              {blog.imageURL && (
-                <div className="rounded-2xl overflow-hidden shadow-xl border border-base-300 aspect-video max-h-[500px] bg-base-200">
-                  <img
-                    src={blog.imageURL}
-                    alt={blog.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+            <div className="mb-6 flex flex-wrap items-center gap-3 text-xs text-muted-600">
+              <span className="section-label text-brand">{post.category}</span>
+              <span aria-hidden="true">/</span>
+              <time dateTime={toISODateAttribute(post.date)}>{formatFullDate(post.date)}</time>
+              <span aria-hidden="true">/</span>
+              <span>{post.readTime}</span>
+              {post.location && (
+                <>
+                  <span aria-hidden="true">/</span>
+                  <span>{post.location}</span>
+                </>
               )}
+            </div>
 
-              {/* Main Content Body */}
+            <h1 className="text-4xl font-medium leading-[1.12] tracking-[-0.05em] sm:text-6xl">
+              {post.title}
+            </h1>
+
+            {post.excerpt && (
+              <p className="mt-6 max-w-[65ch] text-lg leading-relaxed text-muted-600">
+                {post.excerpt}
+              </p>
+            )}
+
+            <div className="mb-10 mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-muted-300 pt-4 text-sm text-muted-600">
+              <span>Written by {post.author}</span>
+              {post.link && (
+                <a
+                  href={post.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-link"
+                >
+                  External link <ExternalLinkIcon className="size-4" />
+                </a>
+              )}
+            </div>
+
+            {post.imageURL && !imgError ? (
+              <div className="aspect-[16/9] overflow-hidden bg-[#e7e7e9] outline outline-1 -outline-offset-1 outline-black/10">
+                <img
+                  src={post.imageURL}
+                  alt={post.title}
+                  fetchPriority="high"
+                  decoding="async"
+                  onError={() => setImgError(true)}
+                  className="h-full w-full cursor-zoom-in object-cover"
+                  onClick={() => {
+                    setLightboxImages([{ src: post.imageURL as string, alt: post.title }]);
+                    setLightboxIndex(0);
+                    setLightboxOpen(true);
+                  }}
+                />
+              </div>
+            ) : (
+              <ImagePlaceholder
+                label="Featured article photo"
+                sublabel={post.title}
+                aspectRatio="aspect-[16/9]"
+              />
+            )}
+
+            {post.content ? (
               <div
-                className="wysiwyg-content portfolio-markdown prose prose-lg max-w-none text-base-content/90 leading-relaxed text-left py-4 w-full min-w-0 overflow-x-clip"
-                dangerouslySetInnerHTML={{ __html: formatPublicDescription(blog.content || '') }}
+                className="wysiwyg-content portfolio-markdown prose max-w-none min-w-0 w-full overflow-x-clip py-8 leading-relaxed text-muted-700"
+                dangerouslySetInnerHTML={{ __html: formatPublicDescription(post.content) }}
                 onClick={handleContentClick}
                 data-testid="blog-content-body"
               />
-
-              {/* Tags Section */}
-              {blog.tags && blog.tags.length > 0 && (
-                <div className="pt-8 border-t border-base-300 flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-semibold text-base-content/70 mr-1">Tags:</span>
-                  {blog.tags.map((tag) => (
-                    <span key={tag} className="badge badge-outline badge-md">
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Bottom Back Button */}
-              <div className="pt-8 border-t border-base-300 text-left">
-                <Link to="/blog" className="btn btn-outline btn-primary">
-                  ← Back to All Articles
-                </Link>
+            ) : (
+              <div className="mt-10 space-y-10" data-testid="blog-content-body">
+                {post.contentSections?.map((section, index) => (
+                  <section
+                    key={index}
+                    aria-label={section.heading || `Article section ${index + 1}`}
+                  >
+                    {section.heading && (
+                      <h2 className="mb-6 text-2xl font-medium">{section.heading}</h2>
+                    )}
+                    <div className="mx-auto max-w-[65ch] space-y-6">
+                      {section.paragraphs.map((paragraph) => (
+                        <p key={paragraph} className="text-base leading-[1.75] text-muted-700">
+                          {paragraph}
+                        </p>
+                      ))}
+                    </div>
+                    {section.gallery && (
+                      <div className="my-9 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3">
+                        {section.gallery.map((item, photoIndex) => (
+                          <figure key={item.caption}>
+                            <ImagePlaceholder
+                              label={`Photo ${photoIndex + 1}`}
+                              sublabel={item.caption}
+                              aspectRatio="aspect-[4/3]"
+                              showIcon={false}
+                            />
+                            <figcaption className="mt-2 text-xs leading-relaxed text-muted-600">
+                              {item.caption}
+                            </figcaption>
+                          </figure>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                ))}
               </div>
-            </article>
-          )}
-        </div>
+            )}
+
+            {post.tags && post.tags.length > 0 && (
+              <div className="mt-12 border-t border-muted-300 pt-7">
+                <h2 className="section-label text-muted-600">Filed under</h2>
+                <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs leading-relaxed text-muted-600">
+                  {post.tags.map((item) => (
+                    <li key={item}>{item.startsWith('#') ? item : `#${item}`}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <Link to="/blogs" className="text-link mt-10">
+              <ArrowLeftIcon className="size-4" />
+              Read all articles
+            </Link>
+          </article>
+        )}
       </main>
 
-      {/* Lightbox for Article Images */}
       {lightboxOpen && (
         <ImageLightboxModal
           images={lightboxImages}
@@ -232,7 +295,4 @@ const BlogDetail: React.FC = () => {
       <Footer />
     </div>
   );
-};
-
-export default BlogDetail;
-
+}

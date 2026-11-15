@@ -1,7 +1,7 @@
 import React from 'react';
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import App from '../src/App';
 import { CMSStorage } from '../src/cms/apiStorage';
 import apiService from '../src/services/api';
@@ -18,13 +18,21 @@ vi.mock('../src/cms/apiStorage', () => ({
         institution: 'Test University',
         startDate: '2020-09',
         endDate: '2024-06',
-        description: 'Computer Science Degree'
-      }
+        description: 'Computer Science Degree',
+      },
     ]),
     getPortfolios: vi.fn().mockResolvedValue([]),
     getExperiences: vi.fn().mockResolvedValue([]),
-    getBlogs: vi.fn().mockResolvedValue([{ id: 'blog-1', title: 'Test Blog', category: 'Tech', isPublished: true, date: '2026-01-01' }])
-  }
+    getBlogs: vi.fn().mockResolvedValue([
+      {
+        id: 'blog-1',
+        title: 'Test Blog',
+        category: 'Tech',
+        isPublished: true,
+        date: '2026-01-01',
+      },
+    ]),
+  },
 }));
 
 vi.mock('../src/services/api', () => ({
@@ -39,19 +47,59 @@ vi.mock('../src/services/api', () => ({
           companyName: 'Tech Corp',
           startDate: '2024-01',
           description: 'Building software',
-          logoURL: ''
-        }
-      ]
-    })
-  }
+          logoURL: '',
+        },
+      ],
+    }),
+  },
 }));
 
-describe('App Component - CursorInverter Removal & Home Page Hierarchy', () => {
+describe('App Component - Redesign Hierarchy & Floating Navigation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(CMSStorage.getAbout).mockResolvedValue({ description: 'Test about', imageURL: 'me.png' } as any);
+    vi.mocked(CMSStorage.getTechTools).mockResolvedValue([{ id: '1', title: 'React', imageURL: 'react.svg' }] as any);
+    vi.mocked(CMSStorage.getEducation).mockResolvedValue([
+      {
+        id: 'edu-1',
+        title: 'B.Sc Computer Science',
+        institution: 'Test University',
+        startDate: '2020-09',
+        endDate: '2024-06',
+        description: 'Computer Science Degree',
+      },
+    ] as any);
+    vi.mocked(CMSStorage.getPortfolios).mockResolvedValue([]);
+    vi.mocked(CMSStorage.getBlogs).mockResolvedValue([
+      {
+        id: 'blog-1',
+        title: 'Test Blog',
+        category: 'Tech',
+        isPublished: true,
+        date: '2026-01-01',
+      },
+    ] as any);
+    vi.mocked(apiService.getExperiences).mockResolvedValue({
+      success: true,
+      data: [
+        {
+          id: 'exp-1',
+          title: 'Software Engineer',
+          status: 'Current',
+          companyName: 'Tech Corp',
+          startDate: '2024-01',
+          description: 'Building software',
+          logoURL: '',
+        },
+      ],
+    });
+  });
+
   it('renders public site without any CursorInverter or CursorToggle elements', async () => {
     const { container } = render(
       <MemoryRouter initialEntries={['/']}>
         <App />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
@@ -63,11 +111,11 @@ describe('App Component - CursorInverter Removal & Home Page Hierarchy', () => {
     expect(localStorage.getItem('cursorInverterEnabled')).toBeNull();
   });
 
-  it('renders Home sections in the exact requested hierarchy and aligns Education & Experience carousel sizes', async () => {
+  it('renders redesigned Home sections in editorial hierarchy with floating navigation', async () => {
     const { container } = render(
       <MemoryRouter initialEntries={['/']}>
         <App />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
@@ -76,39 +124,49 @@ describe('App Component - CursorInverter Removal & Home Page Hierarchy', () => {
       expect(CMSStorage.getBlogs).toHaveBeenCalled();
     });
 
-    const sectionIds = Array.from(container.querySelectorAll('section[id], div#home'))
+    const sectionIds = Array.from(container.querySelectorAll('section[id]'))
       .map((el) => el.id)
       .filter(Boolean);
 
     expect(sectionIds).toEqual([
       'home',
-      'aboutme',
-      'tools',
-      'portfolio',
-      'blog',
+      'selected-work',
+      'process',
+      'about',
       'experience',
-      'education',
-      'contact'
+      'journal',
+      'contact',
     ]);
 
-    const experienceSlide = container.querySelector('#experience .flex-none.w-96');
-    const educationSlide = container.querySelector('#education .flex-none.w-96');
-    expect(experienceSlide).not.toBeNull();
-    expect(educationSlide).not.toBeNull();
+    expect(screen.getByRole('navigation', { name: 'Primary' })).toBeInTheDocument();
   });
 
-  it('omits #blog section when getBlogs returns empty array', async () => {
-    vi.mocked(CMSStorage.getBlogs).mockResolvedValueOnce([]);
+  it('omits #journal section when getBlogs returns empty array', async () => {
+    vi.mocked(CMSStorage.getBlogs).mockResolvedValueOnce([]).mockResolvedValueOnce([]);
     const { container } = render(
       <MemoryRouter initialEntries={['/']}>
         <App />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
       expect(CMSStorage.getBlogs).toHaveBeenCalled();
     });
 
-    expect(container.querySelector('#blog')).toBeNull();
+    await waitFor(() => {
+      expect(container.querySelector('#journal')).toBeNull();
+    });
+  });
+
+  it('renders /design-system route cleanly', async () => {
+    render(
+      <MemoryRouter initialEntries={['/design-system']}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Design system' })).toBeInTheDocument();
+    });
   });
 });

@@ -29,7 +29,12 @@ This document provides a comprehensive, centralized record of all architecture i
 22. [Vercel Serverless Route Parity & Blog 404 Resolution](#22-vercel-serverless-route-parity--blog-404-resolution)
 23. [Mobile Viewport Layout Containment & Blog Tag Filter Z-Index Elevation](#23-mobile-viewport-layout-containment--blog-tag-filter-z-index-elevation)
 24. [Removal of All Static AI Keys & Client-Side Credential Isolation](#24-removal-of-all-static-ai-keys--client-side-credential-isolation)
-25. [Files Created, Modified, or Removed](#25-files-created-modified-or-removed)
+25. [Editorial Portfolio Redesign & Modern Web Guidance Compliance](#25-editorial-portfolio-redesign--modern-web-guidance-compliance)
+26. [View Transitions, Sticky Portfolio Detail, Swipe Carousel, Vibrant Footer, Greeting, GSAP & ISO Dates](#26-view-transitions-sticky-portfolio-detail-swipe-carousel-vibrant-footer-greeting-gsap--iso-dates)
+27. [Contact Consolidation, Structure Cleanup, Experience/Education Tabs, Hover CTA & End-Date Sorting](#27-contact-consolidation-structure-cleanup-experienceeducation-tabs-hover-cta--end-date-sorting)
+28. [Work Page Filter Overhaul, Grid/Table Switcher & Responsive Mobile Table/Filter Dialog](#28-work-page-filter-overhaul-gridtable-switcher--responsive-mobile-tablefilter-dialog)
+29. [16:9 Portfolio Media, Hero Carousel All-Items/Toggletip, Code Block Fix & Blue Resume Pill](#29-169-portfolio-media-hero-carousel-all-itemstoggletip-code-block-fix--blue-resume-pill)
+30. [Files Created, Modified, or Removed](#30-files-created-modified-or-removed)
 
 ---
 
@@ -495,10 +500,83 @@ This document provides a comprehensive, centralized record of all architecture i
 
 ---
 
-## 25. Files Created, Modified, or Removed
+## 25. Editorial Portfolio Redesign & Modern Web Guidance Compliance
+
+### Design Tokens, Editorial Components & Live CMS Adapters
+- **HTML & Design Tokens**: Updated `index.html` to load **Plus Jakarta Sans** and removed an invalid stray `<html data-theme="night"></html>` tag nested inside `<head>`. Configured editorial palette tokens (`brand: #2563eb`, `brand-light: #4ca7f8`, `brand-tint: #bce4fc`, `ink: #0f172a`, `paper: #f8f8fa`, `mint: #6ec98e`, `pink: #eb54a7`, `orange: #f19e38`, and `muted` mapped to Tailwind `neutral` to avoid DaisyUI `--color-neutral` collision) in `tailwind.config.cjs`, and added base/component styles (`.page-shell`, `.section-label`, `.section-title`, `.flat-button*`, `.dock-*`, `.hero-*`, `.field*`, `.editorial-track`, `.hero-marquee`, `@keyframes project-drift`) in `src/index.css`.
+- **Unified Types & CMS Adapter Layer**: Created `src/types/portfolio.ts` and `src/data/portfolioData.ts` unifying fallback datasets (`PERSONAL_INFO`, `WORK_PROCESS_STEPS`, `SOCIAL_LINKS`, `PROJECTS`, `BLOG_POSTS`, `EXPERIENCES`, `EDUCATION_LIST`, `TECH_TOOLS`) with live CMS data mappers (`mapPortfolioItemToProject`, `mapCMSBlogToPost`, `mapCMSExperienceToView`, `mapCMSEducationToView`, `mapCMSTechToolToView`, `resolvePortfolioImageUrl`, `stripHtmlTags`).
+- **Redesigned Public Components & Routes**:
+  - Built/ported `Icons.tsx`, `ImagePlaceholder.tsx`, `FloatingNavigation.tsx`, `HeroProjectStrip.tsx`, `ProjectCard.tsx`, `BlogCard.tsx`, `WorkProcessSection.tsx`, `EditorialCarousel.tsx`, `CVModal.tsx`, and `Footer.tsx` in `src/components/`.
+  - Updated `Home.tsx`, `PortfolioPage.tsx`, `PortfolioDetail.tsx`, `BlogPage.tsx`, `BlogDetail.tsx`, and `App.tsx`, and added `/design-system` (`DesignSystemPage.tsx`) while keeping `/cms/*` isolated and preserving password-protected portfolios, `ImageLightboxModal`, `ScrollProgressBar`, WYSIWYG/Markdown rendering, live contact form submission (`CMSStorage.addContactEntry` with `mailto:` fallback), and dynamic `cvURL`.
+
+### `modern-web-guidance` Compliance Audits & Upgrades
+- **Native `<dialog closedby="any">`**: Upgraded `CVModal.tsx`, `PasswordProtectionModal.tsx`, and `ImageLightboxModal.tsx` to native `showModal()`/`close()` with coordinate backdrop click fallback, CSS `overscroll-behavior: contain` (`dialog:modal`, `dialog::backdrop`), and zero `document.body.style.overflow` lock or custom `Tab` focus-trap loops.
+- **Autofill, Validation & IME Safety**: Added `name`, `autoComplete` (`username`, `current-password`, `name`, `email`), `autoCorrect="off"`, `autoCapitalize="none"`, and `enterKeyHint` across `Login.tsx`, `PasswordProtectionModal.tsx`, `Home.tsx`, `PortfolioPage.tsx`, and `BlogPage.tsx`; styled `.field:user-invalid` / `.field-inverse:user-invalid`; guarded `Enter` handlers with `e.nativeEvent.isComposing || e.keyCode === 229` in `WYSIWYGEditor.tsx`, `BlogManagement.tsx`, and `PortfolioManagement.tsx`.
+- **Landmarks, Icons & Carousel Accessibility**: Wrapped filter bars in semantic `<search>` landmarks, defaulted decorative SVGs in `Icons.tsx` to `aria-hidden="true"` and `focusable="false"`, added `aria-roledescription="carousel"/"slide"` and `overscroll-behavior-x: contain` to `EditorialCarousel`, configured `WorkProcessSection` as a single-row WAI-ARIA `tablist` with forced-colors support, and added `loading`/`decoding`/`fetchPriority` attributes.
+
+---
+
+## 26. View Transitions, Sticky Portfolio Detail, Swipe Carousel, Vibrant Footer, Greeting, GSAP & ISO Dates
+
+- **Native CSS & SPA View Transitions**: Added `@view-transition { navigation: auto; }` and `::view-transition-old(root)` (`vt-page-out`) / `::view-transition-new(root)` (`vt-page-in`) animations gated by `@media (prefers-reduced-motion: no-preference)` (and disabled under `reduce`) in `src/index.css`; created `src/utils/viewTransitions.ts` (`navigateWithTransition`) calling `document.startViewTransition()` and shifting focus to destination `<h1>`/`<main>` across public navigation links.
+- **Sticky Left Column on Single Portfolio Page**: Updated `PortfolioDetail.tsx` with `lg:items-start` and `overscroll-contain lg:sticky lg:top-8 lg:max-h-[calc(100dvh-4rem)] lg:overflow-y-auto lg:pr-2` on `portfolio-detail-left-column` so the right-hand case study details scroll independently on desktop.
+- **Swipe, Pointer-Drag & Step Controls (`HeroProjectStrip`)**: Enabled native horizontal scrolling (`overflow-x-auto`, `touch-action: pan-x pan-y`), pointer-drag scrubbing, touch/wheel auto-pause, and Previous/Next arrow buttons in `HeroProjectStrip.tsx`.
+- **Vibrant Editorial Footer & Dynamic Greeting**: Rebuilt `Footer.tsx` (`bg-brand` CTA banner, `mint`/`orange`/`pink` editorial stripe, live Bali `Asia/Makassar` clock, `<nav aria-label="Footer navigation">`, social pills, and `"Back to top"` action using `ArrowUpIcon` / `ChevronDownIcon`); exported `getGreetingText` in `src/others/greeting.tsx` (`Good Morning` / `Good Afternoon` / `Good Evening`) to replace `"Hello"` in `Home.tsx`.
+- **GSAP Entrance Animations**: Added `gsap` (`package.json`) and created `src/utils/gsapAnimations.ts` (`useGSAPPageEntrance` using `gsap.context()` and `ScrollTrigger` for hero stagger and section reveals, skipped under `prefers-reduced-motion` and JSDOM test environments).
+- **Timezone-Safe ISO Date Formatting**: Created `src/utils/dateFormat.ts` (`formatMonthYear`, `formatFullDate`, `toISODateAttribute`) to format raw ISO strings like `"2025-10-01T00:00:00.000Z"` as `"Oct 2025"` / `"Oct 1, 2025"` without local UTC shift, applied across `portfolioData.ts`, `BlogCard.tsx`, `BlogDetail.tsx`, `BlogManagement.tsx`, `EducationManagement.tsx`, and `ExperienceManagement.tsx` (`tests/dateFormat.test.ts`).
+- **Multi-Option Work Archive Filters**: Restored Role pills with counts, Year filter pills, multi-select Technology dropdown with removable chips, keyword search, and `"Clear filters"` on `/portfolio`.
+
+---
+
+## 27. Contact Consolidation, Structure Cleanup, Experience/Education Tabs, Hover CTA & End-Date Sorting
+
+- **Email & Social/Copy Consolidation**: Replaced `tino.jehaut@gmail.com` with `valentinojehaut@gmail.com` across `portfolioData.ts`, `Home.tsx`, `Footer.tsx`, `CVModal.tsx`, and `PortfolioDetail.tsx`; removed `"Open for collaborations & product engineering"` from `Footer.tsx`, removed `"Upwork"` from `portfolioData.ts` / `Footer.tsx`, and removed `"Design System"` navigation links from `FloatingNavigation.tsx` and `Footer.tsx` (leaving `/design-system` accessible directly).
+- **Directory Consolidation (`src/components/` Cleanup)**: Extracted `src/components/ExperienceEducationSection.tsx`, migrated legacy test imports (`portfolio.test.tsx`, `portfoliocard.test.tsx`, `publicFormatting.test.tsx`, `techToolAutoSync.test.tsx`, `blog.test.tsx`) to `src/components/` and `src/pages/`, and removed obsolete `src/sections/` and `src/hook/` directories (`useHorizontalScroll.tsx`, `useScrollPosition.tsx`).
+- **Accessible `"Experiences"` & `"Education"` Tabs**: Implemented WAI-ARIA `tablist`/`tab`/`tabpanel` switching in `ExperienceEducationSection.tsx` with roving `tabIndex`, `ArrowLeft`/`ArrowRight`/`Home`/`End` navigation, `.tab-editorial` styling (`src/index.css`), `#education`/`#experience` hash synchronization, and direct DOM `hidden="until-found"` + `beforematch` Find-in-Page state synchronization.
+- **Hover/Focus Card CTA Reveal & Descending End-Date Order**: Added `.card-hover-cta` in `src/index.css` and applied it in `ProjectCard.tsx` and `BlogCard.tsx` so overlay CTA buttons stay hidden until pointer hover or `:focus-within` on hover-capable devices while remaining visible under `@media (hover: none)`. Added `sortByLatestEndDate` in `src/utils/dateFormat.ts` (`Present`/`Now`/`Current` first, then descending end date) across `CVModal.tsx`, `ExperienceEducationSection.tsx`, `Home.tsx`, `App.tsx`, `EducationManagement.tsx`, and `server/routes/education.js`.
+
+---
+
+## 28. Work Page Filter Overhaul, Grid/Table Switcher & Responsive Mobile Table/Filter Dialog
+
+- **Slim Inline Filter Bar & Grid/Table View Switcher**:
+  - Consolidated `PortfolioPage.tsx` filters into a compact two-tier bar (`bg-paper`, dropping duplicate `<select>` dropdowns) and added a keyboard-accessible `role="toolbar"` Grid/Table switcher (`GridViewIcon`, `TableRowsIcon` in `Icons.tsx`) with `aria-pressed`, arrow-key roving focus, and `?view=table` URL sync.
+  - Created `src/components/PortfolioTable.tsx` with semantic `<table>`, focusable `.portfolio-table-wrapper`, sticky left-aligned headers (`No.`, `Project`, `Role`, `Link`, `Year`), zero-padded row indices (`001`, …), left-aligned year cells, `Protected` year masking, desktop below-row hover/focus preview card (`portfolio-table-preview`), and `PasswordProtectionModal` support.
+- **Mobile Filter Dialog & Two-Column Mobile Table**:
+  - Extracted shared `src/components/PortfolioFilterControls.tsx` (`variant="inline"` vs `variant="modal"`) and created `src/components/MobileFilterDialog.tsx` (`<dialog closedby="any">`, active filter count pill, `Clear all`, live `"Show N project(s)"` close CTA), triggered from the `md:hidden` `Filter` button (`FilterIcon` in `Icons.tsx`) and auto-closed when expanding to `min-width: 768px`.
+  - Updated `@container (width < 640px)` rules in `src/index.css` to hide `thead`, `td[data-col='roles']`, `td[data-col='link']`, and `td[data-col='year']`, rendering clean two-column mobile table rows (`001` pinned left, project title link right-aligned). Expanded `tests/PortfolioPage.test.tsx`.
+
+---
+
+## 29. 16:9 Portfolio Media, Hero Carousel All-Items/Toggletip, Code Block Fix & Blue Resume Pill
+
+- **`16:9` Portfolio Media Standardization (`aspect-video`)**: Updated portfolio thumbnail containers, dimension hints, and fallbacks to `aspect-video` across `HeroProjectStrip.tsx`, `ProjectCard.tsx`, `Home.tsx`, `PortfolioTable.tsx`, `PortfolioDetail.tsx`, and `ImagePlaceholder.tsx`.
+- **Hero Carousel (`HeroProjectStrip.tsx`) — All Projects, Non-Clickable Visuals, Toggletip & Play/Pause**:
+  - Removed `.slice(0, 6)` so **all** published portfolio items render across the hero marquee instead of capping at 6.
+  - Removed slide click links, overlay project titles, and arrow icons so hero slides act purely as swipeable/draggable `16:9` previews.
+  - Added `InfoIcon`, `PlayIcon`, and `PauseIcon` (`Icons.tsx`); replaced the helper `<p>` caption with an accessible `"i"` toggletip (`popover="hint"`, `popoverTargetAction="show"`, `interestfor`, `role="tooltip"`), conditional polyfills (`src/utils/tooltipPolyfills.ts` with `@oddbird/popover-polyfill` + `interestfor` + `src/types/polyfills.d.ts`), and `@supports (position-area: block-end)` positioning (`src/index.css`); replaced `"Pause previews"`/`"Play previews"` text with an icon-only Play/Pause button (`data-testid="hero-strip-play-pause"`).
+- **Single Portfolio `<code>` & `<pre>` Dark-Mode Fix (`src/App.css`)**: Prevented DaisyUI dark-mode `:root:not([data-theme])` variables (`--color-base-200`, `--color-base-300`, `--color-neutral`) from painting inline `<code>` and `<pre>` elements black on white public detail pages by setting light `--tw-prose-code`, `--tw-prose-pre-code`, `--tw-prose-pre-bg`, `#f4f4f5`/`#0f172a`/`#d4d4d8` inline code styling (`16.24:1` contrast), `#f8f8fa` `<pre>` blocks (`16.83:1` contrast), and unboxed transparent `<pre> <code>` inside `.portfolio-markdown` and `.wysiwyg-content`.
+- **Pill Navigation `"Résumé"` Primary Blue Styling (`src/index.css`, `FloatingNavigation.tsx`)**: Added `.dock-item-primary` (`border border-transparent bg-brand text-white hover:bg-[#1d4ed8] focus-visible:outline-ink`; `5.17:1` text/icon contrast, `6.70:1` on hover) and applied it to the desktop `"Résumé"` button in `FloatingNavigation.tsx` so text and `DownloadIcon` (`stroke="currentColor"`) render white on brand blue while active-link underlines remain unique to `.dock-item-active`.
+- **Test & Build Verification**: Added/updated tests in `FloatingNavigation.test.tsx`, `HomeRedesign.test.tsx`, and `PortfolioDetail.test.tsx`; full Vitest suite passes (**21 test files, 93 tests**) and `npm run build` (`tsc && vite build`) compiles cleanly with zero errors.
+
+---
+
+## 30. Files Created, Modified, or Removed
 
 | File | Status | Description |
 | :--- | :--- | :--- |
+| `src/components/FloatingNavigation.tsx`, `Footer.tsx`, `HeroProjectStrip.tsx`, `ProjectCard.tsx`, `BlogCard.tsx`, `WorkProcessSection.tsx`, `EditorialCarousel.tsx`, `CVModal.tsx`, `ExperienceEducationSection.tsx`, `PortfolioFilterControls.tsx`, `MobileFilterDialog.tsx`, `PortfolioTable.tsx`, `Icons.tsx`, `ImagePlaceholder.tsx` | Created | Editorial UI components consolidated under `src/components/`, including pill nav with `.dock-item-primary` Résumé CTA, swipeable all-project `16:9` hero carousel with toggletip, accessible tab sections, mobile filter `<dialog>`, and responsive portfolio table. |
+| `src/data/portfolioData.ts`, `src/types/portfolio.ts`, `src/types/polyfills.d.ts` | Created | Unified portfolio/blog/experience/education/tech types, static fallback datasets, and CMS adapter mappers. |
+| `src/utils/dateFormat.ts`, `gsapAnimations.ts`, `tooltipPolyfills.ts`, `viewTransitions.ts` | Created | Timezone-safe ISO formatting & end-date sorting, reduced-motion GSAP hooks, conditional popover/`interestfor` polyfill loader, and SPA View Transition navigation helper. |
+| `src/pages/DesignSystemPage.tsx` | Created | Editorial design-system reference route (`/design-system`). |
+| `tests/FloatingNavigation.test.tsx`, `CVModal.test.tsx`, `WorkProcessSection.test.tsx`, `EditorialCarousel.test.tsx`, `PortfolioPage.test.tsx`, `BlogPage.test.tsx`, `HomeRedesign.test.tsx`, `dateFormat.test.ts` | Created | Automated Vitest test suites covering navigation, native dialogs, keyboard tabs, carousels, filtering, sorting, ISO dates, `16:9` media, and >6 hero marquee projects. |
+| `index.html`, `tailwind.config.cjs`, `src/index.css`, `src/App.css`, `src/App.tsx`, `package.json`, `.gitignore` | Modified | Loaded Plus Jakarta Sans, added editorial color tokens, view-transition/container-table/tooltip/dock CSS, `.portfolio-markdown`/`.wysiwyg-content` light code overrides, GSAP/polyfill dependencies, and `valentinojehaut@gmail.com` / route integration. |
+| `src/pages/Home.tsx`, `PortfolioPage.tsx`, `PortfolioDetail.tsx`, `BlogPage.tsx`, `BlogDetail.tsx`, `src/others/greeting.tsx` | Modified | Integrated redesigned editorial views, sticky portfolio detail left column, dynamic time-of-day greeting, Grid/Table switcher, mobile filter dialog, and descending end-date sorting. |
+| `src/components/ImageLightboxModal.tsx`, `PasswordProtectionModal.tsx`, `ScrollProgressBar.tsx`, `server/routes/education.js` | Modified | Migrated modals to `<dialog closedby="any">` with autofill attrs and latest-end-date-first backend sorting on `GET /api/education`. |
+| `src/cms/components/WYSIWYGEditor.tsx`, `src/cms/pages/BlogManagement.tsx`, `PortfolioManagement.tsx`, `EducationManagement.tsx`, `ExperienceManagement.tsx`, `Login.tsx` | Modified | Added IME composition `Enter` guards, login autofill attributes, ISO month/year formatting, and end-date descending ordering. |
+| `tests/App.test.tsx`, `PortfolioDetail.test.tsx`, `blog.test.tsx`, `portfolio.test.tsx`, `portfoliocard.test.tsx`, `publicFormatting.test.tsx`, `setup.ts`, `techToolAutoSync.test.tsx` | Modified | Updated JSDOM polyfills and migrated legacy `src/sections` assertions onto consolidated `src/components` and `src/pages`, plus inline/`<pre>` code and 16:9 hero assertions. |
+| `src/sections/*`, `src/hook/useHorizontalScroll.tsx`, `src/hook/useScrollPosition.tsx` | Removed | Removed legacy pre-redesign section folders and unused scroll hooks after consolidating UI components into `src/components/`. |
+| `CHANGES_SUMMARY.md`, `PORTFOLIO_DOCUMENTATION.md`, `DOCUMENTATION_MONO.md` | Modified | Synchronized architecture trees, changelog sections (25–30), tech stack, testing metrics (21 files / 93 tests), and developer ports/guides as of Nov 15, 2026. |
 | `server/services/aiService.js` | Modified | Removed static fallback key literal; strictly relies on `process.env.DEEPSEEK_API_KEY`. |
 | `server/routes/ai.js` | Modified | Updated `hasApiKey` status check to evaluate `process.env.DEEPSEEK_API_KEY` without fallbacks. |
 | `src/services/ai.ts` | Modified | Removed `apiKey` property from `OPENCODE_AI_CONFIG`. |

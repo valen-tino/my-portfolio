@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import CMSLayout from '../components/CMSLayout';
 import WYSIWYGEditor from '../components/WYSIWYGEditor';
 import { CMSStorage, BlogItem } from '../apiStorage';
+import { formatFullDate } from '../../utils/dateFormat';
 
 const CATEGORIES = ['Event', 'Personal', 'News', 'Tech'] as const;
 
@@ -380,6 +381,7 @@ const BlogManagement: React.FC = () => {
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyDown={(e) => {
+                      if (e.nativeEvent.isComposing || e.keyCode === 229) return;
                       if (e.key === 'Enter') {
                         e.preventDefault();
                         handleAddTag();
@@ -567,7 +569,7 @@ const BlogManagement: React.FC = () => {
                           {blog.category}
                         </span>
                         <span className="text-xs text-gray-400">
-                          {blog.date} • {blog.readTime || '3 min read'}
+                          {formatFullDate(blog.date)} • {blog.readTime || '3 min read'}
                         </span>
                         {blog.isPublished === false ? (
                           <span className="badge badge-warning badge-xs">Draft</span>

@@ -8,7 +8,15 @@ const router = express.Router();
 // @access  Public
 router.get('/', async (req, res) => {
   try {
-    const education = await Education.find().sort({ startDate: -1 });
+    const rawEducation = await Education.find().sort({ endDate: -1, startDate: -1 });
+    const education = [...rawEducation].sort((a, b) => {
+      const endA = a.endDate ? new Date(a.endDate).getTime() : Number.POSITIVE_INFINITY;
+      const endB = b.endDate ? new Date(b.endDate).getTime() : Number.POSITIVE_INFINITY;
+      if (endB !== endA) return endB - endA;
+      const startA = a.startDate ? new Date(a.startDate).getTime() : 0;
+      const startB = b.startDate ? new Date(b.startDate).getTime() : 0;
+      return startB - startA;
+    });
     res.json({
       success: true,
       data: education

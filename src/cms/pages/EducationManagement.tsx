@@ -2,6 +2,16 @@ import React, { useState, useEffect } from 'react';
 import CMSLayout from '../components/CMSLayout';
 import { CMSStorage, EducationItem } from '../apiStorage';
 import WYSIWYGEditor from '../components/WYSIWYGEditor';
+import { formatMonthYear, sortByLatestEndDate } from '../../utils/dateFormat';
+
+const sortEducationByLatestEnd = (items: EducationItem[]): EducationItem[] =>
+  sortByLatestEndDate(
+    items.map((item) => ({
+      item,
+      startDate: item.startDate,
+      endDate: item.endDate || 'Present',
+    })),
+  ).map((entry) => entry.item);
 
 const EducationManagement: React.FC = () => {
   const [educationItems, setEducationItems] = useState<EducationItem[]>([]);
@@ -17,7 +27,7 @@ const EducationManagement: React.FC = () => {
   const loadEducationItems = async () => {
     try {
       const items = await CMSStorage.getEducation();
-      setEducationItems(items);
+      setEducationItems(sortEducationByLatestEnd(items));
     } catch (error) {
       console.error('Error loading education items:', error);
       setMessage({
@@ -33,16 +43,12 @@ const EducationManagement: React.FC = () => {
       let savedItem: EducationItem;
       if (isNew) {
         savedItem = await CMSStorage.addEducation(item);
-        setEducationItems(prev => {
-          const updated = [...prev, savedItem];
-          return updated.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
-        });
+        setEducationItems((prev) => sortEducationByLatestEnd([...prev, savedItem]));
       } else {
         savedItem = await CMSStorage.updateEducation(item.id, item);
-        setEducationItems(prev => {
-          const updated = prev.map(e => e.id === item.id ? savedItem : e);
-          return updated.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
-        });
+        setEducationItems((prev) =>
+          sortEducationByLatestEnd(prev.map((e) => (e.id === item.id ? savedItem : e))),
+        );
       }
       setMessage({
         type: 'success',
@@ -124,11 +130,7 @@ const EducationManagement: React.FC = () => {
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Present';
-    // Handle both full date and month-year formats
-    const date = dateString.includes('-') && dateString.split('-').length === 2 
-      ? new Date(dateString + '-01')  // Add day for month-year format (YYYY-MM)
-      : new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    return formatMonthYear(dateString) || dateString;
   };
 
   return (

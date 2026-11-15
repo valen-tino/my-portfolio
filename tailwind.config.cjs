@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 const daisyui = require('daisyui');
+const defaultColors = require('tailwindcss/colors');
 
 module.exports = {
   content: [
@@ -8,6 +9,28 @@ module.exports = {
   ],
   theme: {
     extend: {
+      colors: {
+        brand: '#2563eb',
+        'brand-light': '#4ca7f8',
+        'brand-tint': '#bce4fc',
+        ink: '#0f172a',
+        paper: '#f8f8fa',
+        mint: '#6ec98e',
+        pink: '#eb54a7',
+        orange: '#f19e38',
+        muted: defaultColors.neutral,
+      },
+      fontFamily: {
+        sans: [
+          '"Plus Jakarta Sans"',
+          'system-ui',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          '"Segoe UI"',
+          'Roboto',
+          'sans-serif',
+        ],
+      },
       backgroundImage: {
         'pexels': "url('/pexels.jpg')",
       },

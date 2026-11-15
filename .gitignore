@@ -26,3 +26,6 @@ CMS_README.md
 *.sln
 *.sw?
 .vercel
+.agents
+.new-portfolio-page
+new-portfolio-page.zip

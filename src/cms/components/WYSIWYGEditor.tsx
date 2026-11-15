@@ -1278,6 +1278,7 @@ const WYSIWYGEditor: React.FC<WYSIWYGEditorProps> = ({
                       placeholder="e.g. 6. Key Learnings"
                       className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
                       onKeyDown={(e) => {
+                        if (e.nativeEvent.isComposing || e.keyCode === 229) return;
                         if (e.key === 'Enter') {
                           e.preventDefault();
                           handleInsertSectionTitle(customSectionTitle);

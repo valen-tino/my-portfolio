@@ -1,9 +1,8 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import ExperienceSection from '../src/sections/experience/experience';
-import EducationCard from '../src/sections/education/educationcard';
-import AboutMe from '../src/sections/aboutme/aboutme';
+import Home from '../src/pages/Home';
 import apiService from '../src/services/api';
 import { CMSStorage } from '../src/cms/apiStorage';
 import { formatPublicDescription } from '../src/utils/contentMigration';
@@ -19,13 +18,13 @@ vi.mock('../src/services/api', () => ({
 
 vi.mock('../src/cms/apiStorage', () => ({
   CMSStorage: {
+    getPortfolios: vi.fn(),
+    getBlogs: vi.fn(),
     getAbout: vi.fn(),
+    getTechTools: vi.fn(),
+    getEducation: vi.fn(),
+    addContactEntry: vi.fn(),
   }
-}));
-
-// Mock react-scroll Link to render a standard link without passing non-standard props to DOM
-vi.mock('react-scroll', () => ({
-  Link: ({ children, to, activeClass, spy, smooth, offset, duration, ...props }: any) => <a href={`#${to}`} {...props}>{children}</a>
 }));
 
 describe('Public View Rich Formatting & formatPublicDescription', () => {
@@ -64,81 +63,98 @@ describe('Public View Rich Formatting & formatPublicDescription', () => {
     });
   });
 
-  describe('ExperienceSection formatting', () => {
-    it('renders HTML bullet lists inside experience cards with wysiwyg-content class', async () => {
-      const mockExperience = [{
-        id: 'exp-1',
-        title: 'Lead Frontend Engineer',
-        status: 'Current' as const,
-        companyName: 'TechCorp',
-        startDate: '2023-01',
-        endDate: '',
-        description: '<ul><li>Engineered microfrontends</li><li>Mentored junior engineers</li></ul>',
-        logoURL: 'https://example.com/logo.png',
-        order: 1
-      }];
+  const mockDefaultCMS = () => {
+    vi.mocked(CMSStorage.getPortfolios).mockResolvedValue([]);
+    vi.mocked(CMSStorage.getBlogs).mockResolvedValue([]);
+    vi.mocked(CMSStorage.getTechTools).mockResolvedValue([]);
+    vi.mocked(CMSStorage.getEducation).mockResolvedValue([]);
+    vi.mocked(CMSStorage.getAbout).mockResolvedValue({
+      description: 'Bio',
+      imageURL: '/face.jpg',
+    });
+    vi.mocked(apiService.getExperiences).mockResolvedValue({
+      success: true,
+      data: [],
+    } as any);
+  };
 
+  describe('Home Experience & Education formatting', () => {
+    it('renders HTML bullet lists inside Experiences and Education tabs with wysiwyg-content class', async () => {
+      mockDefaultCMS();
       vi.mocked(apiService.getExperiences).mockResolvedValue({
         success: true,
-        data: mockExperience
-      });
+        data: [{
+          id: 'exp-1',
+          title: 'Lead Frontend Engineer',
+          status: 'Current' as const,
+          companyName: 'TechCorp',
+          startDate: '2023-01',
+          endDate: '',
+          description: '<ul><li>Engineered microfrontends</li><li>Mentored junior engineers</li></ul>',
+          logoURL: 'https://example.com/logo.png',
+          order: 1
+        }]
+      } as any);
 
-      render(<ExperienceSection />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Lead Frontend Engineer')).toBeInTheDocument();
-      });
-
-      expect(screen.getByText('Engineered microfrontends')).toBeInTheDocument();
-      expect(screen.getByText('Mentored junior engineers')).toBeInTheDocument();
-
-      const listItem = screen.getByText('Engineered microfrontends').closest('li');
-      expect(listItem).not.toBeNull();
-      const wysiwygContainer = listItem?.closest('.wysiwyg-content');
-      expect(wysiwygContainer).not.toBeNull();
-    });
-  });
-
-  describe('EducationCard formatting', () => {
-    it('renders HTML ordered and unordered lists inside education descriptions', () => {
-      const mockItem = {
+      vi.mocked(CMSStorage.getEducation).mockResolvedValue([{
         id: 'edu-1',
         title: 'Bachelor of Computer Science',
         institution: 'University of Technology',
         startDate: '2020-09',
         endDate: '2024-06',
         description: '<p>Relevant coursework:</p><ul><li>Distributed Systems</li><li>Algorithms & Data Structures</li></ul>',
-        link: 'https://example.com/cert'
-      };
+        link: 'https://example.com/cert',
+      }]);
 
-      render(<EducationCard item={mockItem} />);
+      render(
+        <MemoryRouter>
+          <Home />
+        </MemoryRouter>
+      );
 
-      expect(screen.getByText('Distributed Systems')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Lead Frontend Engineer')).toBeInTheDocument();
+      });
+
+      const expListItem = screen.getByText('Engineered microfrontends').closest('li');
+      expect(expListItem).not.toBeNull();
+      expect(expListItem?.closest('.wysiwyg-content')).not.toBeNull();
+      expect(screen.getByText('Mentored junior engineers')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('tab', { name: /Education/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Distributed Systems')).toBeInTheDocument();
+      });
+      const eduItem = screen.getByText('Distributed Systems').closest('li');
+      expect(eduItem).not.toBeNull();
+      expect(eduItem?.closest('.wysiwyg-content')).not.toBeNull();
       expect(screen.getByText('Algorithms & Data Structures')).toBeInTheDocument();
-
-      const itemEl = screen.getByText('Distributed Systems').closest('li');
-      expect(itemEl).not.toBeNull();
-      expect(itemEl?.closest('.wysiwyg-content')).not.toBeNull();
     });
   });
 
-  describe('AboutMe section formatting & dynamic CV link', () => {
+  describe('Home About section formatting & dynamic CV link', () => {
     it('renders rich paragraphs and uses dynamic Cloudinary CV URL', async () => {
-      const mockAbout = {
+      mockDefaultCMS();
+      vi.mocked(CMSStorage.getAbout).mockResolvedValue({
         description: '<p>Hi, I am Valen.</p><p>Passionate about building scalable web apps.</p>',
         imageURL: 'https://example.com/me.jpg',
         cvURL: 'https://res.cloudinary.com/demo/raw/upload/v123/cv.pdf',
         cvCloudinaryId: 'portfolio-cms/cv/cv_123'
-      };
+      });
 
-      vi.mocked(CMSStorage.getAbout).mockResolvedValue(mockAbout);
-
-      render(<AboutMe />);
+      render(
+        <MemoryRouter>
+          <Home />
+        </MemoryRouter>
+      );
 
       await waitFor(() => {
         expect(screen.getByText('Hi, I am Valen.')).toBeInTheDocument();
       });
 
+      const paragraphContainer = screen.getByText('Hi, I am Valen.').closest('.wysiwyg-content');
+      expect(paragraphContainer).not.toBeNull();
       expect(screen.getByText('Passionate about building scalable web apps.')).toBeInTheDocument();
 
       const downloadBtn = screen.getByRole('link', { name: /download cv/i });
@@ -147,22 +163,25 @@ describe('Public View Rich Formatting & formatPublicDescription', () => {
       expect(downloadBtn).toHaveAttribute('rel', 'noopener noreferrer');
     });
 
-    it('falls back to /Valen-Jehaut.pdf if cvURL is not provided', async () => {
-      const mockAbout = {
+    it('omits Download CV link while keeping View my résumé button when cvURL is not provided', async () => {
+      mockDefaultCMS();
+      vi.mocked(CMSStorage.getAbout).mockResolvedValue({
         description: 'About text',
         imageURL: 'myface.jpeg'
-      };
+      });
 
-      vi.mocked(CMSStorage.getAbout).mockResolvedValue(mockAbout);
-
-      render(<AboutMe />);
+      render(
+        <MemoryRouter>
+          <Home />
+        </MemoryRouter>
+      );
 
       await waitFor(() => {
         expect(screen.getByText('About text')).toBeInTheDocument();
       });
 
-      const downloadBtn = screen.getByRole('link', { name: /download cv/i });
-      expect(downloadBtn).toHaveAttribute('href', '/Valen-Jehaut.pdf');
+      expect(screen.queryByRole('link', { name: /download cv/i })).toBeNull();
+      expect(screen.getByRole('button', { name: /View my résumé/i })).toBeInTheDocument();
     });
   });
 });

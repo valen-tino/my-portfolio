@@ -92,26 +92,26 @@ const ScrollProgressBar: React.FC<ScrollProgressBarProps> = ({
 
   return (
     <div
-      className="sticky top-16 lg:top-0 z-30 bg-base-100/95 backdrop-blur-md border-b border-base-300 py-2.5 px-4 mb-6 rounded-b-xl shadow-sm transition-all"
+      className="sticky top-4 z-30 mb-6 border-b border-muted-300 bg-paper/95 px-4 py-2.5 backdrop-blur-md transition-all"
       data-testid="case-study-progress-bar"
     >
-      <div className="flex items-center justify-between text-xs font-medium mb-1.5 gap-2">
+      <div className="mb-1.5 flex items-center justify-between gap-2 text-xs font-medium">
         <span
-          className="text-base-content/80 truncate font-semibold"
+          className="truncate font-semibold text-ink"
           data-testid="progress-active-section"
         >
           {activeSection}
         </span>
         <span
-          className="text-info font-bold shrink-0 tabular-nums"
+          className="shrink-0 font-bold tabular-nums text-brand"
           data-testid="progress-percentage"
         >
           {roundedProgress}%
         </span>
       </div>
-      <div className="w-full h-1.5 bg-base-300 rounded-full overflow-hidden">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted-200">
         <div
-          className="h-full bg-gradient-to-r from-info via-blue-500 to-indigo-500 rounded-full transition-all duration-150 ease-out shadow-[0_0_8px_rgba(59,130,246,0.6)]"
+          className="h-full rounded-full bg-brand transition-all duration-150 ease-out"
           style={{ width: `${progress}%` }}
           role="progressbar"
           aria-valuenow={roundedProgress}

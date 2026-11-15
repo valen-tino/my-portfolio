@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { CloseIcon, LockIcon } from './Icons';
 
 interface PasswordProtectionModalProps {
   isOpen: boolean;
@@ -13,18 +14,39 @@ const PasswordProtectionModal: React.FC<PasswordProtectionModalProps> = ({
   onClose,
   onSubmit,
   portfolioTitle,
-  error
+  error,
 }) => {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (isOpen) {
+      if (!dialog.open) {
+        if (typeof dialog.showModal === 'function') {
+          dialog.showModal();
+        } else {
+          dialog.setAttribute('open', '');
+        }
+      }
+    } else if (dialog.open) {
+      if (typeof dialog.close === 'function') {
+        dialog.close();
+      } else {
+        dialog.removeAttribute('open');
+      }
+    }
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!password.trim()) return;
-    
+
     setIsSubmitting(true);
     onSubmit(password);
-    // Reset submitting state after a short delay
     setTimeout(() => setIsSubmitting(false), 1000);
   };
 
@@ -33,93 +55,107 @@ const PasswordProtectionModal: React.FC<PasswordProtectionModalProps> = ({
     onClose();
   };
 
+  const handleLightDismissFallback = (event: React.MouseEvent<HTMLDialogElement>) => {
+    if ('closedBy' in HTMLDialogElement.prototype) return;
+    const dialog = dialogRef.current;
+    if (!dialog || event.target !== dialog) return;
+    const rect = dialog.getBoundingClientRect();
+    const clickedInDialog =
+      rect.top <= event.clientY &&
+      event.clientY <= rect.top + rect.height &&
+      rect.left <= event.clientX &&
+      event.clientX <= rect.left + rect.width;
+    if (!clickedInDialog) {
+      handleClose();
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-base-100 rounded-lg shadow-xl w-full max-w-md">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-base-200">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-xl font-bold text-base-content">🔒 Protected Portfolio</h2>
-              <p className="text-sm text-base-content/70 mt-1">
-                "{portfolioTitle}" requires a password to view
-              </p>
-            </div>
+    <dialog
+      ref={dialogRef}
+      {...({ closedby: 'any' } as Record<string, string>)}
+      aria-labelledby="protected-portfolio-heading"
+      onClose={handleClose}
+      onClick={handleLightDismissFallback}
+      className="fixed inset-0 m-auto w-[calc(100%-2rem)] max-w-md overflow-y-auto overscroll-contain bg-white p-0 text-ink shadow-2xl backdrop:bg-black/60"
+    >
+      <div className="border-b border-muted-200 px-6 py-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2
+              id="protected-portfolio-heading"
+              className="flex items-center gap-2 text-xl font-semibold tracking-tight text-ink"
+            >
+              <LockIcon className="size-5 text-brand" />
+              Protected Portfolio
+            </h2>
+            <p className="mt-1 text-sm text-muted-600">
+              “{portfolioTitle}” requires a password to view.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleClose}
+            aria-label="Close password modal"
+            className="icon-button"
+            disabled={isSubmitting}
+          >
+            <CloseIcon className="size-4" />
+          </button>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="p-6">
+        <div className="space-y-4">
+          <div>
+            <label
+              htmlFor="portfolio-access-password"
+              className="mb-2 block text-sm font-medium text-ink"
+            >
+              Enter Password
+            </label>
+            <input
+              id="portfolio-access-password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="field"
+              placeholder="Portfolio password"
+              disabled={isSubmitting}
+              autoFocus
+            />
+          </div>
+
+          {error && (
+            <p role="alert" className="border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </p>
+          )}
+
+          <div className="flex justify-end gap-3 pt-2">
             <button
+              type="button"
               onClick={handleClose}
-              className="btn btn-sm btn-ghost"
+              className="flat-button flat-button-outline"
               disabled={isSubmitting}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flat-button flat-button-blue"
+              disabled={!password.trim() || isSubmitting}
+            >
+              {isSubmitting ? 'Checking...' : 'Access Portfolio'}
             </button>
           </div>
         </div>
-
-        {/* Content */}
-        <form onSubmit={handleSubmit} className="p-6">
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-base-content mb-2">
-                Enter Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input input-bordered w-full"
-                placeholder="Portfolio password"
-                disabled={isSubmitting}
-                autoFocus
-              />
-            </div>
-
-            {error && (
-              <div className="alert alert-error">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-                <span>{error}</span>
-              </div>
-            )}
-
-            <div className="flex justify-end space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="btn btn-ghost"
-                disabled={isSubmitting}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="btn btn-info"
-                disabled={!password.trim() || isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <span className="loading loading-spinner loading-sm"></span>
-                    Checking...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
-                    </svg>
-                    Access Portfolio
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </dialog>
   );
 };
 

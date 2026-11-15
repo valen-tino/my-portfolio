@@ -932,6 +932,7 @@ const PortfolioManagement: React.FC = () => {
                         value={techInput}
                         onChange={(e) => setTechInput(e.target.value)}
                         onKeyDown={(e) => {
+                          if (e.nativeEvent.isComposing || e.keyCode === 229) return;
                           if (e.key === 'Enter' || e.key === ',') {
                             e.preventDefault();
                             handleAddCustomTech();

@@ -80,6 +80,7 @@ describe('PortfolioDetail Component - Cloudinary Video & WYSIWYG Rendering', () 
       const images = screen.getAllByTestId('portfolio-hero-image');
       expect(images.length).toBeGreaterThan(0);
       expect(images[0].getAttribute('src')).toBe('/images/portfolios/bcs.png');
+      expect(images[0]).toHaveClass('aspect-video');
     });
 
     expect(screen.queryByTestId('portfolio-hero-video')).toBeNull();
@@ -169,6 +170,74 @@ describe('PortfolioDetail Component - Cloudinary Video & WYSIWYG Rendering', () 
     });
     expect(screen.queryByText('Hidden Case Study')).not.toBeInTheDocument();
     expect(CMSStorage.getPortfolios).toHaveBeenCalledWith(true);
+  });
+
+  it('keeps the left metadata column sticky alongside the scrollable right details column on desktop', async () => {
+    vi.mocked(CMSStorage.getPortfolios).mockResolvedValue([
+      {
+        id: 'sticky-case-1',
+        title: 'Sticky Layout Case Study',
+        desc: 'Verifies left column stays pinned on desktop.',
+        projectDetails: '<h2>Case Study Body</h2><p>Long scrollable details.</p>',
+        linkTo: '',
+        imageURL: 'bcs.png',
+        videoURL: null,
+        tech: ['React JS'],
+        roles: ['Fullstack Developer']
+      }
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/portfolio/sticky-case-1']}>
+        <Routes>
+          <Route path="/portfolio/:id" element={<PortfolioDetail />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      const leftColumn = screen.getByTestId('portfolio-detail-left-column');
+      const rightColumn = screen.getByTestId('portfolio-detail-right-column');
+      expect(leftColumn.className).toContain('lg:sticky');
+      expect(leftColumn.parentElement?.className).toContain('lg:items-start');
+      expect(rightColumn).toBeInTheDocument();
+    });
+  });
+
+  it('renders inline <code> and <pre><code> blocks inside light editorial markdown wrapper', async () => {
+    vi.mocked(CMSStorage.getPortfolios).mockResolvedValue([
+      {
+        id: 'code-case-1',
+        title: 'Code Snippet Case Study',
+        desc: 'Verifies inline and block code formatting.',
+        projectDetails:
+          '<p>Run <code>npm run dev</code> locally.</p><pre><code>const port = 5173;</code></pre>',
+        linkTo: '',
+        imageURL: 'bcs.png',
+        videoURL: null,
+        tech: ['TypeScript'],
+        roles: ['Fullstack Developer']
+      }
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/portfolio/code-case-1']}>
+        <Routes>
+          <Route path="/portfolio/:id" element={<PortfolioDetail />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    const inlineCode = await screen.findByText('npm run dev');
+    expect(inlineCode.tagName).toBe('CODE');
+    expect(inlineCode.closest('pre')).toBeNull();
+
+    const blockCode = screen.getByText('const port = 5173;');
+    expect(blockCode.tagName).toBe('CODE');
+    expect(blockCode.closest('pre')).not.toBeNull();
+
+    const markdownWrapper = inlineCode.closest('.portfolio-markdown');
+    expect(markdownWrapper).toHaveClass('wysiwyg-content', 'portfolio-markdown', 'prose');
   });
 });
 

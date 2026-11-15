@@ -148,23 +148,26 @@ A full-stack portfolio website with an integrated Content Management System (CMS
 ### Frontend
 - **React 19.1.1**: Component-based UI framework
 - **TypeScript 5.9.2**: Type-safe development
-- **React Router v7**: Client-side routing
+- **React Router v7**: Client-side routing (`react-router-dom`)
 - **DaisyUI 5.1.7**: Component library built on Tailwind CSS
-- **Tailwind CSS 3.4.4**: Utility-first CSS framework
+- **Tailwind CSS 3.4.4**: Utility-first CSS framework (`tailwind.config.cjs` editorial palette tokens + `Plus Jakarta Sans`)
+- **GSAP 3.15.1**: Reduced-motion-safe entrance and ScrollTrigger animations (`src/utils/gsapAnimations.ts`)
+- **Marked 18.1.3 & TipTap 3.33.0**: Markdown-to-HTML migration and rich WYSIWYG case study editing
+- **Popover / Interest Polyfills**: Conditional async loading (`@oddbird/popover-polyfill`, `interestfor`) for accessible carousel toggletips
 - **Axios 1.11.0**: HTTP client for API communication
-- **Vite 7.1.4**: Next-generation frontend build tooling
+- **Vite 7.1.4 & Vitest 5.1.0**: Frontend bundler (port `5173`) and automated test runner
 
 ### Backend
 - **Node.js 22.19.0+**: JavaScript runtime
-- **Express.js 5.1.0**: Web application framework
+- **Express.js 5.1.0**: Web application framework (port `5001`)
 - **MongoDB / Mongoose 8.18.0**: NoSQL database and ODM
 - **JWT (jsonwebtoken 9.0.2)**: JSON Web Tokens for authentication
 - **Bcrypt (bcryptjs 3.0.2)**: Password hashing
-- **Multer 2.0.2 & Multer-Storage-Cloudinary 2.2.1**: File upload handling
-- **Cloudinary 2.11.0**: Cloud-based image management
+- **Multer 2.0.2 & Custom Cloudinary Storage Engine**: File upload handling
+- **Cloudinary 2.11.0**: Cloud-based image and web-optimized video management
 
 ### AI Integration
-- **OpenAI SDK / Deepseek API**: AI-powered content generation and rewriting
+- **OpenAI SDK / Deepseek API (`deepseek-v4.1-flash` via Opencode Go)**: Server-side AI content generation and rewriting
 
 ---
 
@@ -172,67 +175,73 @@ A full-stack portfolio website with an integrated Content Management System (CMS
 
 ```
 my-portfolio/
-├── public/                     # Static assets
-│   ├── images/                # Portfolio images & logos
-│   ├── favicon.ico            # Site icon
-│   └── tinologo.svg           # Logo asset
+├── index.html                    # Entry HTML loading Plus Jakarta Sans
+├── public/                       # Static assets
+│   ├── Valen-Jehaut.pdf          # Default fallback résumé PDF
+│   ├── images/                   # Portfolio images & logos
+│   ├── favicon.ico               # Site icon
+│   ├── placeholder-tech.svg      # Vector placeholder for draft tech tools
+│   └── tinologo.svg              # Logo asset
 │
-├── src/                       # React application source
-│   ├── App.tsx               # Main application component & routes
-│   ├── main.tsx              # Application entry point
+├── src/                          # React application source
+│   ├── App.tsx                   # Main router, public FloatingNavigation/CVModal shell & /cms/* routes
+│   ├── main.tsx                  # Application entry point
+│   ├── index.css                 # Tailwind base/components, View Transitions, dock, tables & tab styles
+│   ├── App.css                   # Public markdown/WYSIWYG light code styling, gallery & containment rules
 │   │
-│   ├── pages/                # Page components
-│   │   ├── Home.tsx          # Landing page
-│   │   ├── PortfolioPage.tsx # Portfolio archive listing
-│   │   ├── PortfolioDetail.tsx # Individual portfolio view
-│   │   ├── BlogPage.tsx      # Public blog archive (/blogs)
-│   │   └── BlogDetail.tsx    # Single blog article view
+│   ├── pages/                    # Page components
+│   │   ├── Home.tsx              # Editorial homepage (HeroProjectStrip, Work, Process, Exp/Edu Tabs, Journal, Contact)
+│   │   ├── PortfolioPage.tsx     # Work archive with Grid/Table view toggle & inline/mobile filters
+│   │   ├── PortfolioDetail.tsx   # Split-screen case study detail (sticky left column & light code formatting)
+│   │   ├── BlogPage.tsx          # Public journal archive (/blogs)
+│   │   ├── BlogDetail.tsx        # Single journal article view (/blogs/:id)
+│   │   └── DesignSystemPage.tsx  # Unlisted design-system reference (/design-system)
 │   │
-│   ├── sections/             # Major page sections
-│   │   ├── hero/             # Hero section
-│   │   ├── aboutme/          # About section
-│   │   ├── education/        # Education display
-│   │   ├── experience/       # Work experience
-│   │   ├── portfolios/       # Portfolio showcase & multi-filter
-│   │   ├── blog/             # Blog & News showcase
-│   │   ├── skills/           # Tech tools & skills
-│   │   ├── nav/              # Navigation bar
-│   │   └── footer/           # Site footer
+│   ├── components/               # Consolidated UI components (legacy src/sections/ & src/hook/ removed)
+│   │   ├── FloatingNavigation.tsx       # Bottom dock pill nav, mobile More drawer & brand-blue Résumé CTA
+│   │   ├── HeroProjectStrip.tsx         # All-project 16:9 swipeable marquee, toggletip & Play/Pause button
+│   │   ├── ProjectCard.tsx / BlogCard.tsx # Editorial cards with hover/focus CTA reveal & 16:9 project media
+│   │   ├── ExperienceEducationSection.tsx # WAI-ARIA Experiences/Education tab switcher with hidden="until-found"
+│   │   ├── WorkProcessSection.tsx       # Single-row ARIA tablist process showcase
+│   │   ├── EditorialCarousel.tsx        # Scroll-snap carousel with inert off-screen slides & arrow buttons
+│   │   ├── PortfolioFilterControls.tsx  # Shared Role, Year, Tech & keyword search filter controls
+│   │   ├── PortfolioTable.tsx           # Left-aligned desktop table & minimal 2-column mobile index table
+│   │   ├── MobileFilterDialog.tsx       # Native <dialog closedby="any"> mobile filter popup
+│   │   ├── CVModal.tsx                  # Native <dialog closedby="any"> interactive résumé (latest end date first)
+│   │   ├── Footer.tsx                   # Vibrant CTA footer, Bali WITA clock, sitemap & social pills
+│   │   ├── Icons.tsx / ImagePlaceholder.tsx / ScrollProgressBar.tsx / ImageLightboxModal.tsx / PasswordProtectionModal.tsx
 │   │
-│   ├── cms/                  # Complete CMS system
-│   │   ├── components/       # CMS-specific components (CMSLayout, WYSIWYGEditor, etc.)
-│   │   ├── pages/            # CMS pages (Dashboard, Portfolios, Blogs, TechTools, etc.)
-│   │   ├── apiStorage.ts     # Client-side API storage helper
-│   │   └── auth.ts           # Authentication utilities
+│   ├── cms/                      # Complete CMS system
+│   │   ├── components/           # CMS-specific components (CMSLayout, WYSIWYGEditor, ProtectedRoute, AIPortfolioModal)
+│   │   ├── pages/                # CMS pages (Dashboard, Portfolios, Blogs, Experiences, Education, TechTools, Roles, Contacts, About, AITest)
+│   │   ├── apiStorage.ts         # Client-side API storage helper
+│   │   ├── auth.ts               # Authentication utilities
+│   │   └── education.ts          # Fallback education seed
 │   │
-│   ├── components/           # Reusable UI components
-│   │   ├── ScrollProgressBar.tsx       # Case study reading progress bar
-│   │   ├── ImageLightboxModal.tsx      # Gallery image viewer
-│   │   └── PasswordProtectionModal.tsx # Password modal
-│   │
-│   ├── services/             # API services
-│   │   ├── api.ts            # Core Axios client
-│   │   └── ai.ts             # AI client service
-│   │
-│   └── utils/                # Utility helpers
-│       └── aiHelpers.ts      # AI data formatting & validation
+│   ├── data/portfolioData.ts     # Unified fallback datasets & live CMS adapter functions
+│   ├── types/                    # portfolio.ts interfaces & polyfills.d.ts ambient declarations
+│   ├── others/greeting.tsx       # Time-of-day dynamic greeting helper (getGreetingText)
+│   ├── services/                 # api.ts (Axios REST client) & ai.ts (server-proxied AI client)
+│   └── utils/                    # contentMigration.ts, dateFormat.ts, gsapAnimations.ts, tooltipPolyfills.ts, viewTransitions.ts, aiHelpers.ts
 │
-├── server/                   # Express backend
-│   ├── config/               # Configuration (Cloudinary, Database)
-│   ├── middleware/           # Auth middlewares
-│   ├── models/               # Mongoose schemas (Portfolio, Blog, TechTool, etc.)
-│   ├── routes/               # Express route handlers
-│   ├── utils/                # Utility modules (skillMigration.js)
-│   ├── scripts/              # Seed & maintenance scripts (syncExistingPortfolioSkills.js)
-│   ├── services/             # Server services (aiService.js)
-│   └── index.js              # Server entry point (port 5001)
+├── server/                       # Express backend
+│   ├── config/                   # Configuration (Cloudinary, Database)
+│   ├── middleware/               # Auth middlewares
+│   ├── models/                   # Mongoose schemas (Portfolio, Blog, Experience, Education, TechTool, Role, Contact, About, User)
+│   ├── routes/                   # Express route handlers (about, ai, auth, blog, contact, education, experiences, portfolio, roles, techTools, upload)
+│   ├── utils/                    # Utility modules (skillMigration.js)
+│   ├── scripts/                  # Seed & maintenance scripts (initDatabase.js, migrateMarkdownToWYSIWYG.js, syncExistingPortfolioSkills.js)
+│   ├── services/                 # Server services (aiService.js)
+│   └── index.js                  # Server entry point (port 5001)
 │
-├── api/                      # Vercel serverless integration
-│   ├── [...path].js          # Catch-all serverless handler
-│   └── serverless.js         # Express app serverless wrapper
+├── api/                          # Vercel serverless integration
+│   ├── [...path].js              # Catch-all serverless handler
+│   └── serverless.js             # Express app serverless wrapper
 │
-├── vercel.json               # Vercel deployment configuration
-└── package.json              # Project dependencies & scripts
+├── tests/                        # Automated Vitest suite (21 test files, 93 tests)
+├── tailwind.config.cjs           # Tailwind & DaisyUI theme tokens
+├── vercel.json                   # Vercel deployment configuration
+└── package.json                  # Project dependencies & scripts
 ```
 
 ---
@@ -489,16 +498,24 @@ All media uploads go through Cloudinary via custom Multer storage engine:
 - Video files are stream-validated via Multer fileFilter and delivered with web-optimization flags (`q_auto,f_auto,w_1920,c_limit`)
 
 ### TipTap WYSIWYG Editor & Case Study Structure
-- `src/cms/components/WYSIWYGEditor.tsx` powers project editing with single media and multi-media gallery nodes
+- `src/cms/components/WYSIWYGEditor.tsx` powers project editing with single media, multi-media gallery, interactive portfolio embed nodes, and IME composition `Enter` guards (`isComposing` / `keyCode === 229`)
 - Case studies are organized around 5 standard chapters:
   1. `1. Project Background & Context`
   2. `2. Development Process`
   3. `3. Implementation Details`
   4. `4. Team Structure & Roles`
   5. `5. Outcomes & Impact`
-- Public view features full-screen `ImageLightboxModal` and sticky `ScrollProgressBar`
+- Public case study views feature sticky left metadata (`lg:sticky`), explicit light `.portfolio-markdown` / `.wysiwyg-content` `<code>` and `<pre>` styling isolating DaisyUI dark-mode prose defaults, full-screen `<dialog>` `ImageLightboxModal`, and sticky `ScrollProgressBar`
 
-> For full architectural details of recent enhancements, see [CHANGES_SUMMARY.md](file:///Users/valentinojehaut/Documents/GitHub/my-portfolio/CHANGES_SUMMARY.md).
+### Editorial Redesign, Native Web Patterns & Testing
+- **Pill Navigation & Native Dialogs**: Bottom dock navigation (`FloatingNavigation`) with a brand-blue `.dock-item-primary` `Résumé` CTA (`#2563eb`, white text & icon), plus native `<dialog closedby="any">` modals (`CVModal`, `MobileFilterDialog`, `PasswordProtectionModal`, `ImageLightboxModal`) without `body` scroll locking
+- **View Transitions & GSAP**: `@view-transition { navigation: auto; }` combined with `navigateWithTransition` (`src/utils/viewTransitions.ts`) and reduced-motion-safe GSAP `ScrollTrigger` reveals (`src/utils/gsapAnimations.ts`)
+- **All-Project Hero Carousel & `16:9` Portfolio Media**: `HeroProjectStrip` displays all published portfolios (`aspect-video` non-clickable previews, swipe/drag/arrow navigation, accessible `popover="hint"` toggletip via `tooltipPolyfills.ts`, Play/Pause icon button); `ProjectCard`, `PortfolioTable`, `PortfolioDetail`, and `ImagePlaceholder` share unified `16:9` proportions and hover/focus CTA reveal (`.card-hover-cta`)
+- **Accessible Tabs & Date Ordering**: `ExperienceEducationSection` separates Experiences and Education with WAI-ARIA tabs and `hidden="until-found"` (`beforematch`); `dateFormat.ts` handles timezone-safe ISO date display (`Oct 2025` / `Oct 1, 2025`) and descending `sortByLatestEndDate` sorting mirrored in `GET /api/education`
+- **Work Page Grid/Table Views & Mobile Filters**: `PortfolioPage` pairs inline Role/Year/Tech filters (converting to `MobileFilterDialog` on small viewports) with a Grid / `?view=table` Table toggle (`PortfolioTable`, left-aligned on desktop/tablet and minimal two-column index rows on mobile)
+- **Automated Test Verification**: `npm test -- --run` runs **21 test suites (93 tests)** cleanly under Vitest + JSDOM, and `npm run build` validates TypeScript and Vite production bundling (`5173` frontend / `5001` backend)
+
+> For full changelog history across every iteration, see [CHANGES_SUMMARY.md](file:///Users/valentinojehaut/Documents/GitHub/my-portfolio/CHANGES_SUMMARY.md).
 
 ---
 
@@ -547,5 +564,5 @@ If API requests abort or fail with `NS_BINDING_ABORTED`:
 
 ---
 
-*Mono-Documentation consolidated on November 7, 2026.*
+*Mono-Documentation consolidated and updated on November 15, 2026.*
 

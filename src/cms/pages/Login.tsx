@@ -58,11 +58,17 @@ const Login: React.FC = () => {
               )}
 
               <div className="form-control">
-                <label className="label">
+                <label htmlFor="cms-login-email" className="label">
                   <span className="label-text font-medium">Email Address</span>
                 </label>
                 <input
+                  id="cms-login-email"
+                  name="email"
                   type="email"
+                  autoComplete="username"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
                   placeholder="Enter your email"
                   className="input input-bordered focus:input-primary w-full"
                   value={email}
@@ -73,11 +79,14 @@ const Login: React.FC = () => {
               </div>
 
               <div className="form-control">
-                <label className="label">
+                <label htmlFor="cms-login-password" className="label">
                   <span className="label-text font-medium">Password</span>
                 </label>
                 <input
+                  id="cms-login-password"
+                  name="password"
                   type="password"
+                  autoComplete="current-password"
                   placeholder="Enter your password"
                   className="input input-bordered focus:input-primary w-full"
                   value={password}

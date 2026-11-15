@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import Skills from '../src/sections/skills/skills';
+import Home from '../src/pages/Home';
 import TechToolsManagement from '../src/cms/pages/TechToolsManagement';
 import { CMSStorage, TechTool } from '../src/cms/apiStorage';
 import { AuthService } from '../src/cms/auth';
@@ -14,8 +14,22 @@ vi.mock('../src/cms/apiStorage', () => ({
     updateTechTool: vi.fn(),
     deleteTechTool: vi.fn(),
     uploadTechToolImage: vi.fn(),
-    syncSkillsFromPortfolios: vi.fn()
+    syncSkillsFromPortfolios: vi.fn(),
+    getPortfolios: vi.fn(),
+    getBlogs: vi.fn(),
+    getAbout: vi.fn(),
+    getEducation: vi.fn(),
+    addContactEntry: vi.fn(),
   }
+}));
+
+vi.mock('../src/services/api', () => ({
+  default: {
+    getExperiences: vi.fn().mockResolvedValue({ success: true, data: [] }),
+  },
+  apiService: {
+    getExperiences: vi.fn().mockResolvedValue({ success: true, data: [] }),
+  },
 }));
 
 vi.mock('../src/cms/auth', () => ({
@@ -58,21 +72,30 @@ describe('Tech Tools Auto-Sync & Privacy Isolation', () => {
     vi.clearAllMocks();
   });
 
-  it('Skills public marquee fetches only published tools (publishedOnly = true)', async () => {
-    // Only published tools returned for public marquee
+  it('Home fetches only published tools (publishedOnly = true) and excludes unpublished tools', async () => {
+    vi.mocked(CMSStorage.getPortfolios).mockResolvedValue([]);
+    vi.mocked(CMSStorage.getBlogs).mockResolvedValue([]);
+    vi.mocked(CMSStorage.getAbout).mockResolvedValue({ description: 'Bio', imageURL: '/face.jpg' });
+    vi.mocked(CMSStorage.getEducation).mockResolvedValue([]);
+
+    // Only published tools returned for public stack
     const publishedOnly = mockAllTools.filter(t => t.isPublished !== false);
     vi.mocked(CMSStorage.getTechTools).mockImplementation(async (published?: boolean) => {
       if (published) return publishedOnly;
       return mockAllTools;
     });
 
-    render(<Skills />);
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>
+    );
 
     await waitFor(() => {
       expect(CMSStorage.getTechTools).toHaveBeenCalledWith(true);
-      expect(screen.getAllByAltText('React logo').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByAltText('TypeScript logo').length).toBeGreaterThanOrEqual(1);
-      expect(screen.queryByAltText('Kubernetes logo')).toBeNull();
+      expect(screen.getAllByText('React').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('TypeScript').length).toBeGreaterThanOrEqual(1);
+      expect(screen.queryByText('Kubernetes')).toBeNull();
     });
   });
 

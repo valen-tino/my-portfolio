@@ -1,16 +1,31 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import BlogSection from '../src/sections/blog/blog';
+import BlogPage from '../src/pages/BlogPage';
 import BlogDetail from '../src/pages/BlogDetail';
+import Home from '../src/pages/Home';
 import { CMSStorage, BlogItem } from '../src/cms/apiStorage';
 
 vi.mock('../src/cms/apiStorage', () => ({
   CMSStorage: {
     getBlogs: vi.fn(),
-    getBlog: vi.fn()
+    getBlog: vi.fn(),
+    getPortfolios: vi.fn(),
+    getAbout: vi.fn(),
+    getTechTools: vi.fn(),
+    getEducation: vi.fn(),
+    addContactEntry: vi.fn(),
   }
+}));
+
+vi.mock('../src/services/api', () => ({
+  default: {
+    getExperiences: vi.fn().mockResolvedValue({ success: true, data: [] }),
+  },
+  apiService: {
+    getExperiences: vi.fn().mockResolvedValue({ success: true, data: [] }),
+  },
 }));
 
 const mockBlogs: BlogItem[] = [
@@ -71,166 +86,98 @@ describe('Public Blog & News System', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(CMSStorage.getBlogs).mockResolvedValue(mockBlogs);
+    vi.mocked(CMSStorage.getPortfolios).mockResolvedValue([]);
+    vi.mocked(CMSStorage.getAbout).mockResolvedValue({ description: 'Bio', imageURL: '/face.jpg' });
+    vi.mocked(CMSStorage.getTechTools).mockResolvedValue([]);
+    vi.mocked(CMSStorage.getEducation).mockResolvedValue([]);
   });
 
-  it('renders published blog posts and filters out drafts', async () => {
+  it('renders published blog posts on BlogPage and filters out drafts', async () => {
     render(
       <MemoryRouter>
-        <BlogSection />
+        <BlogPage />
       </MemoryRouter>
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Speaking at Tech Summit 2026')).toBeInTheDocument();
-      expect(screen.getByText('Reflections on Full-Stack Engineering')).toBeInTheDocument();
-      expect(screen.queryByText('Unreleased Draft Article')).toBeNull();
+      expect(CMSStorage.getBlogs).toHaveBeenCalledWith(true);
+      expect(screen.getByRole('heading', { name: 'Speaking at Tech Summit 2026' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Reflections on Full-Stack Engineering' })).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Unreleased Draft Article' })).toBeNull();
     });
   });
 
-  it('filters blog posts by category pills and strictly omits categories with 0 published items', async () => {
+  it('filters blog posts by category pills on BlogPage and omits categories with 0 published items', async () => {
     render(
       <MemoryRouter>
-        <BlogSection />
+        <BlogPage />
       </MemoryRouter>
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Speaking at Tech Summit 2026')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Speaking at Tech Summit 2026' })).toBeInTheDocument();
     });
 
-    // Event and Personal exist and have >0 posts
-    expect(screen.getByTestId('category-filter-Event')).toBeInTheDocument();
-    expect(screen.getByTestId('category-filter-Personal')).toBeInTheDocument();
+    const categoryGroup = screen.getByRole('group', { name: 'Filter by category' });
+    expect(within(categoryGroup).getByRole('button', { name: /Event/i })).toBeInTheDocument();
+    expect(within(categoryGroup).getByRole('button', { name: /Personal/i })).toBeInTheDocument();
+    expect(within(categoryGroup).queryByRole('button', { name: /News/i })).toBeNull();
+    expect(within(categoryGroup).queryByRole('button', { name: /Tech/i })).toBeNull();
 
-    // News and Tech have 0 published posts -> strictly omitted
-    expect(screen.queryByTestId('category-filter-News')).toBeNull();
-    expect(screen.queryByTestId('category-filter-Tech')).toBeNull();
+    fireEvent.click(within(categoryGroup).getByRole('button', { name: /Personal/i }));
+    expect(screen.getByRole('heading', { name: 'Reflections on Full-Stack Engineering' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Speaking at Tech Summit 2026' })).toBeNull();
 
-    // Click 'Personal' category
-    const personalBtn = screen.getByTestId('category-filter-Personal');
-    fireEvent.click(personalBtn);
-
-    expect(screen.getByText('Reflections on Full-Stack Engineering')).toBeInTheDocument();
-    expect(screen.queryByText('Speaking at Tech Summit 2026')).toBeNull();
-
-    // Click 'All' category to restore
-    const allBtn = screen.getByTestId('category-filter-All');
-    fireEvent.click(allBtn);
-
-    expect(screen.getByText('Speaking at Tech Summit 2026')).toBeInTheDocument();
-    expect(screen.getByText('Reflections on Full-Stack Engineering')).toBeInTheDocument();
+    fireEvent.click(within(categoryGroup).getByRole('button', { name: /All/i }));
+    expect(screen.getByRole('heading', { name: 'Speaking at Tech Summit 2026' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Reflections on Full-Stack Engineering' })).toBeInTheDocument();
   });
 
-  it('filters blog posts by year pills and keyword search in archive view with #00BAFE active branding', async () => {
+  it('filters blog posts by year select, topic select, and keyword search on BlogPage', async () => {
     render(
       <MemoryRouter>
-        <BlogSection />
+        <BlogPage />
       </MemoryRouter>
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Speaking at Tech Summit 2026')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Speaking at Tech Summit 2026' })).toBeInTheDocument();
     });
 
-    // Default "All" year button should have active #00BAFE branding
-    const allYearBtn = screen.getByTestId('year-filter-All');
-    expect(allYearBtn.className).toContain('bg-[#00BAFE]');
-    expect(allYearBtn.className).toContain('text-white');
+    const yearSelect = screen.getByLabelText('Year');
+    fireEvent.change(yearSelect, { target: { value: '2025' } });
+    expect(screen.getByRole('heading', { name: 'Reflections on Full-Stack Engineering' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Speaking at Tech Summit 2026' })).toBeNull();
 
-    // Filter by year 2025
-    const year2025Btn = screen.getByTestId('year-filter-2025');
-    fireEvent.click(year2025Btn);
+    fireEvent.click(screen.getByRole('button', { name: /Clear filters/i }));
 
-    expect(year2025Btn.className).toContain('bg-[#00BAFE]');
-    expect(year2025Btn.className).toContain('text-white');
-    expect(screen.getByText('Reflections on Full-Stack Engineering')).toBeInTheDocument();
-    expect(screen.queryByText('Speaking at Tech Summit 2026')).toBeNull();
+    const tagSelect = screen.getByLabelText('Topic');
+    fireEvent.change(tagSelect, { target: { value: 'Architecture' } });
+    expect(screen.getByRole('heading', { name: 'Speaking at Tech Summit 2026' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Reflections on Full-Stack Engineering' })).toBeNull();
 
-    // Reset via clear filters button
-    const clearBtn = screen.getByTestId('clear-blog-filters');
-    fireEvent.click(clearBtn);
+    fireEvent.click(screen.getByRole('button', { name: /Clear filters/i }));
 
-    // Search keyword
-    const searchInput = screen.getByTestId('blog-search-input');
+    const searchInput = screen.getByLabelText('Search articles');
     fireEvent.change(searchInput, { target: { value: 'Summit' } });
-
-    expect(screen.getByText('Speaking at Tech Summit 2026')).toBeInTheDocument();
-    expect(screen.queryByText('Reflections on Full-Stack Engineering')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Speaking at Tech Summit 2026' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Reflections on Full-Stack Engineering' })).toBeNull();
   });
 
-  it('establishes proper stacking context hierarchy for tag filter dropdown above blog cards', async () => {
-    render(
-      <MemoryRouter>
-        <BlogSection />
-      </MemoryRouter>
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText('Speaking at Tech Summit 2026')).toBeInTheDocument();
-    });
-
-    // Filter bar has relative z-30
-    const filterBar = screen.getByTestId('blog-filter-bar');
-    expect(filterBar.className).toContain('relative');
-    expect(filterBar.className).toContain('z-30');
-
-    // Tag dropdown anchor has relative inline-block z-40
-    const tagAnchor = screen.getByTestId('blog-tag-dropdown-anchor');
-    expect(tagAnchor.className).toContain('relative');
-    expect(tagAnchor.className).toContain('inline-block');
-    expect(tagAnchor.className).toContain('z-40');
-
-    // Open dropdown and verify menu has z-50
-    const tagDropdownBtn = screen.getByTestId('blog-tag-dropdown-btn');
-    fireEvent.click(tagDropdownBtn);
-
-    const tagMenu = screen.getByTestId('blog-tag-menu');
-    expect(tagMenu.className).toContain('z-50');
-
-    // Blog posts grid has relative z-10
-    const postsGrid = screen.getByTestId('blog-posts-grid');
-    expect(postsGrid.className).toContain('relative');
-    expect(postsGrid.className).toContain('z-10');
-  });
-
-  it('in Homepage mode (limit passed), suppresses search/filter bar and displays latest blogs with "See More Blogs" CTA', async () => {
-    render(
-      <MemoryRouter>
-        <BlogSection limit={3} />
-      </MemoryRouter>
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText('Speaking at Tech Summit 2026')).toBeInTheDocument();
-    });
-
-    // Filter controls and search box must be completely hidden on homepage
-    expect(screen.queryByTestId('blog-category-filter')).toBeNull();
-    expect(screen.queryByTestId('blog-search-input')).toBeNull();
-    expect(screen.queryByTestId('blog-year-filter')).toBeNull();
-
-    // "See More Blogs" button must be rendered linking to /blogs
-    const seeMoreBtn = screen.getByTestId('see-more-blogs-btn');
-    expect(seeMoreBtn).toBeInTheDocument();
-    expect(seeMoreBtn).toHaveTextContent('See More Blogs');
-    expect(seeMoreBtn).toHaveAttribute('href', '/blogs');
-  });
-
-  it('in Homepage mode, completely suppresses the section when there are 0 published blogs', async () => {
+  it('suppresses #journal section on Home when there are 0 published blogs', async () => {
     vi.mocked(CMSStorage.getBlogs).mockResolvedValueOnce([]);
 
     const { container } = render(
       <MemoryRouter>
-        <BlogSection limit={3} />
+        <Home />
       </MemoryRouter>
     );
 
     await waitFor(() => {
-      expect(CMSStorage.getBlogs).toHaveBeenCalled();
+      expect(CMSStorage.getBlogs).toHaveBeenCalledWith(true);
     });
 
-    expect(container.querySelector('#blog')).toBeNull();
-    expect(container.firstChild).toBeNull();
+    expect(container.querySelector('#journal')).toBeNull();
   });
 
   it('renders BlogDetail reading view with metadata and canonical back link to /blogs', async () => {
@@ -246,10 +193,10 @@ describe('Public Blog & News System', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('blog-article-detail')).toBeInTheDocument();
-      expect(screen.getByText('Speaking at Tech Summit 2026')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1, name: 'Speaking at Tech Summit 2026' })).toBeInTheDocument();
       expect(screen.getByText('Keynote presentation on autonomous AI agents.')).toBeInTheDocument();
       expect(screen.getByText('Summit was extraordinary!')).toBeInTheDocument();
-      expect(screen.getByText('📅 2026-05-15')).toBeInTheDocument();
+      expect(screen.getByText('May 15, 2026')).toHaveAttribute('datetime', '2026-05-15');
       expect(screen.getByTestId('back-to-blogs-link')).toHaveAttribute('href', '/blogs');
 
       const contentBody = screen.getByTestId('blog-content-body');

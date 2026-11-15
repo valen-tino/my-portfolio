@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import CMSLayout from '../components/CMSLayout';
 import { CMSStorage, Experience } from '../apiStorage';
 import WYSIWYGEditor from '../components/WYSIWYGEditor';
+import { formatMonthYear } from '../../utils/dateFormat';
 
 const ExperienceManagement: React.FC = () => {
   const [experiences, setExperiences] = useState<Experience[]>([]);
@@ -166,11 +167,7 @@ const ExperienceManagement: React.FC = () => {
 
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return 'Present';
-    // Handle both full date and month-year formats
-    const date = dateString.includes('-') && dateString.split('-').length === 2 
-      ? new Date(dateString + '-01')  // Add day for month-year format (YYYY-MM)
-      : new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    return formatMonthYear(dateString) || dateString;
   };
 
   return (

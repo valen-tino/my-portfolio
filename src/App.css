@@ -102,7 +102,7 @@ body {
 
 /* Markdown prose font customization */
 .prose {
-  font-family: 'Sora', sans-serif !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
 }
 
 .prose h1,
@@ -111,7 +111,7 @@ body {
 .prose h4,
 .prose h5,
 .prose h6 {
-  font-family: 'Sora', sans-serif !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
 }
 
 .prose p,
@@ -119,7 +119,7 @@ body {
 .prose blockquote,
 .prose strong,
 .prose em {
-  font-family: 'Sora', sans-serif !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
 }
 
 .prose code {
@@ -145,7 +145,7 @@ body {
 
 /* Portfolio detail markdown font override */
 .portfolio-markdown * {
-  font-family: 'Sora', sans-serif !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
 }
 
 .portfolio-markdown h1,
@@ -154,7 +154,7 @@ body {
 .portfolio-markdown h4,
 .portfolio-markdown h5,
 .portfolio-markdown h6 {
-  font-family: 'Sora', sans-serif !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
 }
 
 .portfolio-markdown p,
@@ -164,7 +164,7 @@ body {
 .portfolio-markdown em,
 .portfolio-markdown span,
 .portfolio-markdown div {
-  font-family: 'Sora', sans-serif !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
 }
 
 .portfolio-markdown code {
@@ -203,6 +203,14 @@ body {
   word-break: break-word !important;
 }
 
+/* Force light editorial code tokens so DaisyUI dark-mode prose defaults never paint code elements black */
+.portfolio-markdown,
+.wysiwyg-content {
+  --tw-prose-code: #0f172a;
+  --tw-prose-pre-code: #0f172a;
+  --tw-prose-pre-bg: #f8f8fa;
+}
+
 /* Inline code only: wrap long tokens and URLs without breaking pre code blocks */
 .portfolio-markdown :not(pre) > code,
 .wysiwyg-content :not(pre) > code,
@@ -211,6 +219,16 @@ body {
   word-break: break-word !important;
   white-space: normal !important;
   max-width: 100% !important;
+}
+
+.portfolio-markdown :not(pre) > code,
+.wysiwyg-content :not(pre) > code {
+  background-color: #f4f4f5 !important;
+  color: #0f172a !important;
+  border: 1px solid #d4d4d8 !important;
+  border-radius: 0.375rem !important;
+  padding: 0.125rem 0.375rem !important;
+  font-size: 0.875em !important;
 }
 
 /* Preformatted code blocks: preserve indentation, spaces, and enable horizontal scrolling */
@@ -226,12 +244,32 @@ body {
   box-sizing: border-box !important;
 }
 
+.portfolio-markdown pre,
+.wysiwyg-content pre {
+  background-color: #f8f8fa !important;
+  color: #0f172a !important;
+  border: 1px solid #e4e4e7 !important;
+  border-radius: 0.75rem !important;
+  padding: 1rem 1.25rem !important;
+  margin: 1rem 0 !important;
+}
+
 .portfolio-markdown pre code,
 .wysiwyg-content pre code,
 .prose pre code {
   white-space: pre !important;
   word-break: normal !important;
   overflow-wrap: normal !important;
+}
+
+.portfolio-markdown pre code,
+.wysiwyg-content pre code {
+  background-color: transparent !important;
+  color: inherit !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  font-size: 0.875rem !important;
 }
 
 /* Markdown & WYSIWYG responsive tables */
@@ -392,7 +430,7 @@ figure.gallery-item {
 .portfolio-section-title,
 .portfolio-markdown h2.portfolio-section-title,
 .ProseMirror h2.portfolio-section-title {
-  font-family: 'Sora', sans-serif !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
   font-size: 1.375rem !important;
   line-height: 1.75rem !important;
   font-weight: 700 !important;

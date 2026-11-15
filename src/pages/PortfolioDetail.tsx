@@ -1,29 +1,94 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { CMSStorage, PortfolioItem, Role } from '../cms/apiStorage';
-import Navbar from '../sections/nav/nav';
-import Footer from '../sections/footer/footer';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { CMSStorage } from '../cms/apiStorage';
+import { Footer } from '../components/Footer';
+import { ArrowLeftIcon, ExternalLinkIcon, LockIcon } from '../components/Icons';
+import ImageLightboxModal, { type LightboxImageItem } from '../components/ImageLightboxModal';
+import { ImagePlaceholder } from '../components/ImagePlaceholder';
 import PasswordProtectionModal from '../components/PasswordProtectionModal';
-import ImageLightboxModal, { LightboxImageItem } from '../components/ImageLightboxModal';
 import ScrollProgressBar from '../components/ScrollProgressBar';
+import { PROJECTS, mapPortfolioItemToProject } from '../data/portfolioData';
+import type { Project } from '../types/portfolio';
 import { migrateContentToHtml, optimizeCloudinaryVideoUrl } from '../utils/contentMigration';
+import { useGSAPPageEntrance } from '../utils/gsapAnimations';
 
-const PortfolioDetail: React.FC = () => {
+export default function PortfolioDetail() {
   const { id } = useParams<{ id: string }>();
-  const [portfolio, setPortfolio] = useState<PortfolioItem | null>(null);
-  const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
+  const navigate = useNavigate();
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [passwordError, setPasswordError] = useState('');
+  const [imgError, setImgError] = useState(false);
+
   const [lightboxImages, setLightboxImages] = useState<LightboxImageItem[]>([]);
-  const [lightboxIndex, setLightboxIndex] = useState<number>(0);
-  const [lightboxOpen, setLightboxOpen] = useState<boolean>(false);
-  const rightScrollContainerRef = useRef<HTMLDivElement>(null);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  useGSAPPageEntrance(rootRef, [project?.id, loading, isUnlocked]);
+
+  useEffect(() => {
+    let active = true;
+    setImgError(false);
+
+    async function fetchPortfolio() {
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const items = await CMSStorage.getPortfolios(true);
+        if (!active) return;
+        const foundRaw = items.find(
+          (p) => (String(p.id) === id || p._id === id) && p.isPublished !== false,
+        );
+        if (foundRaw) {
+          setProject(mapPortfolioItemToProject(foundRaw));
+        } else {
+          // If backend returned items cleanly, respect unpublished/missing status without leaking
+          if (items.length > 0) {
+            setProject(null);
+          } else {
+            const fallback = PROJECTS.find((p) => p.id === id || p.slug === id) || null;
+            setProject(fallback);
+          }
+        }
+      } catch {
+        if (!active) return;
+        const fallback = PROJECTS.find((p) => p.id === id || p.slug === id) || null;
+        setProject(fallback);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    fetchPortfolio();
+    return () => {
+      active = false;
+    };
+  }, [id]);
+
+  const handlePasswordSubmit = (enteredPassword: string) => {
+    if (!project) return;
+    if (enteredPassword === project.password) {
+      setIsUnlocked(true);
+      setPasswordError('');
+    } else {
+      setPasswordError('Incorrect password. Please try again.');
+    }
+  };
 
   const handleDetailsClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
-    const figureEl = target.closest('figure.gallery-item[data-media-type="image"], figure.gallery-image-clickable');
-    const imgEl = (figureEl ? figureEl.querySelector('img') : target.closest('img')) as HTMLImageElement | null;
+    const figureEl = target.closest(
+      'figure.gallery-item[data-media-type="image"], figure.gallery-image-clickable',
+    );
+    const imgEl = (
+      figureEl ? figureEl.querySelector('img') : target.closest('img')
+    ) as HTMLImageElement | null;
 
     if (!imgEl || !imgEl.src) return;
 
@@ -32,7 +97,7 @@ const PortfolioDetail: React.FC = () => {
       const allImgs = Array.from(galleryContainer.querySelectorAll('img'));
       const items: LightboxImageItem[] = allImgs.map((img) => ({
         src: img.getAttribute('src') || img.src,
-        alt: img.getAttribute('alt') || 'Gallery image'
+        alt: img.getAttribute('alt') || 'Gallery image',
       }));
       const clickedIdx = allImgs.indexOf(imgEl);
       setLightboxImages(items);
@@ -42,448 +107,308 @@ const PortfolioDetail: React.FC = () => {
       setLightboxImages([
         {
           src: imgEl.getAttribute('src') || imgEl.src,
-          alt: imgEl.getAttribute('alt') || portfolio?.title || 'Project image'
-        }
+          alt: imgEl.getAttribute('alt') || project?.title || 'Project image',
+        },
       ]);
       setLightboxIndex(0);
       setLightboxOpen(true);
     }
   };
 
-  useEffect(() => {
-    const fetchPortfolio = async () => {
-      if (id) {
-        try {
-          const [portfolioData, rolesData] = await Promise.all([
-            CMSStorage.getPortfolios(true),
-            CMSStorage.getRoles()
-          ]);
-          // Defensive filter: only match if item is not explicitly unpublished
-          const foundPortfolio = portfolioData.find(
-            p => (p.id === id || p._id === id) && p.isPublished !== false
-          );
-          setPortfolio(foundPortfolio || null);
-          setAvailableRoles(rolesData);
-        } catch (error) {
-          console.error('Error fetching portfolio:', error);
-          setPortfolio(null);
-        }
-      }
-      setLoading(false);
-    };
-    
-    fetchPortfolio();
-  }, [id]);
-
-  const handlePasswordSubmit = (password: string) => {
-    if (!portfolio) return;
-    
-    if (password === portfolio.password) {
-      setIsUnlocked(true);
-      setPasswordError('');
-    } else {
-      setPasswordError('Incorrect password. Please try again.');
-    }
-  };
-
-  // Check if portfolio is password protected and not unlocked
-  const isProtected = portfolio?.isPasswordProtected && !isUnlocked;
-
   if (loading) {
     return (
-      <div className="App">
-        <Navbar />
-        <section className="section pt-24 min-h-screen">
-          <div className="section-container">
-            <div className="text-center">
-              <div className="loading loading-spinner loading-lg"></div>
-              <p className="mt-4">Loading portfolio...</p>
-            </div>
-          </div>
-        </section>
+      <div className="min-h-screen bg-white text-ink">
+        <main className="page-shell py-24 text-center">
+          <div className="loading loading-spinner loading-lg text-brand" />
+          <p className="mt-4 text-sm text-muted-600">Loading portfolio...</p>
+        </main>
         <Footer />
       </div>
     );
   }
 
-  if (!portfolio) {
+  if (!project) {
     return (
-      <div className="App">
-        <Navbar />
-        <section className="section pt-24 min-h-screen">
-          <div className="section-container">
-            <div className="text-center">
-              <h1 className="text-3xl font-bold mb-4">Portfolio Not Found</h1>
-              <p className="text-base-content/70 mb-8">The portfolio item you're looking for doesn't exist.</p>
-              <Link to="/portfolio" className="btn btn-info">
-                Back to Portfolio
-              </Link>
-            </div>
-          </div>
-        </section>
+      <div className="min-h-screen bg-white text-ink">
+        <main className="page-shell py-24 text-center">
+          <h1 className="text-4xl font-medium tracking-tight">Portfolio Not Found</h1>
+          <p className="mt-4 text-base text-muted-600">
+            The portfolio item you&apos;re looking for doesn&apos;t exist.
+          </p>
+          <Link to="/portfolio" className="flat-button flat-button-blue mt-8">
+            <ArrowLeftIcon className="size-4" />
+            Back to portfolio
+          </Link>
+        </main>
         <Footer />
       </div>
     );
   }
 
-  // Show password protection screen if portfolio is protected and not unlocked
-  if (isProtected) {
+  if (project.isPasswordProtected && !isUnlocked) {
     return (
-      <div className="App">
-        <Navbar />
-        <section className="section pt-24 min-h-screen">
-          <div className="section-container">
-            <div className="text-center max-w-md mx-auto">
-              <div className="mb-8">
-                <div className="w-24 h-24 mx-auto mb-6 bg-red-100 rounded-full flex items-center justify-center">
-                  <svg className="w-12 h-12 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <h1 className="text-3xl font-bold mb-4">Protected Portfolio</h1>
-                <h2 className="text-xl text-base-content/80 mb-4">{portfolio.title}</h2>
-                <p className="text-base-content/70 mb-8">This portfolio is password protected. Please enter the password to view the details.</p>
-                <button
-                  onClick={() => setPasswordError('')} // This will trigger the modal to show
-                  className="btn btn-primary mb-4"
-                >
-                  🔒 Enter Password
-                </button>
-              </div>
-              <Link to="/portfolio" className="btn btn-outline btn-info">
-                Back to Portfolio
-              </Link>
+      <div className="min-h-screen bg-white text-ink">
+        <main className="page-shell py-24 text-center">
+          <div className="mx-auto max-w-md space-y-5">
+            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-paper text-brand">
+              <LockIcon className="size-7" />
             </div>
+            <h1 className="text-3xl font-medium tracking-tight">Protected Portfolio</h1>
+            <p className="text-lg font-medium text-muted-700">{project.title}</p>
+            <p className="text-sm leading-relaxed text-muted-600">
+              This portfolio is password protected. Please enter the password to view the details.
+            </p>
+            <Link to="/portfolio" className="text-link">
+              <ArrowLeftIcon className="size-4" />
+              Back to portfolio
+            </Link>
           </div>
-        </section>
-        
-        {/* Password Modal */}
+        </main>
+
         <PasswordProtectionModal
           isOpen={true}
-          onClose={() => {
-            // Don't allow closing - redirect back to portfolio page instead
-            window.location.href = '/portfolio';
-          }}
+          onClose={() => navigate('/portfolio')}
           onSubmit={handlePasswordSubmit}
-          portfolioTitle={portfolio.title}
+          portfolioTitle={project.title}
           error={passwordError}
         />
-        
+
         <Footer />
       </div>
     );
   }
 
-  const resolvedImageUrl = portfolio.imageURL
-    ? portfolio.imageURL.startsWith('http')
-      ? portfolio.imageURL
-      : '/images/portfolios/' + portfolio.imageURL
-    : undefined;
-
-  const renderHeroMedia = (mediaClassName: string) => {
-    if (portfolio.videoURL) {
-      return (
-        <video
-          src={optimizeCloudinaryVideoUrl(portfolio.videoURL)}
-          poster={resolvedImageUrl}
-          controls
-          playsInline
-          preload="metadata"
-          className={`${mediaClassName} aspect-video object-cover bg-black`}
-          data-testid="portfolio-hero-video"
-        />
-      );
-    }
-
-    return (
-      <img
-        src={resolvedImageUrl}
-        alt={portfolio.title}
-        className={mediaClassName}
-        data-testid="portfolio-hero-image"
-      />
-    );
-  };
+  const liveUrl =
+    project.externalUrl && /^https?:\/\//i.test(project.externalUrl)
+      ? project.externalUrl
+      : undefined;
 
   return (
-    <div className="App">
-      <Navbar />
-      
-      <section className="pt-24 pb-24 min-h-screen">
-        {/* Mobile Layout */}
-        <div className="block lg:hidden">
-          <div className="section-container">
-            <div className="max-w-4xl w-full min-w-0 mx-auto px-4 sm:px-16">
-              {/* Breadcrumb */}
-              <div className="breadcrumbs text-sm mb-8 overflow-hidden">
-                <ul>
-                  <li><Link to="/">Home</Link></li>
-                  <li><Link to="/portfolio">Portfolio</Link></li>
-                  <li>{portfolio.title}</li>
-                </ul>
-              </div>
-              
-              {/* Project Header */}
-              <div className="text-center mb-12">
-                <h1 className="text-3xl md:text-5xl font-bold mb-4">{portfolio.title}</h1>
-                {(portfolio.year || portfolio.relatedExperienceCompany || portfolio.relatedEducationInstitution) && (
-                  <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
-                    {portfolio.year && (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-base-200 text-base-content/80">
-                        📅 {portfolio.year}
-                      </span>
-                    )}
-                    {portfolio.relatedExperienceCompany && (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-primary text-primary-content">
-                        💼 {portfolio.relatedExperienceCompany}
-                      </span>
-                    )}
-                    {portfolio.relatedEducationInstitution && (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-emerald-600 text-white">
-                        🎓 {portfolio.relatedEducationInstitution}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-              
-              {/* Project Media (Video or Image) */}
-              <div className="mb-8">
-                {renderHeroMedia('w-full rounded-2xl shadow-2xl')}
-              </div>
-              
-              {/* Roles */}
-              {portfolio.roles && portfolio.roles.length > 0 && (
-                <div className="mb-8 text-center">
-                  <h3 className="text-xl font-semibold mb-4">Project Roles</h3>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {portfolio.roles.map((roleTitle, index) => {
-                      const role = availableRoles.find(r => r.title === roleTitle);
-                      return (
-                        <div
-                          key={index}
-                          className={`badge badge-${role?.color || 'info'} badge-lg`}
-                        >
-                          {roleTitle}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              
-              {/* Technologies Used */}
-              {portfolio.tech.length > 0 && (
-                <div className="mb-8 text-center">
-                  <h3 className="text-xl font-semibold mb-4">Technologies Used</h3>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {portfolio.tech.map((tech, index) => (
-                      <div key={index} className="badge badge-outline badge-lg">
-                        {tech}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {/* Option B: Sticky Reading Progress Bar for Mobile Case Study View */}
-              <ScrollProgressBar defaultLabel={portfolio.title} />
+    <div ref={rootRef} className="min-h-screen bg-white text-ink">
+      <main className="page-shell py-12 sm:py-20">
+        <nav
+          aria-label="Breadcrumb"
+          data-gsap="hero-item"
+          className="mb-12 flex flex-wrap items-center gap-3 text-xs leading-relaxed text-muted-600"
+        >
+          <Link to="/" className="inline-flex min-h-8 items-center hover:underline">
+            Home
+          </Link>
+          <span aria-hidden="true">/</span>
+          <Link to="/portfolio" className="inline-flex min-h-8 items-center hover:underline">
+            Portfolio
+          </Link>
+          <span aria-hidden="true">/</span>
+          <span aria-current="page">{project.title}</span>
+        </nav>
 
-              {/* Project Description */}
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold mb-6">Project Overview</h2>
-                <div className="prose lg:prose-xl max-w-none portfolio-markdown">
-                  <p className="text-lg leading-relaxed">
-                    {portfolio.desc}
-                  </p>
-                </div>
-              </div>
-              
-              {/* Project Details (WYSIWYG HTML / Migrated Markdown) */}
-              {portfolio.projectDetails && (
-                <div className="mb-12">
-                  <h2 className="text-2xl font-bold mb-6">Project Details</h2>
-                  <div
-                    className="prose lg:prose-xl max-w-none portfolio-markdown w-full min-w-0 overflow-x-clip"
-                    data-color-mode="light"
-                    onClick={handleDetailsClick}
-                    dangerouslySetInnerHTML={{ __html: migrateContentToHtml(portfolio.projectDetails, portfolio.title) }}
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1fr_1.5fr] lg:items-start lg:gap-20">
+          <div
+            data-testid="portfolio-detail-left-column"
+            data-gsap="hero-item"
+            className="min-w-0 overscroll-contain lg:sticky lg:top-8 lg:max-h-[calc(100dvh-4rem)] lg:overflow-y-auto lg:pr-2"
+          >
+            <h1 className="text-4xl font-medium leading-[1.12] tracking-[-0.05em] sm:text-5xl">
+              {project.title}
+            </h1>
+            {project.subtitle && (
+              <p className="mt-4 text-sm leading-relaxed text-muted-600">{project.subtitle}</p>
+            )}
+
+            <div className="my-8">
+              {project.videoURL ? (
+                <div className="overflow-hidden bg-black outline outline-1 -outline-offset-1 outline-black/10">
+                  <video
+                    src={optimizeCloudinaryVideoUrl(project.videoURL)}
+                    poster={project.imageURL}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    className="aspect-video w-full object-cover"
+                    data-testid="portfolio-hero-video"
                   />
                 </div>
-              )}
-              
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-4 justify-center">
-                {portfolio.linkTo && (
-                  <a 
-                    href={portfolio.linkTo} 
-                    target="_blank" 
-                    rel="noreferrer" 
-                    className="btn btn-info btn-lg gap-2 text-white shadow-md hover:shadow-lg transition-all"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                    Visit Project
-                  </a>
-                )}
-                <Link to="/portfolio" className="btn btn-outline btn-info btn-lg hover:text-white">
-                  Back to Portfolio
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Desktop Layout - Split Screen */}
-        <div className="hidden lg:flex h-screen">
-          {/* Left Side - Sticky Content */}
-          <div className="w-2/5 sticky top-0 h-screen overflow-y-auto">
-            <div className="p-8 pr-4 h-full flex flex-col">
-              {/* Breadcrumb */}
-              <div className="breadcrumbs text-sm mb-6">
-                <ul>
-                  <li><Link to="/">Home</Link></li>
-                  <li><Link to="/portfolio">Portfolio</Link></li>
-                  <li>{portfolio.title}</li>
-                </ul>
-              </div>
-              
-              {/* Project Header */}
-              <div className="mb-8">
-                <h1 className="text-3xl xl:text-4xl font-bold mb-4">{portfolio.title}</h1>
-                {(portfolio.year || portfolio.relatedExperienceCompany || portfolio.relatedEducationInstitution) && (
-                  <div className="flex flex-wrap items-center gap-2 mt-2">
-                    {portfolio.year && (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-base-200 text-base-content/80">
-                        📅 {portfolio.year}
-                      </span>
-                    )}
-                    {portfolio.relatedExperienceCompany && (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-primary text-primary-content">
-                        💼 {portfolio.relatedExperienceCompany}
-                      </span>
-                    )}
-                    {portfolio.relatedEducationInstitution && (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-emerald-600 text-white">
-                        🎓 {portfolio.relatedEducationInstitution}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-              
-              {/* Project Media (Video or Image) */}
-              <div className="mb-8 flex-shrink-0">
-                {renderHeroMedia('w-full md:w-10/12 rounded-2xl shadow-2xl')}
-              </div>
-              
-              {/* Roles */}
-              {portfolio.roles && portfolio.roles.length > 0 && (
-                <div className="mb-8">
-                  <h3 className="text-xl font-semibold mb-4">Project Roles</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {portfolio.roles.map((roleTitle, index) => {
-                      const role = availableRoles.find(r => r.title === roleTitle);
-                      return (
-                        <div
-                          key={index}
-                          className={`badge badge-${role?.color || 'info'} badge-lg`}
-                        >
-                          {roleTitle}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              
-              {/* Technologies Used */}
-              {portfolio.tech.length > 0 && (
-                <div className="mb-8">
-                  <h3 className="text-xl font-semibold mb-4">Technologies Used</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {portfolio.tech.map((tech, index) => (
-                      <div key={index} className="badge badge-outline badge-lg">
-                        {tech}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {/* Action Buttons (Located directly below Technologies Used) */}
-              <div className="flex flex-wrap gap-4 mb-8">
-                {portfolio.linkTo && (
-                  <a 
-                    href={portfolio.linkTo} 
-                    target="_blank" 
-                    rel="noreferrer" 
-                    className="btn btn-info btn-lg gap-2 text-white"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                    Visit Project
-                  </a>
-                )}
-                <Link to="/portfolio" className="btn btn-outline btn-info btn-lg hover:text-white">
-                  Back to Portfolio
-                </Link>
-              </div>
-            </div>
-          </div>
-          
-          {/* Right Side - Scrollable Content */}
-          <div ref={rightScrollContainerRef} className="w-3/5 overflow-y-auto h-screen" data-testid="desktop-case-study-scroll">
-            <div className="p-8 pl-4 pt-2">
-              {/* Option B: Sticky Reading Progress Bar above Project Overview & Details */}
-              <ScrollProgressBar
-                scrollContainerRef={rightScrollContainerRef}
-                defaultLabel={portfolio.title}
-              />
-
-              {/* Project Description */}
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold mb-6">Project Overview</h2>
-                <div className="prose lg:prose-lg max-w-none portfolio-markdown">
-                  <p className="text-lg leading-relaxed text-base-content/80">
-                    {portfolio.desc}
-                  </p>
-                </div>
-              </div>
-              
-              {/* Project Details (WYSIWYG HTML / Migrated Markdown) */}
-              {portfolio.projectDetails && (
-                <div className="mb-12">
-                  <h2 className="text-2xl font-bold mb-6">Project Details</h2>
-                  <div
-                    className="prose lg:prose-lg max-w-none portfolio-markdown w-full min-w-0 overflow-x-clip"
-                    data-color-mode="light"
-                    onClick={handleDetailsClick}
-                    dangerouslySetInnerHTML={{ __html: migrateContentToHtml(portfolio.projectDetails, portfolio.title) }}
+              ) : project.imageURL && !imgError ? (
+                <div className="overflow-hidden bg-[#e7e7e9] outline outline-1 -outline-offset-1 outline-black/10">
+                  <img
+                    src={project.imageURL}
+                    alt={project.title}
+                    fetchPriority="high"
+                    decoding="async"
+                    onError={() => setImgError(true)}
+                    className="aspect-video w-full cursor-zoom-in object-cover"
+                    data-testid="portfolio-hero-image"
+                    onClick={() => {
+                      setLightboxImages([
+                        { src: project.imageURL as string, alt: project.title },
+                      ]);
+                      setLightboxIndex(0);
+                      setLightboxOpen(true);
+                    }}
                   />
                 </div>
+              ) : (
+                <ImagePlaceholder
+                  label={project.title}
+                  sublabel="Primary platform preview"
+                  aspectRatio="aspect-video"
+                />
               )}
-              
-              {/* Extra spacing at bottom for better scroll experience */}
-              <div className="h-24"></div>
+            </div>
+
+            <dl className="space-y-6">
+              {project.year && (
+                <div>
+                  <dt className="text-sm font-medium text-muted-600">Year</dt>
+                  <dd className="mt-3 tabular-nums">{project.year}</dd>
+                </div>
+              )}
+              {project.relatedExperienceCompany && (
+                <div>
+                  <dt className="text-sm font-medium text-muted-600">Experience context</dt>
+                  <dd className="mt-3 text-base">{project.relatedExperienceCompany}</dd>
+                </div>
+              )}
+              {project.relatedEducationInstitution && (
+                <div>
+                  <dt className="text-sm font-medium text-muted-600">Academic context</dt>
+                  <dd className="mt-3 text-base">{project.relatedEducationInstitution}</dd>
+                </div>
+              )}
+              <div>
+                <dt className="text-sm font-medium text-muted-600">Project roles</dt>
+                <dd className="mt-3 text-base leading-relaxed">
+                  {project.roles.length > 0 ? project.roles.join(' / ') : 'Case Study'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-muted-600">Technologies used</dt>
+                <dd className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm leading-relaxed">
+                  {project.tags.map((tag) => (
+                    <span key={tag}>{tag}</span>
+                  ))}
+                </dd>
+              </div>
+            </dl>
+
+            <div className="mt-9 flex flex-wrap gap-4">
+              {liveUrl ? (
+                <a
+                  href={liveUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flat-button flat-button-blue"
+                >
+                  Visit project <ExternalLinkIcon className="size-4" />
+                </a>
+              ) : (
+                <a
+                  href={`mailto:valentinojehaut@gmail.com?subject=${encodeURIComponent(`Project inquiry: ${project.title}`)}`}
+                  className="flat-button flat-button-blue"
+                >
+                  Ask about this project <ExternalLinkIcon className="size-4" />
+                </a>
+              )}
+              <Link to="/portfolio" className="text-link">
+                <ArrowLeftIcon className="size-4" />
+                Back to portfolio
+              </Link>
             </div>
           </div>
+
+          <div
+            data-testid="portfolio-detail-right-column"
+            data-gsap="hero-item"
+            className="min-w-0 max-w-[65ch] space-y-12 pt-1"
+          >
+            <ScrollProgressBar defaultLabel={project.title} />
+
+            <section>
+              <h2 className="text-2xl font-medium tracking-tight">Project overview</h2>
+              <p className="mt-5 text-base leading-[1.75] text-muted-600">
+                {project.overview || project.description}
+              </p>
+            </section>
+
+            {project.projectDetails ? (
+              <section>
+                <div
+                  className="wysiwyg-content portfolio-markdown prose max-w-none min-w-0 w-full overflow-x-clip text-muted-700"
+                  data-color-mode="light"
+                  onClick={handleDetailsClick}
+                  dangerouslySetInnerHTML={{
+                    __html: migrateContentToHtml(project.projectDetails, project.title),
+                  }}
+                />
+              </section>
+            ) : (
+              <>
+                {project.backgroundContext && (
+                  <section>
+                    <h2 className="text-2xl font-medium tracking-tight">Background &amp; context</h2>
+                    <div className="mt-5 space-y-4">
+                      {project.backgroundContext.split('\n\n').map((paragraph) => (
+                        <p key={paragraph} className="text-base leading-[1.75] text-muted-600">
+                          {paragraph}
+                        </p>
+                      ))}
+                    </div>
+                  </section>
+                )}
+                {project.developmentProcess && (
+                  <section>
+                    <h2 className="text-2xl font-medium tracking-tight">Development process</h2>
+                    <div className="mt-5 space-y-4">
+                      {project.developmentProcess.split('\n\n').map((paragraph) => (
+                        <p
+                          key={paragraph}
+                          className="break-words text-base leading-[1.75] text-muted-600"
+                        >
+                          {paragraph}
+                        </p>
+                      ))}
+                    </div>
+                  </section>
+                )}
+                {project.coreFeatures && (
+                  <section>
+                    <h2 className="text-2xl font-medium tracking-tight">Core features</h2>
+                    <ul className="mt-5 list-disc space-y-3 pl-5 text-base leading-relaxed text-muted-600">
+                      {project.coreFeatures.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+                <section>
+                  <h2 className="text-2xl font-medium tracking-tight">Built with</h2>
+                  <p className="mt-5 text-base leading-relaxed text-muted-600">
+                    {(project.technologiesList || project.tags).join(', ')}
+                  </p>
+                </section>
+                {project.notableAchievements && (
+                  <section>
+                    <h2 className="text-2xl font-medium tracking-tight">Results</h2>
+                    <p className="mt-5 text-base leading-[1.75] text-muted-600">
+                      {project.notableAchievements}
+                    </p>
+                  </section>
+                )}
+              </>
+            )}
+          </div>
         </div>
-      </section>
+      </main>
 
       <ImageLightboxModal
         images={lightboxImages}
         currentIndex={lightboxIndex}
         isOpen={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
-        onSelectIndex={(idx) => setLightboxIndex(idx)}
+        onSelectIndex={setLightboxIndex}
       />
-      
+
       <Footer />
     </div>
   );
-};
-
-export default PortfolioDetail;
+}
