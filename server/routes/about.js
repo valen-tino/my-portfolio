@@ -35,6 +35,26 @@ router.get('/', async (req, res) => {
   }
 });
 
+const OPTIONAL_ABOUT_TEXT_FIELDS = [
+  'name',
+  'fullName',
+  'location',
+  'email',
+  'heroHeadline',
+  'heroSubheadline',
+  'yearsExperience',
+  'yearsExperienceLabel',
+  'selectedProjectsLabel',
+  'degreesCount',
+  'degreesLabel',
+  'workProcessSubtitle',
+  'resumeSummary',
+  'contactHeading',
+  'contactSubtext',
+  'footerCtaHeading',
+  'footerBio'
+];
+
 // @route   PUT /api/about
 // @desc    Update about data
 // @access  Private
@@ -78,16 +98,30 @@ router.put('/', authMiddleware, async (req, res) => {
       if (imageCloudinaryId !== undefined) about.imageCloudinaryId = imageCloudinaryId;
       if (cvURL !== undefined) about.cvURL = cvURL || '/Valen-Jehaut.pdf';
       if (cvCloudinaryId !== undefined) about.cvCloudinaryId = cvCloudinaryId || null;
+
+      for (const field of OPTIONAL_ABOUT_TEXT_FIELDS) {
+        if (req.body[field] !== undefined) {
+          about[field] = typeof req.body[field] === 'string' ? req.body[field].trim() : req.body[field];
+        }
+      }
       
       await about.save();
     } else {
+      const extraFields = {};
+      for (const field of OPTIONAL_ABOUT_TEXT_FIELDS) {
+        if (req.body[field] !== undefined) {
+          extraFields[field] = typeof req.body[field] === 'string' ? req.body[field].trim() : req.body[field];
+        }
+      }
+
       // Create new
       about = new About({
         description,
         imageURL: imageURL || 'myface.jpeg',
         imageCloudinaryId: imageCloudinaryId || null,
         cvURL: cvURL || '/Valen-Jehaut.pdf',
-        cvCloudinaryId: cvCloudinaryId || null
+        cvCloudinaryId: cvCloudinaryId || null,
+        ...extraFields
       });
       await about.save();
     }

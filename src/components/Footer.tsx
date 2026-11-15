@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useInRouterContext, useNavigate } from 'react-router-dom';
-import { SOCIAL_LINKS } from '../data/portfolioData';
+import { CMSStorage, type AboutData } from '../cms/apiStorage';
+import { PERSONAL_INFO, SOCIAL_LINKS, mapCMSSocialLinkToView } from '../data/portfolioData';
+import type { SocialLink } from '../types/portfolio';
 import { navigateWithTransition } from '../utils/viewTransitions';
 import { ArrowRightIcon, ArrowUpIcon } from './Icons';
 
@@ -93,8 +95,18 @@ const SOCIAL_HOVER_ACCENTS: Record<string, string> = {
   LinkedIn: 'hover:border-orange hover:bg-orange hover:text-ink',
 };
 
-export function Footer() {
+interface FooterProps {
+  aboutData?: AboutData | null;
+  socialLinks?: SocialLink[];
+}
+
+export function Footer({ aboutData, socialLinks }: FooterProps = {}) {
   const [baliTime, setBaliTime] = useState<string>(() => getBaliTimeString());
+  const [fetchedAbout, setFetchedAbout] = useState<AboutData | null>(null);
+  const [fetchedLinks, setFetchedLinks] = useState<SocialLink[] | null>(null);
+
+  const shouldFetchAbout = aboutData === undefined;
+  const shouldFetchLinks = socialLinks === undefined;
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -102,6 +114,59 @@ export function Footer() {
     }, 60_000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!shouldFetchAbout && !shouldFetchLinks) return;
+    let active = true;
+
+    async function loadFooterCMS() {
+      const [aboutRes, linksRes] = await Promise.allSettled([
+        shouldFetchAbout && typeof CMSStorage.getAbout === 'function'
+          ? CMSStorage.getAbout()
+          : Promise.resolve(null),
+        shouldFetchLinks && typeof CMSStorage.getSocialLinks === 'function'
+          ? CMSStorage.getSocialLinks(true)
+          : Promise.resolve([]),
+      ]);
+      if (!active) return;
+      if (shouldFetchAbout && aboutRes.status === 'fulfilled' && aboutRes.value) {
+        setFetchedAbout(aboutRes.value);
+      }
+      if (
+        shouldFetchLinks &&
+        linksRes.status === 'fulfilled' &&
+        Array.isArray(linksRes.value) &&
+        linksRes.value.length > 0
+      ) {
+        setFetchedLinks(
+          linksRes.value
+            .filter((item) => item.isPublished !== false)
+            .map(mapCMSSocialLinkToView)
+        );
+      }
+    }
+
+    loadFooterCMS();
+    return () => {
+      active = false;
+    };
+  }, [shouldFetchAbout, shouldFetchLinks]);
+
+  const resolvedAbout = aboutData ?? fetchedAbout;
+  const resolvedSocialLinks =
+    socialLinks && socialLinks.length > 0
+      ? socialLinks
+      : fetchedLinks && fetchedLinks.length > 0
+        ? fetchedLinks
+        : SOCIAL_LINKS;
+  const resolvedName = resolvedAbout?.name?.trim() || PERSONAL_INFO.name;
+  const resolvedLocation = resolvedAbout?.location?.trim() || PERSONAL_INFO.location;
+  const resolvedEmail = resolvedAbout?.email?.trim() || 'valentinojehaut@gmail.com';
+  const resolvedCtaHeading =
+    resolvedAbout?.footerCtaHeading?.trim() || 'Let’s build something thoughtful together.';
+  const resolvedFooterBio =
+    resolvedAbout?.footerBio?.trim() ||
+    'UI/UX designer & full-stack product developer crafting fast, accessible web experiences.';
 
   const handleBackToTop = () => {
     const reduced =
@@ -117,7 +182,7 @@ export function Footer() {
           <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
             <div className="max-w-xl">
               <h2 className="text-3xl font-medium tracking-[-0.04em] text-white sm:text-5xl">
-                Let’s build something thoughtful together.
+                {resolvedCtaHeading}
               </h2>
             </div>
             <div className="flex flex-wrap items-center gap-4">
@@ -129,10 +194,10 @@ export function Footer() {
                 <ArrowRightIcon className="size-4" />
               </RouterAwareFooterLink>
               <a
-                href="mailto:valentinojehaut@gmail.com"
+                href={`mailto:${resolvedEmail}`}
                 className="inline-flex min-h-12 items-center gap-2 rounded-full border border-white/50 px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-white hover:text-ink focus-visible:outline-white"
               >
-                valentinojehaut@gmail.com
+                {resolvedEmail}
               </a>
             </div>
           </div>
@@ -146,13 +211,14 @@ export function Footer() {
         <div className="grid gap-10 border-b border-white/15 pb-12 md:grid-cols-[1.4fr_1fr_1.2fr]">
           <div>
             <p className="text-2xl font-semibold tracking-tight text-white">
-              Valentino Jehaut<span className="text-mint">.</span>
+              {resolvedName}
+              <span className="text-mint">.</span>
             </p>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted-300">
-              UI/UX designer &amp; full-stack product developer crafting fast, accessible web experiences.
+              {resolvedFooterBio}
             </p>
             <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-1.5 text-xs text-muted-200">
-              <span>Bali, Indonesia (WITA)</span>
+              <span>{resolvedLocation} (WITA)</span>
               <span aria-hidden="true">·</span>
               <span className="font-medium tabular-nums text-white">{baliTime}</span>
             </p>
@@ -181,9 +247,9 @@ export function Footer() {
               Connect
             </h3>
             <div className="mt-5 flex flex-wrap gap-2.5">
-              {SOCIAL_LINKS.map((link) => (
+              {resolvedSocialLinks.map((link) => (
                 <a
-                  key={link.name}
+                  key={link.id || link.name}
                   href={link.url}
                   target={link.url.startsWith('mailto:') ? undefined : '_blank'}
                   rel={link.url.startsWith('mailto:') ? undefined : 'noreferrer'}
@@ -201,7 +267,7 @@ export function Footer() {
 
         <div className="flex flex-col items-start justify-between gap-4 text-xs text-muted-300 sm:flex-row sm:items-center">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <p>© {new Date().getFullYear()} Valentino Jehaut</p>
+            <p>© {new Date().getFullYear()} {resolvedName}</p>
             <span aria-hidden="true" className="text-white/30">/</span>
             <p>Designed &amp; engineered with React, TypeScript, Tailwind CSS &amp; GSAP.</p>
           </div>

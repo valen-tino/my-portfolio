@@ -6,6 +6,8 @@ const Education = require('../models/Education');
 const Portfolio = require('../models/Portfolio');
 const WorkProcess = require('../models/WorkProcess');
 const DEFAULT_WORK_PROCESS_STEPS = require('../data/defaultWorkProcessSteps');
+const SocialLink = require('../models/SocialLink');
+const DEFAULT_SOCIAL_LINKS = require('../data/defaultSocialLinks');
 require('dotenv').config();
 
 const initializeDatabase = async () => {
@@ -193,6 +195,17 @@ I make this as a final project for getting a certificate in Junior Web Programme
       console.log(`ℹ️  ${existingWorkProcesses} work process steps already exist`);
     }
 
+    // Initialize default social links
+    console.log('🔗 Initializing Social Links...');
+    const existingSocialLinks = await SocialLink.countDocuments();
+
+    if (existingSocialLinks === 0) {
+      await SocialLink.insertMany(DEFAULT_SOCIAL_LINKS);
+      console.log(`✅ ${DEFAULT_SOCIAL_LINKS.length} social links created`);
+    } else {
+      console.log(`ℹ️  ${existingSocialLinks} social links already exist`);
+    }
+
     console.log('🎉 Database initialization completed successfully!');
     console.log('\n📋 Summary:');
     console.log(`- User: valentinojehaut@gmail.com (password: Valen23tino$)`);
@@ -201,6 +214,7 @@ I make this as a final project for getting a certificate in Junior Web Programme
     console.log(`- ${await Education.countDocuments()} education items`);
     console.log(`- ${await Portfolio.countDocuments()} portfolio items`);
     console.log(`- ${await WorkProcess.countDocuments()} work process steps`);
+    console.log(`- ${await SocialLink.countDocuments()} social links`);
     
     process.exit(0);
   } catch (error) {

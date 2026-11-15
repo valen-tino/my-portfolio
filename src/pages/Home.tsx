@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { CMSStorage, type AboutData } from '../cms/apiStorage';
+import { CMSStorage, type AboutData, type Role } from '../cms/apiStorage';
 import { BlogCard } from '../components/BlogCard';
 import { CVModal } from '../components/CVModal';
 import { EditorialCarousel } from '../components/EditorialCarousel';
@@ -24,6 +24,7 @@ import {
   mapCMSBlogToPost,
   mapCMSEducationToView,
   mapCMSExperienceToView,
+  mapCMSSocialLinkToView,
   mapCMSTechToolToView,
   mapCMSWorkProcessToView,
   mapPortfolioItemToProject,
@@ -35,6 +36,7 @@ import type {
   Education,
   Experience,
   Project,
+  SocialLink,
   TechToolView,
   WorkProcessStep,
 } from '../types/portfolio';
@@ -61,6 +63,8 @@ export default function Home({ onOpenCVModal }: HomeProps) {
   );
   const [techTools, setTechTools] = useState<TechToolView[]>(TECH_TOOLS);
   const [workProcessSteps, setWorkProcessSteps] = useState<WorkProcessStep[]>(WORK_PROCESS_STEPS);
+  const [cmsRoles, setCmsRoles] = useState<Role[]>([]);
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>(SOCIAL_LINKS);
   const [aboutData, setAboutData] = useState<AboutData | null>(null);
   const [portraitError, setPortraitError] = useState(false);
 
@@ -90,6 +94,8 @@ export default function Home({ onOpenCVModal }: HomeProps) {
         educationRes,
         experiencesRes,
         workProcessRes,
+        rolesRes,
+        socialLinksRes,
       ] = await Promise.allSettled([
         CMSStorage.getPortfolios(true),
         CMSStorage.getBlogs(true),
@@ -99,6 +105,12 @@ export default function Home({ onOpenCVModal }: HomeProps) {
         apiService.getExperiences(true),
         typeof CMSStorage.getWorkProcesses === 'function'
           ? CMSStorage.getWorkProcesses(true)
+          : Promise.resolve([]),
+        typeof CMSStorage.getRoles === 'function'
+          ? CMSStorage.getRoles()
+          : Promise.resolve([]),
+        typeof CMSStorage.getSocialLinks === 'function'
+          ? CMSStorage.getSocialLinks(true)
           : Promise.resolve([]),
       ]);
 
@@ -152,6 +164,22 @@ export default function Home({ onOpenCVModal }: HomeProps) {
       ) {
         setWorkProcessSteps(workProcessRes.value.map(mapCMSWorkProcessToView));
       }
+
+      if (rolesRes.status === 'fulfilled' && Array.isArray(rolesRes.value)) {
+        setCmsRoles(rolesRes.value);
+      }
+
+      if (
+        socialLinksRes.status === 'fulfilled' &&
+        Array.isArray(socialLinksRes.value) &&
+        socialLinksRes.value.length > 0
+      ) {
+        setSocialLinks(
+          socialLinksRes.value
+            .filter((item) => item.isPublished !== false)
+            .map(mapCMSSocialLinkToView)
+        );
+      }
     }
 
     loadCMSContent();
@@ -171,8 +199,12 @@ export default function Home({ onOpenCVModal }: HomeProps) {
 
   const roleFilters = useMemo(() => {
     const distinct = Array.from(new Set(projects.flatMap((p) => p.roles))).filter(Boolean);
-    return ['All', ...distinct];
-  }, [projects]);
+    const cmsOrdered = cmsRoles
+      .map((r) => r.title)
+      .filter((title) => distinct.includes(title));
+    const remaining = distinct.filter((title) => !cmsOrdered.includes(title));
+    return ['All', ...cmsOrdered, ...remaining];
+  }, [projects, cmsRoles]);
 
   const filteredProjects = useMemo(() => {
     if (selectedRole === 'All') return projects;
@@ -212,6 +244,15 @@ export default function Home({ onOpenCVModal }: HomeProps) {
     }
   };
 
+  const displayName = aboutData?.name?.trim() || PERSONAL_INFO.name;
+  const fullName = aboutData?.fullName?.trim() || PERSONAL_INFO.fullName;
+  const locationLabel = aboutData?.location?.trim() || PERSONAL_INFO.location;
+  const contactEmailAddress = aboutData?.email?.trim() || 'valentinojehaut@gmail.com';
+  const heroHeadline = aboutData?.heroHeadline?.trim() || 'I design and build digital products 💻📱.';
+  const heroSubheadline =
+    aboutData?.heroSubheadline?.trim() ||
+    'I turn ideas into useful digital products through design and development.';
+
   async function handleContactSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isSubmittingContact) return;
@@ -240,7 +281,7 @@ export default function Home({ onOpenCVModal }: HomeProps) {
       const subject = `Portfolio inquiry from ${trimmedName}`;
       const body = `${trimmedMessage}\n\nFrom: ${trimmedName}\nReply to: ${trimmedEmail}`;
       setContactStatus(
-        `Could not reach the messaging service right now. You can send directly via mailto:valentinojehaut@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)} or use the email address on the left.`,
+        `Could not reach the messaging service right now. You can send directly via mailto:${contactEmailAddress}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)} or use the email address on the left.`,
       );
     } finally {
       setIsSubmittingContact(false);
@@ -258,14 +299,16 @@ export default function Home({ onOpenCVModal }: HomeProps) {
       <section id="home" aria-labelledby="home-heading" className="bg-paper">
         <div className="page-shell flex flex-col items-center pb-12 pt-16 text-center sm:pb-16 sm:pt-24 lg:pt-28">
           <h1 id="home-heading" data-gsap="hero-item" className="hero-type mx-auto max-w-[28ch]">
-            <span className="block">{greeting} 👋, I’m Valentino Jehaut.</span>
-            <span className="mt-3 block text-brand">I design and build digital products 💻📱.</span>
+            <span className="block">
+              {greeting} 👋, I’m {displayName}.
+            </span>
+            <span className="mt-3 block text-brand">{heroHeadline}</span>
           </h1>
           <p
             data-gsap="hero-item"
             className="mt-7 max-w-[46ch] text-base leading-relaxed text-muted-600 sm:text-lg"
           >
-            I turn ideas into useful digital products through design and development.
+            {heroSubheadline}
           </p>
           <div data-gsap="hero-item" className="mt-8 flex flex-wrap justify-center gap-3">
             <a href="#selected-work" className="flat-button flat-button-blue">
@@ -336,7 +379,7 @@ export default function Home({ onOpenCVModal }: HomeProps) {
         </div>
       </section>
 
-      <WorkProcessSection steps={workProcessSteps} />
+      <WorkProcessSection steps={workProcessSteps} subtitle={aboutData?.workProcessSubtitle} />
 
       <section
         id="about"
@@ -379,9 +422,18 @@ export default function Home({ onOpenCVModal }: HomeProps) {
               </div>
               <div className="mt-12 grid grid-cols-3 gap-4 border-t border-muted-300 pt-6">
                 {[
-                  ['4+', 'Years of experience'],
-                  [String(projects.length).padStart(2, '0'), 'Selected projects'],
-                  ['02', 'Bachelor’s degrees'],
+                  [
+                    aboutData?.yearsExperience?.trim() || '4+',
+                    aboutData?.yearsExperienceLabel?.trim() || 'Years of experience',
+                  ],
+                  [
+                    String(projects.length).padStart(2, '0'),
+                    aboutData?.selectedProjectsLabel?.trim() || 'Selected projects',
+                  ],
+                  [
+                    aboutData?.degreesCount?.trim() || '02',
+                    aboutData?.degreesLabel?.trim() || 'Bachelor’s degrees',
+                  ],
                 ].map(([value, label]) => (
                   <div key={label}>
                     <p className="text-4xl font-medium tracking-[-0.05em] text-brand sm:text-5xl">
@@ -398,7 +450,7 @@ export default function Home({ onOpenCVModal }: HomeProps) {
                   <div className="aspect-[4/5] overflow-hidden bg-[#e7e7e9] outline outline-1 -outline-offset-1 outline-black/10">
                     <img
                       src={resolvedPortraitUrl}
-                      alt={`Portrait of ${PERSONAL_INFO.fullName}`}
+                      alt={`Portrait of ${fullName}`}
                       width={400}
                       height={500}
                       loading="lazy"
@@ -408,10 +460,12 @@ export default function Home({ onOpenCVModal }: HomeProps) {
                     />
                   </div>
                 ) : (
-                  <ImagePlaceholder label="Portrait of Valentino Jehaut" aspectRatio="aspect-[4/5]" />
+                  <ImagePlaceholder label={`Portrait of ${displayName}`} aspectRatio="aspect-[4/5]" />
                 )}
               </div>
-              <p className="mt-3 text-xs text-muted-600">Valentino Jehaut / Bali, Indonesia</p>
+              <p className="mt-3 text-xs text-muted-600">
+                {displayName} / {locationLabel}
+              </p>
             </div>
           </div>
           <div id="tools" className="mt-16 space-y-6 border-t border-muted-300 pt-8">
@@ -481,27 +535,30 @@ export default function Home({ onOpenCVModal }: HomeProps) {
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-20">
             <div>
               <h2 id="contact-heading" className="section-title max-w-[15ch]">
-                Tell me about your project
+                {aboutData?.contactHeading?.trim() || 'Tell me about your project'}
               </h2>
               <p className="mt-8 max-w-md text-base leading-relaxed">
-                Send me your project details or ask a question. I will reply by email.
+                {aboutData?.contactSubtext?.trim() ||
+                  'Send me your project details or ask a question. I will reply by email.'}
               </p>
-              <a href="mailto:valentinojehaut@gmail.com" className="text-link mt-7 break-all">
-                valentinojehaut@gmail.com <ArrowRightIcon className="size-4 shrink-0" />
+              <a href={`mailto:${contactEmailAddress}`} className="text-link mt-7 break-all">
+                {contactEmailAddress} <ArrowRightIcon className="size-4 shrink-0" />
               </a>
               <div className="mt-10 flex flex-wrap gap-x-8 gap-y-3">
-                {SOCIAL_LINKS.filter((link) => link.icon !== 'mail').map((link) => (
-                  <a
-                    key={link.name}
-                    href={link.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex min-h-11 items-center gap-3 text-sm underline underline-offset-4"
-                  >
-                    {link.name}
-                    <ArrowRightIcon className="size-3" />
-                  </a>
-                ))}
+                {socialLinks
+                  .filter((link) => link.icon !== 'mail')
+                  .map((link) => (
+                    <a
+                      key={link.id || link.name}
+                      href={link.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex min-h-11 items-center gap-3 text-sm underline underline-offset-4"
+                    >
+                      {link.name}
+                      <ArrowRightIcon className="size-3" />
+                    </a>
+                  ))}
               </div>
             </div>
             <form onSubmit={handleContactSubmit} aria-labelledby="contact-heading" className="space-y-6">
@@ -576,7 +633,7 @@ export default function Home({ onOpenCVModal }: HomeProps) {
         </div>
       </section>
 
-      <Footer />
+      <Footer aboutData={aboutData} socialLinks={socialLinks} />
 
       <PasswordProtectionModal
         isOpen={Boolean(protectedProject)}
@@ -596,6 +653,9 @@ export default function Home({ onOpenCVModal }: HomeProps) {
           experiences={experiences}
           educationList={educationList}
           cvURL={aboutData?.cvURL}
+          fullName={aboutData?.fullName}
+          resumeSummary={aboutData?.resumeSummary}
+          email={aboutData?.email}
         />
       )}
     </div>

@@ -5,9 +5,13 @@ import { ArrowLeftIcon, ArrowRightIcon } from './Icons';
 
 interface WorkProcessSectionProps {
   steps?: WorkProcessStep[];
+  subtitle?: string;
 }
 
-export function WorkProcessSection({ steps }: WorkProcessSectionProps = {}) {
+const DEFAULT_WORK_PROCESS_SUBTITLE =
+  'I combine design thinking with spec-driven development—from research and prototyping through structured engineering, automated testing, and iterative delivery.';
+
+export function WorkProcessSection({ steps, subtitle }: WorkProcessSectionProps = {}) {
   const [index, setIndex] = useState(0);
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
   const id = useId();
@@ -37,7 +41,7 @@ export function WorkProcessSection({ steps }: WorkProcessSectionProps = {}) {
               <span className="text-brand">.</span>
             </h2>
             <p className="mt-6 max-w-lg text-base leading-relaxed text-muted-600">
-              I combine design thinking with spec-driven development—from research and prototyping through structured engineering, automated testing, and iterative delivery.
+              {subtitle || DEFAULT_WORK_PROCESS_SUBTITLE}
             </p>
           </div>
         </div>

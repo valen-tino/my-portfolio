@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { CVModal } from './components/CVModal';
 import { FloatingNavigation } from './components/FloatingNavigation';
+import { LoadingScreen } from './components/LoadingScreen';
 import BlogDetail from './pages/BlogDetail';
 import BlogPage from './pages/BlogPage';
 import DesignSystemPage from './pages/DesignSystemPage';
@@ -21,6 +22,7 @@ import ExperienceManagement from './cms/pages/ExperienceManagement';
 import Login from './cms/pages/Login';
 import PortfolioManagement from './cms/pages/PortfolioManagement';
 import RolesManagement from './cms/pages/RolesManagement';
+import SocialLinksManagement from './cms/pages/SocialLinksManagement';
 import TechToolsManagement from './cms/pages/TechToolsManagement';
 import WorkProcessManagement from './cms/pages/WorkProcessManagement';
 import { CMSStorage, type AboutData } from './cms/apiStorage';
@@ -48,6 +50,7 @@ function App() {
   const location = useLocation();
   const isCMSRoute = location.pathname.startsWith('/cms');
   const [cvModalOpen, setCvModalOpen] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(!isCMSRoute);
   const [aboutData, setAboutData] = useState<AboutData | null>(null);
   const [experiences, setExperiences] = useState<Experience[]>(() => sortByLatestEndDate(EXPERIENCES));
   const [educationList, setEducationList] = useState<Education[]>(() =>
@@ -59,30 +62,39 @@ function App() {
   }, [location.pathname]);
 
   useEffect(() => {
-    if (isCMSRoute) return;
+    if (isCMSRoute) {
+      setInitialLoading(false);
+      return;
+    }
     let active = true;
 
     async function loadCVContext() {
-      const [aboutRes, eduRes, expRes] = await Promise.allSettled([
-        CMSStorage.getAbout(),
-        CMSStorage.getEducation(),
-        apiService.getExperiences(true),
-      ]);
-      if (!active) return;
+      try {
+        const [aboutRes, eduRes, expRes] = await Promise.allSettled([
+          CMSStorage.getAbout(),
+          CMSStorage.getEducation(),
+          apiService.getExperiences(true),
+        ]);
+        if (!active) return;
 
-      if (aboutRes.status === 'fulfilled' && aboutRes.value) {
-        setAboutData(aboutRes.value);
-      }
-      if (eduRes.status === 'fulfilled' && Array.isArray(eduRes.value) && eduRes.value.length > 0) {
-        setEducationList(sortByLatestEndDate(eduRes.value.map(mapCMSEducationToView)));
-      }
-      if (
-        expRes.status === 'fulfilled' &&
-        expRes.value?.success &&
-        Array.isArray(expRes.value.data) &&
-        expRes.value.data.length > 0
-      ) {
-        setExperiences(sortByLatestEndDate(expRes.value.data.map(mapCMSExperienceToView)));
+        if (aboutRes.status === 'fulfilled' && aboutRes.value) {
+          setAboutData(aboutRes.value);
+        }
+        if (eduRes.status === 'fulfilled' && Array.isArray(eduRes.value) && eduRes.value.length > 0) {
+          setEducationList(sortByLatestEndDate(eduRes.value.map(mapCMSEducationToView)));
+        }
+        if (
+          expRes.status === 'fulfilled' &&
+          expRes.value?.success &&
+          Array.isArray(expRes.value.data) &&
+          expRes.value.data.length > 0
+        ) {
+          setExperiences(sortByLatestEndDate(expRes.value.data.map(mapCMSExperienceToView)));
+        }
+      } finally {
+        if (active) {
+          setInitialLoading(false);
+        }
       }
     }
 
@@ -198,10 +210,19 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/cms/social-links"
+          element={
+            <ProtectedRoute>
+              <SocialLinksManagement />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
 
       {!isCMSRoute && (
         <>
+          <LoadingScreen isLoading={initialLoading} />
           <FloatingNavigation onOpenCVModal={() => setCvModalOpen(true)} />
           <CVModal
             isOpen={cvModalOpen}
@@ -209,6 +230,9 @@ function App() {
             experiences={experiences}
             educationList={educationList}
             cvURL={aboutData?.cvURL}
+            fullName={aboutData?.fullName}
+            resumeSummary={aboutData?.resumeSummary}
+            email={aboutData?.email}
           />
         </>
       )}

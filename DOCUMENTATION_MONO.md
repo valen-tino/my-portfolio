@@ -122,6 +122,7 @@ A full-stack portfolio website with an integrated Content Management System (CMS
                     │  - techtools                        │
                     │  - roles                            │
                     │  - workprocesses                    │
+                    │  - sociallinks                      │
                     │  - contacts                         │
                     │  - abouts                           │
                     └─────────────────────────────────────┘
@@ -209,12 +210,13 @@ my-portfolio/
 │   │   ├── PortfolioTable.tsx           # Left-aligned desktop table & minimal 2-column mobile index table
 │   │   ├── MobileFilterDialog.tsx       # Native <dialog closedby="any"> mobile filter popup
 │   │   ├── CVModal.tsx                  # Native <dialog closedby="any"> interactive résumé (latest end date first)
-│   │   ├── Footer.tsx                   # Vibrant CTA footer, Bali WITA clock, sitemap & social pills
+│   │   ├── LoadingScreen.tsx            # Brand-blue full-screen overlay with /favicon.ico & ease-in-out fade
+│   │   ├── Footer.tsx                   # Vibrant CTA banner, Bali WITA clock, sitemap & social pills
 │   │   ├── Icons.tsx / ImagePlaceholder.tsx / ScrollProgressBar.tsx / ImageLightboxModal.tsx / PasswordProtectionModal.tsx
 │   │
 │   ├── cms/                      # Complete CMS system (locked bright light-mode styling)
 │   │   ├── components/           # CMS-specific components (CMSLayout, WYSIWYGEditor, ProtectedRoute, AIPortfolioModal)
-│   │   ├── pages/                # CMS pages (Dashboard, Portfolios, Blogs, Experiences, WorkProcess, Education, TechTools, Roles, Contacts, About, AITest)
+│   │   ├── pages/                # CMS pages (Dashboard, Portfolios, Blogs, Experiences, WorkProcess, SocialLinks, Education, TechTools, Roles, Contacts, About, AITest)
 │   │   ├── apiStorage.ts         # Client-side API storage helper
 │   │   ├── auth.ts               # Authentication utilities
 │   │   └── education.ts          # Fallback education seed
@@ -227,10 +229,10 @@ my-portfolio/
 │
 ├── server/                       # Express backend
 │   ├── config/                   # Configuration (Cloudinary, Database)
-│   ├── data/                     # Default seed datasets (defaultWorkProcessSteps.js)
+│   ├── data/                     # Default seed datasets (defaultWorkProcessSteps.js, defaultSocialLinks.js)
 │   ├── middleware/               # Auth middlewares
-│   ├── models/                   # Mongoose schemas (Portfolio, Blog, Experience, WorkProcess, Education, TechTool, Role, Contact, About, User)
-│   ├── routes/                   # Express route handlers (about, ai, auth, blog, contact, education, experiences, portfolio, roles, techTools, upload, workProcess)
+│   ├── models/                   # Mongoose schemas (Portfolio, Blog, Experience, WorkProcess, SocialLink, Education, TechTool, Role, Contact, About, User)
+│   ├── routes/                   # Express route handlers (about, ai, auth, blog, contact, education, experiences, portfolio, roles, socialLinks, techTools, upload, workProcess)
 │   ├── utils/                    # Utility modules (skillMigration.js)
 │   ├── scripts/                  # Seed & maintenance scripts (initDatabase.js, migrateMarkdownToWYSIWYG.js, syncExistingPortfolioSkills.js)
 │   ├── services/                 # Server services (aiService.js)
@@ -240,7 +242,7 @@ my-portfolio/
 │   ├── [...path].js              # Catch-all serverless handler
 │   └── serverless.js             # Express app serverless wrapper
 │
-├── tests/                        # Automated Vitest suite (23 test files, 104 tests)
+├── tests/                        # Automated Vitest suite (26 test files, 116 tests)
 ├── tailwind.config.cjs           # Tailwind & DaisyUI theme tokens
 ├── vercel.json                   # Vercel deployment configuration
 └── package.json                  # Project dependencies & scripts
@@ -390,6 +392,19 @@ my-portfolio/
 }
 ```
 
+### Social Links Collection
+```javascript
+{
+  label: { type: String, required: true },
+  href: { type: String, required: true },
+  external: { type: Boolean, default: true },
+  order: { type: Number, default: 0 },
+  isPublished: { type: Boolean, default: true },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+}
+```
+
 ### About Collection
 ```javascript
 {
@@ -398,6 +413,23 @@ my-portfolio/
   imageCloudinaryId: { type: String },
   cvURL: { type: String, default: '/Valen-Jehaut.pdf' },
   cvCloudinaryId: { type: String, default: null },
+  name: { type: String },
+  fullName: { type: String },
+  location: { type: String },
+  email: { type: String },
+  heroHeadline: { type: String },
+  heroSubheadline: { type: String },
+  workProcessSubtitle: { type: String },
+  yearsExperience: { type: String },
+  yearsExperienceLabel: { type: String },
+  selectedProjectsLabel: { type: String },
+  degreesCount: { type: String },
+  degreesLabel: { type: String },
+  resumeSummary: { type: String },
+  contactHeading: { type: String },
+  contactSubtext: { type: String },
+  footerCtaHeading: { type: String },
+  footerBio: { type: String },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 }
@@ -419,6 +451,7 @@ my-portfolio/
 - **About**: `GET /api/about`, `PUT /api/about`
 - **Blogs**: `GET /api/blogs` (supports `?category=...&search=...&published=true`), `POST /api/blogs`, `GET /api/blogs/:id`, `PUT /api/blogs/:id`, `DELETE /api/blogs/:id`
 - **Work Process**: `GET /api/work-process` (supports `?published=true`), `GET /api/work-process/:id`, `POST /api/work-process`, `POST /api/work-process/seed`, `PUT /api/work-process/:id`, `DELETE /api/work-process/:id`
+- **Social Links**: `GET /api/social-links` (supports `?published=true`), `GET /api/social-links/:id`, `POST /api/social-links`, `POST /api/social-links/seed`, `PUT /api/social-links/:id`, `DELETE /api/social-links/:id`
 - **Tech Tools**: `GET /api/tech-tools` (supports `?published=true`), `POST /api/tech-tools`, `POST /api/tech-tools/sync-from-portfolios` (auto-sync), `PUT /api/tech-tools/:id`, `DELETE /api/tech-tools/:id`
 - **Roles**: `GET /api/roles`, `POST /api/roles`, `PUT /api/roles/:id`, `DELETE /api/roles/:id`
 - **Education**: `GET /api/education`, `POST /api/education`, `PUT /api/education/:id`, `DELETE /api/education/:id`
@@ -537,7 +570,8 @@ All media uploads go through Cloudinary via custom Multer storage engine:
 - **Work Page Grid/Table Views & Mobile Filters**: `PortfolioPage` pairs inline Role/Year/Tech filters (converting to `MobileFilterDialog` on small viewports) with a Grid / `?view=table` Table toggle (`PortfolioTable`, left-aligned on desktop/tablet and minimal two-column index rows on mobile)
 - **6-Step Spec-Driven Work Process & CMS CRUD**: `WorkProcessSection` combines 5 Design Thinking stages with **Development** right after **Prototype** (`Empathize` → `Define` → `Ideate` → `Prototype` → `Development` → `Test`) via plain-paragraph steps powered dynamically by `/api/work-process` and top-level CMS CRUD (`/cms/work-process`)
 - **CMS Light Theme Lock & Staged Portrait Upload**: `tailwind.config.cjs` (`themes: ['light --default']`), `index.html`, `src/index.css`, and explicit Tailwind surfaces keep CMS contrast clean under OS dark mode; `AboutManagement` pairs direct Cloudinary / 10MB `/api/upload/profile` fallback with full-box drag-and-drop and staged previews until `Save Changes`
-- **Automated Test Verification**: `npm test -- --run` runs **23 test suites (104 tests)** cleanly under Vitest + JSDOM, and `npm run build` validates TypeScript and Vite production bundling (`5173` frontend / `5001` backend)
+- **Full Frontend CMS Connectivity, Social Links CRUD & Brand-Blue Loading Screen**: `/api/social-links` + `/cms/social-links` (nested under `About Me ▾`), 17 extended `About` copy/identity fields, Experience company logo rendering (`exp.logoURL`), custom role ordering (`CMSStorage.getRoles()`), full education rendering in `CVModal`, 9-collection `Dashboard` stats, independent `Footer` CMS hydration, and `<LoadingScreen />` (`bg-brand` + centered `/favicon.ico` + `ease-in-out` fade) integrated in `App.tsx`, `PortfolioDetail.tsx`, and `BlogDetail.tsx`
+- **Automated Test Verification**: `npm test -- --run` runs **26 test suites (116 tests)** cleanly under Vitest + JSDOM, and `npm run build` validates TypeScript and Vite production bundling (`5173` frontend / `5001` backend)
 
 > For full changelog history across every iteration, see [CHANGES_SUMMARY.md](file:///Users/valentinojehaut/Documents/GitHub/my-portfolio/CHANGES_SUMMARY.md).
 

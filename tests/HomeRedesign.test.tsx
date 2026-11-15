@@ -13,6 +13,8 @@ vi.mock('../src/cms/apiStorage', () => ({
     getAbout: vi.fn(),
     getTechTools: vi.fn(),
     getEducation: vi.fn(),
+    getRoles: vi.fn(),
+    getSocialLinks: vi.fn(),
     addContactEntry: vi.fn(),
   },
 }));
@@ -76,6 +78,8 @@ describe('Home (Redesigned)', () => {
         endDate: '2025',
       } as any,
     ]);
+    vi.mocked(CMSStorage.getRoles).mockResolvedValue([]);
+    vi.mocked(CMSStorage.getSocialLinks).mockResolvedValue([]);
     vi.mocked(apiService.getExperiences).mockResolvedValue({
       success: true,
       data: [
@@ -448,5 +452,76 @@ describe('Home (Redesigned)', () => {
         expect(within(previewRegion).getAllByRole('img', { name: `Bulk Portfolio ${i}` }).length).toBeGreaterThan(0);
       }
     });
+  });
+
+  it('renders CMS About copy, CMS Social Links, Experience company logos, and custom role filter ordering', async () => {
+    vi.mocked(CMSStorage.getAbout).mockResolvedValueOnce({
+      description: 'Independent product engineer in Bali.',
+      imageURL: '',
+      name: 'Valen Studio',
+      heroHeadline: 'CMS Powered Headline',
+      heroSubheadline: 'CMS Powered Subheadline',
+      workProcessSubtitle: 'CMS Powered Process Subtitle',
+      yearsExperience: '6+',
+      yearsExperienceLabel: 'Years crafting',
+      degreesCount: '03',
+      degreesLabel: 'Verified Degrees',
+      email: 'studio@valen.dev',
+      contactHeading: 'Let us talk CMS',
+      footerCtaHeading: 'Custom Footer CTA',
+      footerBio: 'Custom Footer Bio',
+    } as any);
+    vi.mocked(CMSStorage.getSocialLinks).mockResolvedValueOnce([
+      {
+        id: 'sl-custom',
+        name: 'Mastodon',
+        handle: '@valen',
+        url: 'https://mastodon.social/@valen',
+        actionLabel: 'Follow',
+        icon: 'globe',
+        order: 1,
+        isPublished: true,
+      },
+    ]);
+    vi.mocked(CMSStorage.getRoles).mockResolvedValueOnce([
+      { id: 'r1', title: 'Design Lead', order: 1 },
+      { id: 'r2', title: 'Full-Stack Developer', order: 2 },
+    ]);
+    vi.mocked(apiService.getExperiences).mockResolvedValueOnce({
+      success: true,
+      data: [
+        {
+          id: 'exp-logo',
+          title: 'Design Engineer',
+          companyName: 'Blossem',
+          startDate: '2025-10',
+          endDate: 'Present',
+          status: 'Current',
+          description: 'Built UI systems.',
+          logoURL: 'https://example.com/blossem-logo.png',
+        },
+      ],
+    } as any);
+
+    render(
+      <MemoryRouter>
+        <Home />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('CMS Powered Headline')).toBeInTheDocument();
+    expect(screen.getByText('CMS Powered Subheadline')).toBeInTheDocument();
+    expect(screen.getByText('CMS Powered Process Subtitle')).toBeInTheDocument();
+    expect(screen.getByText('6+')).toBeInTheDocument();
+    expect(screen.getByText('Years crafting')).toBeInTheDocument();
+    expect(screen.getByText('03')).toBeInTheDocument();
+    expect(screen.getByText('Let us talk CMS')).toBeInTheDocument();
+    expect(screen.getByText('Custom Footer CTA')).toBeInTheDocument();
+    expect(screen.getByText('Custom Footer Bio')).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: /studio@valen\.dev/i }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByRole('link', { name: /Mastodon/i }).length).toBeGreaterThanOrEqual(2);
+
+    const logoImg = await screen.findByRole('img', { name: 'Blossem logo' });
+    expect(logoImg).toHaveAttribute('src', 'https://example.com/blossem-logo.png');
   });
 });

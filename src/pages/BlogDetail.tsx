@@ -5,6 +5,7 @@ import { Footer } from '../components/Footer';
 import { ArrowLeftIcon, ExternalLinkIcon } from '../components/Icons';
 import ImageLightboxModal, { type LightboxImageItem } from '../components/ImageLightboxModal';
 import { ImagePlaceholder } from '../components/ImagePlaceholder';
+import { LoadingScreen } from '../components/LoadingScreen';
 import { BLOG_POSTS, mapCMSBlogToPost } from '../data/portfolioData';
 import type { BlogPost } from '../types/portfolio';
 import { formatPublicDescription } from '../utils/contentMigration';
@@ -115,12 +116,10 @@ export default function BlogDetail() {
 
   return (
     <div ref={rootRef} className="min-h-screen bg-white text-ink">
+      <LoadingScreen isLoading={loading} label="Loading article..." />
       <main className="page-shell py-12 sm:py-20">
         {loading ? (
-          <div className="py-24 text-center">
-            <span className="loading loading-spinner loading-lg text-brand" />
-            <p className="mt-4 text-sm text-muted-600">Loading article...</p>
-          </div>
+          <div className="py-24 text-center" />
         ) : error || !post ? (
           <div className="py-24 text-center">
             <h1 className="text-3xl font-medium tracking-tight">Article Not Found</h1>

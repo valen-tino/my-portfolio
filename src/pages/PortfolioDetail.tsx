@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { CMSStorage } from '../cms/apiStorage';
+import { CMSStorage, type AboutData } from '../cms/apiStorage';
 import { Footer } from '../components/Footer';
 import { ArrowLeftIcon, ExternalLinkIcon, LockIcon } from '../components/Icons';
 import ImageLightboxModal, { type LightboxImageItem } from '../components/ImageLightboxModal';
 import { ImagePlaceholder } from '../components/ImagePlaceholder';
+import { LoadingScreen } from '../components/LoadingScreen';
 import PasswordProtectionModal from '../components/PasswordProtectionModal';
 import ScrollProgressBar from '../components/ScrollProgressBar';
 import { PROJECTS, mapPortfolioItemToProject } from '../data/portfolioData';
@@ -18,6 +19,7 @@ export default function PortfolioDetail() {
   const rootRef = useRef<HTMLDivElement>(null);
 
   const [project, setProject] = useState<Project | null>(null);
+  const [aboutData, setAboutData] = useState<AboutData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [passwordError, setPasswordError] = useState('');
@@ -40,21 +42,32 @@ export default function PortfolioDetail() {
       }
 
       try {
-        const items = await CMSStorage.getPortfolios(true);
+        const [portfoliosRes, aboutRes] = await Promise.allSettled([
+          CMSStorage.getPortfolios(true),
+          typeof CMSStorage.getAbout === 'function' ? CMSStorage.getAbout() : Promise.resolve(null),
+        ]);
         if (!active) return;
-        const foundRaw = items.find(
-          (p) => (String(p.id) === id || p._id === id) && p.isPublished !== false,
-        );
-        if (foundRaw) {
-          setProject(mapPortfolioItemToProject(foundRaw));
-        } else {
-          // If backend returned items cleanly, respect unpublished/missing status without leaking
-          if (items.length > 0) {
+
+        if (aboutRes.status === 'fulfilled' && aboutRes.value) {
+          setAboutData(aboutRes.value);
+        }
+
+        if (portfoliosRes.status === 'fulfilled') {
+          const items = portfoliosRes.value;
+          const foundRaw = items.find(
+            (p) => (String(p.id) === id || p._id === id) && p.isPublished !== false,
+          );
+          if (foundRaw) {
+            setProject(mapPortfolioItemToProject(foundRaw));
+          } else if (items.length > 0) {
             setProject(null);
           } else {
             const fallback = PROJECTS.find((p) => p.id === id || p.slug === id) || null;
             setProject(fallback);
           }
+        } else {
+          const fallback = PROJECTS.find((p) => p.id === id || p.slug === id) || null;
+          setProject(fallback);
         }
       } catch {
         if (!active) return;
@@ -115,21 +128,18 @@ export default function PortfolioDetail() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white text-ink">
-        <main className="page-shell py-24 text-center">
-          <div className="loading loading-spinner loading-lg text-brand" />
-          <p className="mt-4 text-sm text-muted-600">Loading portfolio...</p>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
+  const liveUrl =
+    project?.externalUrl && /^https?:\/\//i.test(project.externalUrl)
+      ? project.externalUrl
+      : undefined;
+  const contactEmail = aboutData?.email?.trim() || 'valentinojehaut@gmail.com';
 
-  if (!project) {
-    return (
-      <div className="min-h-screen bg-white text-ink">
+  return (
+    <div ref={rootRef} className="min-h-screen bg-white text-ink">
+      <LoadingScreen isLoading={loading} label="Loading portfolio..." />
+      {loading ? (
+        <main className="page-shell py-24 text-center" />
+      ) : !project ? (
         <main className="page-shell py-24 text-center">
           <h1 className="text-4xl font-medium tracking-tight">Portfolio Not Found</h1>
           <p className="mt-4 text-base text-muted-600">
@@ -140,52 +150,35 @@ export default function PortfolioDetail() {
             Back to portfolio
           </Link>
         </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (project.isPasswordProtected && !isUnlocked) {
-    return (
-      <div className="min-h-screen bg-white text-ink">
-        <main className="page-shell py-24 text-center">
-          <div className="mx-auto max-w-md space-y-5">
-            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-paper text-brand">
-              <LockIcon className="size-7" />
+      ) : project.isPasswordProtected && !isUnlocked ? (
+        <>
+          <main className="page-shell py-24 text-center">
+            <div className="mx-auto max-w-md space-y-5">
+              <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-paper text-brand">
+                <LockIcon className="size-7" />
+              </div>
+              <h1 className="text-3xl font-medium tracking-tight">Protected Portfolio</h1>
+              <p className="text-lg font-medium text-muted-700">{project.title}</p>
+              <p className="text-sm leading-relaxed text-muted-600">
+                This portfolio is password protected. Please enter the password to view the details.
+              </p>
+              <Link to="/portfolio" className="text-link">
+                <ArrowLeftIcon className="size-4" />
+                Back to portfolio
+              </Link>
             </div>
-            <h1 className="text-3xl font-medium tracking-tight">Protected Portfolio</h1>
-            <p className="text-lg font-medium text-muted-700">{project.title}</p>
-            <p className="text-sm leading-relaxed text-muted-600">
-              This portfolio is password protected. Please enter the password to view the details.
-            </p>
-            <Link to="/portfolio" className="text-link">
-              <ArrowLeftIcon className="size-4" />
-              Back to portfolio
-            </Link>
-          </div>
-        </main>
+          </main>
 
-        <PasswordProtectionModal
-          isOpen={true}
-          onClose={() => navigate('/portfolio')}
-          onSubmit={handlePasswordSubmit}
-          portfolioTitle={project.title}
-          error={passwordError}
-        />
-
-        <Footer />
-      </div>
-    );
-  }
-
-  const liveUrl =
-    project.externalUrl && /^https?:\/\//i.test(project.externalUrl)
-      ? project.externalUrl
-      : undefined;
-
-  return (
-    <div ref={rootRef} className="min-h-screen bg-white text-ink">
-      <main className="page-shell py-12 sm:py-20">
+          <PasswordProtectionModal
+            isOpen={true}
+            onClose={() => navigate('/portfolio')}
+            onSubmit={handlePasswordSubmit}
+            portfolioTitle={project.title}
+            error={passwordError}
+          />
+        </>
+      ) : (
+        <main className="page-shell py-12 sm:py-20">
         <nav
           aria-label="Breadcrumb"
           data-gsap="hero-item"
@@ -303,7 +296,7 @@ export default function PortfolioDetail() {
                 </a>
               ) : (
                 <a
-                  href={`mailto:valentinojehaut@gmail.com?subject=${encodeURIComponent(`Project inquiry: ${project.title}`)}`}
+                  href={`mailto:${contactEmail}?subject=${encodeURIComponent(`Project inquiry: ${project.title}`)}`}
                   className="flat-button flat-button-blue"
                 >
                   Ask about this project <ExternalLinkIcon className="size-4" />
@@ -398,7 +391,8 @@ export default function PortfolioDetail() {
             )}
           </div>
         </div>
-      </main>
+        </main>
+      )}
 
       <ImageLightboxModal
         images={lightboxImages}
@@ -408,7 +402,7 @@ export default function PortfolioDetail() {
         onSelectIndex={setLightboxIndex}
       />
 
-      <Footer />
+      <Footer aboutData={aboutData} />
     </div>
   );
 }

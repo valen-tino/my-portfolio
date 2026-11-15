@@ -10,6 +10,9 @@ interface CVModalProps {
   experiences?: Experience[];
   educationList?: Education[];
   cvURL?: string;
+  fullName?: string;
+  resumeSummary?: string;
+  email?: string;
 }
 
 export function CVModal({
@@ -18,6 +21,9 @@ export function CVModal({
   experiences = EXPERIENCES,
   educationList = EDUCATION_LIST,
   cvURL,
+  fullName,
+  resumeSummary,
+  email,
 }: CVModalProps) {
   const ref = useRef<HTMLDialogElement>(null);
 
@@ -64,6 +70,7 @@ export function CVModal({
   const sortedExperiences = useMemo(() => sortByLatestEndDate(experiences), [experiences]);
   const sortedEducation = useMemo(() => sortByLatestEndDate(educationList), [educationList]);
   const hasDownloadableCV = Boolean(cvURL && cvURL.trim());
+  const resolvedEmail = email?.trim() || 'valentinojehaut@gmail.com';
 
   return (
     <dialog
@@ -79,7 +86,7 @@ export function CVModal({
       <div className="flex items-start justify-between gap-5">
         <div>
           <h2 id="resume-heading" className="mt-3 text-3xl font-medium tracking-tight">
-            {PERSONAL_INFO.fullName}
+            {fullName?.trim() || PERSONAL_INFO.fullName}
           </h2>
         </div>
         <button
@@ -93,7 +100,8 @@ export function CVModal({
         </button>
       </div>
       <p className="mt-6 text-sm leading-relaxed text-muted-600">
-        Bali-based web developer and UI/UX designer. React, TypeScript, WordPress, and Figma.
+        {resumeSummary?.trim() ||
+          'Bali-based web developer and UI/UX designer. React, TypeScript, WordPress, and Figma.'}
       </p>
       <h3 className="mb-4 mt-8 text-lg font-medium">Experience</h3>
       {sortedExperiences.map((exp) => (
@@ -105,7 +113,7 @@ export function CVModal({
         </div>
       ))}
       <h3 className="mb-4 mt-6 text-lg font-medium">Education</h3>
-      {sortedEducation.slice(0, 2).map((edu) => (
+      {sortedEducation.map((edu) => (
         <div key={edu.id} className="border-t border-muted-300 py-4">
           <p className="text-sm font-medium">{edu.degree}</p>
           <p className="mt-1 text-xs text-muted-600">
@@ -125,7 +133,7 @@ export function CVModal({
       ) : (
         <>
           <a
-            href="mailto:valentinojehaut@gmail.com?subject=Full%20résumé%20request"
+            href={`mailto:${resolvedEmail}?subject=Full%20résumé%20request`}
             className="flat-button flat-button-blue mt-6"
           >
             Request full résumé <DownloadIcon className="size-4" />

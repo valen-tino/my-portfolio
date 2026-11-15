@@ -5,6 +5,7 @@ import type {
   EducationItem as CMSEducationItem,
   TechTool as CMSTechTool,
   CMSWorkProcessStep,
+  CMSSocialLink,
 } from '../cms/apiStorage';
 import type {
   Project,
@@ -583,5 +584,33 @@ export function mapCMSWorkProcessToView(step: CMSWorkProcessStep): WorkProcessSt
     description: step.description,
     order: step.order,
     isPublished: step.isPublished,
+  };
+}
+
+export function mapCMSSocialLinkToView(link: CMSSocialLink): SocialLink {
+  const normalizedName = link.name || 'Link';
+  const lower = normalizedName.toLowerCase();
+  const defaultIcon = lower.includes('mail')
+    ? 'mail'
+    : lower.includes('github')
+      ? 'github'
+      : lower.includes('linkedin')
+        ? 'linkedin'
+        : 'globe';
+  return {
+    id: String(link.id || link._id || normalizedName),
+    name: normalizedName,
+    handle: link.handle || normalizedName,
+    url: link.url,
+    actionLabel: link.actionLabel || 'Connect',
+    bgColor: lower.includes('mail')
+      ? 'bg-[#2563EB]'
+      : lower.includes('linkedin')
+        ? 'bg-[#4CA7F8]'
+        : 'bg-white border border-muted-200/90',
+    textColor: lower.includes('mail') ? 'text-white' : 'text-muted-950',
+    icon: link.icon || defaultIcon,
+    order: link.order,
+    isPublished: link.isPublished,
   };
 }

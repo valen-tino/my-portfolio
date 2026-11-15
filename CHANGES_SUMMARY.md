@@ -35,7 +35,8 @@ This document provides a comprehensive, centralized record of all architecture i
 28. [Work Page Filter Overhaul, Grid/Table Switcher & Responsive Mobile Table/Filter Dialog](#28-work-page-filter-overhaul-gridtable-switcher--responsive-mobile-tablefilter-dialog)
 29. [16:9 Portfolio Media, Hero Carousel All-Items/Toggletip, Code Block Fix & Blue Resume Pill](#29-169-portfolio-media-hero-carousel-all-itemstoggletip-code-block-fix--blue-resume-pill)
 30. [Design System Inspirations, 6-Step Spec-Driven Work Process CRUD, CMS Light Theme & About Upload Fix](#30-design-system-inspirations-6-step-spec-driven-work-process-crud-cms-light-theme--about-upload-fix)
-31. [Files Created, Modified, or Removed](#31-files-created-modified-or-removed)
+31. [Full Frontend CMS Connectivity, Social Links CRUD, Extended Site Copy & Brand-Blue Loading Screen](#31-full-frontend-cms-connectivity-social-links-crud-extended-site-copy--brand-blue-loading-screen)
+32. [Files Created, Modified, or Removed](#32-files-created-modified-or-removed)
 
 ---
 
@@ -580,10 +581,43 @@ This document provides a comprehensive, centralized record of all architecture i
 
 ---
 
-## 31. Files Created, Modified, or Removed
+## 31. Full Frontend CMS Connectivity, Social Links CRUD, Extended Site Copy & Brand-Blue Loading Screen
+
+- **Social Links Full-Stack CRUD (`/api/social-links` & `/cms/social-links`)**:
+  - Created `server/data/defaultSocialLinks.js` (Email, GitHub, LinkedIn defaults), `server/models/SocialLink.js` (`label`, `href`, `external`, `order`, `isPublished`), and `server/routes/socialLinks.js` (`GET /`, `GET /:id`, `POST /seed`, `POST /`, `PUT /:id`, `DELETE /:id`).
+  - Mounted `/api/social-links` in `server/index.js` and `api/serverless.js`, and added initial default seeding in `server/scripts/initDatabase.js`.
+  - Added `CMSSocialLink`, `mapCMSSocialLinkToView`, and CRUD API/storage methods in `src/types/portfolio.ts`, `src/data/portfolioData.ts`, `src/services/api.ts`, and `src/cms/apiStorage.ts`.
+  - Created `src/cms/pages/SocialLinksManagement.tsx` (Create, Edit, Delete, Up/Down ordering, Publish/Hide toggle, `Import Default Social Links`), registered `/cms/social-links` in `src/App.tsx`, and added **Social Links** under the **About Me ▾** dropdown in `src/cms/components/CMSLayout.tsx`.
+- **Extended About Me & Site Copy (`/api/about` & `/cms/about`)**:
+  - Extended `server/models/About.js`, `server/routes/about.js`, and `AboutData` (`src/cms/apiStorage.ts`) with 17 optional site-copy and identity fields: Identity & Contact (`name`, `fullName`, `location`, `email`), Hero & Work Process Copy (`heroHeadline`, `heroSubheadline`, `workProcessSubtitle`), About Stats & Résumé Summary (`yearsExperience`, `yearsExperienceLabel`, `selectedProjectsLabel`, `degreesCount`, `degreesLabel`, `resumeSummary`), and Contact & Footer Copy (`contactHeading`, `contactSubtext`, `footerCtaHeading`, `footerBio`).
+  - Expanded `src/cms/pages/AboutManagement.tsx` with structured card sections for Identity & Contact, Hero & Work Process Copy, About Stats & Résumé Summary, and Contact & Footer Copy, plus live public preview synchronization.
+- **Remaining Frontend Elements & CMS Dashboard Connected**:
+  - Connected `src/pages/Home.tsx` to dynamic About/Site Copy, custom role ordering (`CMSStorage.getRoles()`), and published Social Links (`CMSStorage.getSocialLinks(true)`).
+  - Updated `src/components/WorkProcessSection.tsx` to accept a dynamic `subtitle?: string` prop.
+  - Updated `src/components/ExperienceEducationSection.tsx` to render uploaded company logo thumbnails (`exp.logoURL`) with graceful fallback.
+  - Updated `src/components/CVModal.tsx` to render dynamic `name`, `location`, `email`, `resumeSummary`, and the full `educationList` (removing the `.slice(0, 2)` cap).
+  - Updated `src/components/Footer.tsx` to accept `aboutData` and `socialLinks` props or independently hydrate missing `aboutData` / `socialLinks` via `CMSStorage.getAbout()` and `CMSStorage.getSocialLinks(true)`.
+  - Rebuilt `src/cms/pages/Dashboard.tsx` using `Promise.allSettled` across all 9 collections (Portfolios, Blogs, Experiences, Work Process, Education, Tech Tools, Roles, Social Links, Contact Entries, plus About Me status).
+- **Brand-Blue Full-Screen Loading Screen (`src/components/LoadingScreen.tsx`)**:
+  - Created `src/components/LoadingScreen.tsx` featuring `bg-brand` (`#2563eb`), centered `/favicon.ico`, and smooth `transition-opacity duration-500 ease-in-out motion-reduce:duration-150` (`opacity-100` vs `opacity-0 pointer-events-none`).
+  - Integrated `<LoadingScreen isLoading={loading} />` in `src/App.tsx`, `src/pages/PortfolioDetail.tsx`, and `src/pages/BlogDetail.tsx`.
+- **Test & Build Verification**:
+  - Added `tests/LoadingScreen.test.tsx`, `tests/SocialLinksManagement.test.tsx`, and `tests/serverlessSocialLinks.test.ts`, and updated `tests/CVModal.test.tsx`, `tests/AboutManagement.test.tsx`, and `tests/HomeRedesign.test.tsx`.
+  - Verified full Vitest suite passes (**26 test files, 116 tests**) and `npm run build` (`tsc && vite build`) exits 0.
+
+---
+
+## 32. Files Created, Modified, or Removed
 
 | File | Status | Description |
 | :--- | :--- | :--- |
+| `src/components/LoadingScreen.tsx`, `src/cms/pages/SocialLinksManagement.tsx`, `server/models/SocialLink.js`, `server/routes/socialLinks.js`, `server/data/defaultSocialLinks.js` | Created | Brand-blue `<LoadingScreen />` overlay (`/favicon.ico` + `ease-in-out` fade) and full-stack Social Links CRUD module, Mongoose schema, Express/Vercel API router (`/api/social-links`), and default links seed. |
+| `tests/LoadingScreen.test.tsx`, `tests/SocialLinksManagement.test.tsx`, `tests/serverlessSocialLinks.test.ts` | Created | Unit, component, and HTTP integration tests covering `<LoadingScreen />`, CMS Social Links management, and `/api/social-links` serverless endpoints. |
+| `server/models/About.js`, `server/routes/about.js`, `server/index.js`, `api/serverless.js`, `server/scripts/initDatabase.js` | Modified | Extended `About` schema/routes with 17 optional identity & site-copy fields, mounted `/api/social-links`, and added default Social Links seeding. |
+| `src/types/portfolio.ts`, `src/data/portfolioData.ts`, `src/services/api.ts`, `src/cms/apiStorage.ts` | Modified | Added `CMSSocialLink`, `mapCMSSocialLinkToView`, social links API/storage methods, and extended `AboutData` fields. |
+| `src/App.tsx`, `src/cms/components/CMSLayout.tsx`, `src/cms/pages/AboutManagement.tsx`, `src/cms/pages/Dashboard.tsx` | Modified | Added `/cms/social-links` route & `Social Links` dropdown entry, extended About/Site Copy form sections, integrated `<LoadingScreen />`, and wired all 9 CMS collections into `Dashboard.tsx`. |
+| `src/pages/Home.tsx`, `PortfolioDetail.tsx`, `BlogDetail.tsx`, `src/components/WorkProcessSection.tsx`, `ExperienceEducationSection.tsx`, `CVModal.tsx`, `Footer.tsx` | Modified | Connected remaining frontend copy, custom role ordering, company logos, full CV education list, independent Footer CMS hydration, and `<LoadingScreen />` transitions. |
+| `tests/CVModal.test.tsx`, `tests/AboutManagement.test.tsx`, `tests/HomeRedesign.test.tsx` | Modified | Verified full `educationList` rendering, dynamic site-copy editing, and CMS-driven Homepage sections (`26 test files, 116 tests`). |
 | `src/cms/pages/WorkProcessManagement.tsx`, `server/models/WorkProcess.js`, `server/routes/workProcess.js`, `server/data/defaultWorkProcessSteps.js` | Created | Full-stack Work Process CRUD module, Mongoose schema, Express/Vercel API router (`/api/work-process`), and default 6-step seed data. |
 | `tests/WorkProcessManagement.test.tsx`, `tests/serverlessWorkProcess.test.ts` | Created | Unit, component, and HTTP integration tests covering CMS Work Process management and `/api/work-process` serverless endpoints. |
 | `tailwind.config.cjs`, `index.html`, `src/index.css` | Modified | Locked DaisyUI v5 to `['light --default']` and enforced `data-theme="light"` / `color-scheme: light` to stop OS dark-mode CSS leakage. |

@@ -113,6 +113,7 @@ export interface TechToolView {
 }
 
 export interface SocialLink {
+  id?: string;
   name: string;
   handle: string;
   url: string;
@@ -120,5 +121,7 @@ export interface SocialLink {
   bgColor: string;
   textColor: string;
   icon: string;
+  order?: number;
+  isPublished?: boolean;
 }
 

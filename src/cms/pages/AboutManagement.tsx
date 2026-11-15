@@ -7,11 +7,33 @@ import { formatPublicDescription } from '../../utils/contentMigration';
 const ALLOWED_IMAGE_EXTENSIONS = /\.(png|jpe?g|gif|webp|svg)$/i;
 const MAX_PROFILE_IMAGE_BYTES = 10 * 1024 * 1024;
 
+const DEFAULT_ABOUT_FIELDS: AboutData = {
+  description: '',
+  imageURL: '',
+  name: 'Valentino Jehaut',
+  fullName: 'Valentino Yudhistira Jehaut',
+  location: 'Bali, Indonesia',
+  email: 'valentinojehaut@gmail.com',
+  heroHeadline: 'I design and build digital products 💻📱.',
+  heroSubheadline: 'I turn ideas into useful digital products through design and development.',
+  yearsExperience: '4+',
+  yearsExperienceLabel: 'Years of experience',
+  selectedProjectsLabel: 'Selected projects',
+  degreesCount: '02',
+  degreesLabel: 'Bachelor’s degrees',
+  workProcessSubtitle:
+    'I combine design thinking with spec-driven development—from research and prototyping through structured engineering, automated testing, and iterative delivery.',
+  resumeSummary:
+    'Bali-based web developer and UI/UX designer. React, TypeScript, WordPress, and Figma.',
+  contactHeading: 'Tell me about your project',
+  contactSubtext: 'Send me your project details or ask a question. I will reply by email.',
+  footerCtaHeading: 'Let’s build something thoughtful together.',
+  footerBio:
+    'UI/UX designer & full-stack product developer crafting fast, accessible web experiences.',
+};
+
 const AboutManagement: React.FC = () => {
-  const [aboutData, setAboutData] = useState<AboutData>({
-    description: '',
-    imageURL: ''
-  });
+  const [aboutData, setAboutData] = useState<AboutData>(DEFAULT_ABOUT_FIELDS);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [imageUploading, setImageUploading] = useState(false);
@@ -23,7 +45,7 @@ const AboutManagement: React.FC = () => {
     const fetchAboutData = async () => {
       try {
         const data = await CMSStorage.getAbout();
-        setAboutData(data);
+        setAboutData({ ...DEFAULT_ABOUT_FIELDS, ...data });
       } catch (error) {
         console.error('Error fetching about data:', error);
         setMessage({
@@ -355,6 +377,275 @@ const AboutManagement: React.FC = () => {
               </p>
             </div>
 
+            {/* Identity & Contact Settings */}
+            <div className="bg-gray-50/70 rounded-xl border border-gray-200 p-5 space-y-4">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900">Identity &amp; Contact Details</h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Displayed in Hero greeting, Portrait caption, Résumé modal, Contact section, and Footer.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="about-name" className="block text-sm font-medium text-gray-700 mb-1">
+                    Display Name
+                  </label>
+                  <input
+                    id="about-name"
+                    type="text"
+                    value={aboutData.name ?? ''}
+                    onChange={(e) => setAboutData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Valentino Jehaut"
+                    className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="about-full-name" className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name (Résumé &amp; Alt Text)
+                  </label>
+                  <input
+                    id="about-full-name"
+                    type="text"
+                    value={aboutData.fullName ?? ''}
+                    onChange={(e) => setAboutData(prev => ({ ...prev, fullName: e.target.value }))}
+                    placeholder="Valentino Yudhistira Jehaut"
+                    className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="about-location" className="block text-sm font-medium text-gray-700 mb-1">
+                    Location
+                  </label>
+                  <input
+                    id="about-location"
+                    type="text"
+                    value={aboutData.location ?? ''}
+                    onChange={(e) => setAboutData(prev => ({ ...prev, location: e.target.value }))}
+                    placeholder="Bali, Indonesia"
+                    className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="about-email" className="block text-sm font-medium text-gray-700 mb-1">
+                    Primary Contact Email
+                  </label>
+                  <input
+                    id="about-email"
+                    type="email"
+                    value={aboutData.email ?? ''}
+                    onChange={(e) => setAboutData(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="valentinojehaut@gmail.com"
+                    className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Hero & Work Process Copy */}
+            <div className="bg-gray-50/70 rounded-xl border border-gray-200 p-5 space-y-4">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900">Hero &amp; Work Process Copy</h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Controls the Hero headline, subheadline, and Work Process section subtitle.
+                </p>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="about-hero-headline" className="block text-sm font-medium text-gray-700 mb-1">
+                    Hero Headline
+                  </label>
+                  <input
+                    id="about-hero-headline"
+                    type="text"
+                    value={aboutData.heroHeadline ?? ''}
+                    onChange={(e) => setAboutData(prev => ({ ...prev, heroHeadline: e.target.value }))}
+                    placeholder="I design and build digital products 💻📱."
+                    className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="about-hero-subheadline" className="block text-sm font-medium text-gray-700 mb-1">
+                    Hero Subheadline
+                  </label>
+                  <input
+                    id="about-hero-subheadline"
+                    type="text"
+                    value={aboutData.heroSubheadline ?? ''}
+                    onChange={(e) => setAboutData(prev => ({ ...prev, heroSubheadline: e.target.value }))}
+                    placeholder="I turn ideas into useful digital products through design and development."
+                    className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="about-process-subtitle" className="block text-sm font-medium text-gray-700 mb-1">
+                    Work Process Subtitle
+                  </label>
+                  <textarea
+                    id="about-process-subtitle"
+                    rows={2}
+                    value={aboutData.workProcessSubtitle ?? ''}
+                    onChange={(e) => setAboutData(prev => ({ ...prev, workProcessSubtitle: e.target.value }))}
+                    placeholder="I combine design thinking with spec-driven development..."
+                    className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* About Stats & Résumé Summary */}
+            <div className="bg-gray-50/70 rounded-xl border border-gray-200 p-5 space-y-4">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900">About Stats &amp; Résumé Summary</h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Metrics shown in the About section and introductory summary inside the Résumé popup.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label htmlFor="about-years-exp" className="block text-sm font-medium text-gray-700 mb-1">
+                    Years of Experience Value
+                  </label>
+                  <input
+                    id="about-years-exp"
+                    type="text"
+                    value={aboutData.yearsExperience ?? ''}
+                    onChange={(e) => setAboutData(prev => ({ ...prev, yearsExperience: e.target.value }))}
+                    placeholder="4+"
+                    className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="about-years-label" className="block text-sm font-medium text-gray-700 mb-1">
+                    Years of Experience Label
+                  </label>
+                  <input
+                    id="about-years-label"
+                    type="text"
+                    value={aboutData.yearsExperienceLabel ?? ''}
+                    onChange={(e) => setAboutData(prev => ({ ...prev, yearsExperienceLabel: e.target.value }))}
+                    placeholder="Years of experience"
+                    className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="about-projects-label" className="block text-sm font-medium text-gray-700 mb-1">
+                    Selected Projects Stat Label
+                  </label>
+                  <input
+                    id="about-projects-label"
+                    type="text"
+                    value={aboutData.selectedProjectsLabel ?? ''}
+                    onChange={(e) => setAboutData(prev => ({ ...prev, selectedProjectsLabel: e.target.value }))}
+                    placeholder="Selected projects"
+                    className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="about-degrees-count" className="block text-sm font-medium text-gray-700 mb-1">
+                    Degrees Count Value
+                  </label>
+                  <input
+                    id="about-degrees-count"
+                    type="text"
+                    value={aboutData.degreesCount ?? ''}
+                    onChange={(e) => setAboutData(prev => ({ ...prev, degreesCount: e.target.value }))}
+                    placeholder="02"
+                    className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="about-degrees-label" className="block text-sm font-medium text-gray-700 mb-1">
+                    Degrees Stat Label
+                  </label>
+                  <input
+                    id="about-degrees-label"
+                    type="text"
+                    value={aboutData.degreesLabel ?? ''}
+                    onChange={(e) => setAboutData(prev => ({ ...prev, degreesLabel: e.target.value }))}
+                    placeholder="Bachelor’s degrees"
+                    className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="about-resume-summary" className="block text-sm font-medium text-gray-700 mb-1">
+                  Résumé Modal Summary
+                </label>
+                <textarea
+                  id="about-resume-summary"
+                  rows={2}
+                  value={aboutData.resumeSummary ?? ''}
+                  onChange={(e) => setAboutData(prev => ({ ...prev, resumeSummary: e.target.value }))}
+                  placeholder="Bali-based web developer and UI/UX designer. React, TypeScript, WordPress, and Figma."
+                  className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Contact Section & Footer Copy */}
+            <div className="bg-gray-50/70 rounded-xl border border-gray-200 p-5 space-y-4">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900">Contact Section &amp; Footer Copy</h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Headings and supporting copy displayed in the Contact section and Footer banner.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="about-contact-heading" className="block text-sm font-medium text-gray-700 mb-1">
+                    Contact Section Heading
+                  </label>
+                  <input
+                    id="about-contact-heading"
+                    type="text"
+                    value={aboutData.contactHeading ?? ''}
+                    onChange={(e) => setAboutData(prev => ({ ...prev, contactHeading: e.target.value }))}
+                    placeholder="Tell me about your project"
+                    className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="about-contact-subtext" className="block text-sm font-medium text-gray-700 mb-1">
+                    Contact Section Subtext
+                  </label>
+                  <input
+                    id="about-contact-subtext"
+                    type="text"
+                    value={aboutData.contactSubtext ?? ''}
+                    onChange={(e) => setAboutData(prev => ({ ...prev, contactSubtext: e.target.value }))}
+                    placeholder="Send me your project details or ask a question. I will reply by email."
+                    className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="about-footer-cta" className="block text-sm font-medium text-gray-700 mb-1">
+                    Footer CTA Heading
+                  </label>
+                  <input
+                    id="about-footer-cta"
+                    type="text"
+                    value={aboutData.footerCtaHeading ?? ''}
+                    onChange={(e) => setAboutData(prev => ({ ...prev, footerCtaHeading: e.target.value }))}
+                    placeholder="Let’s build something thoughtful together."
+                    className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="about-footer-bio" className="block text-sm font-medium text-gray-700 mb-1">
+                    Footer Bio
+                  </label>
+                  <input
+                    id="about-footer-bio"
+                    type="text"
+                    value={aboutData.footerBio ?? ''}
+                    onChange={(e) => setAboutData(prev => ({ ...prev, footerBio: e.target.value }))}
+                    placeholder="UI/UX designer & full-stack product developer crafting fast, accessible web experiences."
+                    className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Submit Button */}
             <div className="flex justify-end mt-6 gap-3">
               <button
@@ -363,7 +654,7 @@ const AboutManagement: React.FC = () => {
                 onClick={async () => {
                   try {
                     const data = await CMSStorage.getAbout();
-                    setAboutData(data);
+                    setAboutData({ ...DEFAULT_ABOUT_FIELDS, ...data });
                     setMessage({ type: '', text: '' });
                   } catch (error) {
                     console.error('Reset error:', error);

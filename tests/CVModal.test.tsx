@@ -98,10 +98,31 @@ describe('CVModal', () => {
     const expOld = screen.getByText('Junior Dev / Old Studio');
     expect(expLead.compareDocumentPosition(expOld) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
-    // Only top 2 education items with latest end dates remain visible
+    // All CMS education items remain visible and ordered with latest end date first
     const newestEdu = screen.getByText('B.Sc. Honors');
     const midEdu = screen.getByText('Information Systems');
+    const oldEdu = screen.getByText('Older Bootcamp');
     expect(newestEdu.compareDocumentPosition(midEdu) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(screen.queryByText('Older Bootcamp')).toBeNull();
+    expect(midEdu.compareDocumentPosition(oldEdu) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('renders custom CMS fullName, resumeSummary, and email props when provided', () => {
+    render(
+      <CVModal
+        isOpen={true}
+        onClose={vi.fn()}
+        fullName="Valen Custom Name"
+        resumeSummary="Custom CMS resume summary for visitors."
+        email="custom@example.com"
+        cvURL=""
+      />,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Valen Custom Name' })).toBeInTheDocument();
+    expect(screen.getByText('Custom CMS resume summary for visitors.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Request full résumé/i })).toHaveAttribute(
+      'href',
+      expect.stringContaining('mailto:custom@example.com'),
+    );
   });
 });

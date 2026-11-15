@@ -7,6 +7,23 @@ export interface AboutData {
   imageCloudinaryId?: string | null;
   cvURL?: string;
   cvCloudinaryId?: string | null;
+  name?: string;
+  fullName?: string;
+  location?: string;
+  email?: string;
+  heroHeadline?: string;
+  heroSubheadline?: string;
+  yearsExperience?: string;
+  yearsExperienceLabel?: string;
+  selectedProjectsLabel?: string;
+  degreesCount?: string;
+  degreesLabel?: string;
+  workProcessSubtitle?: string;
+  resumeSummary?: string;
+  contactHeading?: string;
+  contactSubtext?: string;
+  footerCtaHeading?: string;
+  footerBio?: string;
 }
 
 export interface TechTool {
@@ -123,6 +140,20 @@ export interface CMSWorkProcessStep {
   _id?: string;
   title: string;
   description: string;
+  order?: number;
+  isPublished?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CMSSocialLink {
+  id: string | number;
+  _id?: string;
+  name: string;
+  handle?: string;
+  url: string;
+  actionLabel?: string;
+  icon?: string;
   order?: number;
   isPublished?: boolean;
   createdAt?: string;
@@ -609,6 +640,23 @@ export class CMSStorage {
     };
   }
 
+  private static mapSocialLinkData(data: any): CMSSocialLink {
+    return {
+      ...data,
+      id: data._id || data.id,
+      _id: data._id,
+      name: data.name || '',
+      handle: data.handle || '',
+      url: data.url || '',
+      actionLabel: data.actionLabel || 'Connect',
+      icon: data.icon || 'globe',
+      order: typeof data.order === 'number' ? data.order : 0,
+      isPublished: data.isPublished !== undefined ? data.isPublished : true,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt
+    };
+  }
+
   // File upload methods
   static async uploadProfileImage(file: File): Promise<{ imageURL: string; imageCloudinaryId: string }> {
     try {
@@ -919,6 +967,76 @@ export class CMSStorage {
       throw new Error(response.message || 'Failed to seed default work process steps');
     } catch (error) {
       console.error('Error seeding work process steps:', error);
+      throw error;
+    }
+  }
+
+  // Social links methods
+  static async getSocialLinks(publishedOnly = false): Promise<CMSSocialLink[]> {
+    try {
+      const response = await apiService.getSocialLinks(publishedOnly);
+      if (response.success && Array.isArray(response.data)) {
+        return response.data.map((item: any) => this.mapSocialLinkData(item));
+      }
+      throw new Error('Failed to fetch social links');
+    } catch (error) {
+      console.error('Error fetching social links:', error);
+      throw error;
+    }
+  }
+
+  static async addSocialLink(link: Omit<CMSSocialLink, 'id' | '_id'>): Promise<CMSSocialLink> {
+    try {
+      const response = await apiService.createSocialLink(link);
+      if (response.success) {
+        return this.mapSocialLinkData(response.data);
+      }
+      throw new Error(response.message || 'Failed to create social link');
+    } catch (error) {
+      console.error('Error creating social link:', error);
+      throw error;
+    }
+  }
+
+  static async updateSocialLink(
+    id: string | number,
+    link: Partial<CMSSocialLink>
+  ): Promise<CMSSocialLink> {
+    try {
+      const idString = typeof id === 'string' ? id : id.toString();
+      const response = await apiService.updateSocialLink(idString, link);
+      if (response.success) {
+        return this.mapSocialLinkData(response.data);
+      }
+      throw new Error(response.message || 'Failed to update social link');
+    } catch (error) {
+      console.error('Error updating social link:', error);
+      throw error;
+    }
+  }
+
+  static async deleteSocialLink(id: string | number): Promise<void> {
+    try {
+      const idString = typeof id === 'string' ? id : id.toString();
+      const response = await apiService.deleteSocialLink(idString);
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to delete social link');
+      }
+    } catch (error) {
+      console.error('Error deleting social link:', error);
+      throw error;
+    }
+  }
+
+  static async seedSocialLinks(force = false): Promise<CMSSocialLink[]> {
+    try {
+      const response = await apiService.seedSocialLinks(force);
+      if (response.success && Array.isArray(response.data)) {
+        return response.data.map((item: any) => this.mapSocialLinkData(item));
+      }
+      throw new Error(response.message || 'Failed to seed default social links');
+    } catch (error) {
+      console.error('Error seeding social links:', error);
       throw error;
     }
   }

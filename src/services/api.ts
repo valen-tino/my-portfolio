@@ -120,6 +120,23 @@ class ApiService {
     imageCloudinaryId?: string | null;
     cvURL?: string | null;
     cvCloudinaryId?: string | null;
+    name?: string;
+    fullName?: string;
+    location?: string;
+    email?: string;
+    heroHeadline?: string;
+    heroSubheadline?: string;
+    yearsExperience?: string;
+    yearsExperienceLabel?: string;
+    selectedProjectsLabel?: string;
+    degreesCount?: string;
+    degreesLabel?: string;
+    workProcessSubtitle?: string;
+    resumeSummary?: string;
+    contactHeading?: string;
+    contactSubtext?: string;
+    footerCtaHeading?: string;
+    footerBio?: string;
   }) {
     const response = await this.api.put('/about', data);
     return response.data;
@@ -784,6 +801,58 @@ class ApiService {
   async seedWorkProcesses(force = false) {
     const params = force ? { force: 'true' } : {};
     const response = await this.api.post('/work-process/seed', { force }, { params });
+    return response.data;
+  }
+
+  // Social links methods
+  async getSocialLinks(publishedOnly = false) {
+    const params = publishedOnly ? { published: 'true' } : {};
+    const response = await this.api.get('/social-links', { params });
+    return response.data;
+  }
+
+  async getSocialLink(id: string) {
+    const response = await this.api.get(`/social-links/${id}`);
+    return response.data;
+  }
+
+  async createSocialLink(data: {
+    name: string;
+    handle?: string;
+    url: string;
+    actionLabel?: string;
+    icon?: string;
+    order?: number;
+    isPublished?: boolean;
+  }) {
+    const response = await this.api.post('/social-links', data);
+    return response.data;
+  }
+
+  async updateSocialLink(
+    id: string,
+    data: {
+      name?: string;
+      handle?: string;
+      url?: string;
+      actionLabel?: string;
+      icon?: string;
+      order?: number;
+      isPublished?: boolean;
+    }
+  ) {
+    const response = await this.api.put(`/social-links/${id}`, data);
+    return response.data;
+  }
+
+  async deleteSocialLink(id: string) {
+    const response = await this.api.delete(`/social-links/${id}`);
+    return response.data;
+  }
+
+  async seedSocialLinks(force = false) {
+    const params = force ? { force: 'true' } : {};
+    const response = await this.api.post('/social-links/seed', { force }, { params });
     return response.data;
   }
 

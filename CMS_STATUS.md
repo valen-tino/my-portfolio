@@ -25,12 +25,15 @@ A full-stack portfolio Content Management System with AI integration using the D
 ### **Database Schema**
 ```
 ├── Users (Authentication)
-├── About (Personal information)
+├── About (Personal information & Site Copy)
 ├── TechTools (Technologies/Skills)
 ├── Roles (Professional roles)
+├── Experiences (Work experience history)
 ├── Education (Academic background)
 ├── Portfolio (Projects/Work)
 ├── Blogs (Events, News & Personal commentary)
+├── WorkProcess (6-step design & engineering workflow)
+├── SocialLinks (Public contact & social pills)
 └── Contacts (Contact form entries)
 ```
 
@@ -98,22 +101,38 @@ Browser ──► API Service ──► Server Routes ──► AI Service ─�
 - **Dynamic Public Integration**: "Download CV" buttons in Navbar and About Me section link dynamically to the uploaded Cloudinary PDF with `target="_blank" rel="noopener noreferrer"`, defaulting to `/Valen-Jehaut.pdf`.
 - **Automated Test Suite**: 45 unit tests passing across 9 test suites (`npm test`).
 
+#### 8. **6-Step Spec-Driven Work Process & Full-Stack CRUD** ✅
+- **Backend & Seeding**: Created `/api/work-process` (`GET`, `GET /:id`, `POST`, `POST /seed`, `PUT /:id`, `DELETE /:id`) backed by `WorkProcess` and `defaultWorkProcessSteps.js` (`Empathize` → `Define` → `Ideate` → `Prototype` → `Development` → `Test`), mounted on Express and Vercel serverless.
+- **Public & CMS Integration**: Added top-level `/cms/work-process` management UI (`WorkProcessManagement.tsx`) with CRUD, ordering, publish toggles, and 6-step seeding, powering `WorkProcessSection.tsx` on the public landing page.
+
+#### 9. **Full Frontend CMS Connectivity, Social Links CRUD & Extended Site Copy** ✅
+- **Social Links CRUD**: Added `/api/social-links` (`SocialLink` model + `defaultSocialLinks.js`) and `/cms/social-links` (`SocialLinksManagement.tsx` under **About Me ▾** in `CMSLayout.tsx`) to manage public email, GitHub, LinkedIn, and social pills.
+- **Extended About & Site Copy**: Expanded `About` schema and `AboutManagement.tsx` with 17 optional identity, Hero/Work Process copy, About stats, Résumé summary, and Contact/Footer copy fields.
+- **Public & Dashboard Wiring**: Connected company logo thumbnails (`exp.logoURL`) in `ExperienceEducationSection.tsx`, custom role filter ordering via `CMSStorage.getRoles()` in `Home.tsx`, the complete education list in `CVModal.tsx`, independent Footer hydration in `Footer.tsx`, and all 9 CMS collections in `Dashboard.tsx`.
+
+#### 10. **Brand-Blue Loading Screen & Light-Mode CMS Theme Lock** ✅
+- **Loading Screen (`src/components/LoadingScreen.tsx`)**: Full-screen overlay with `bg-brand` (`#2563eb`), centered `/favicon.ico`, and smooth `ease-in-out` opacity fade (`opacity-100` to `opacity-0 pointer-events-none`) integrated across `App.tsx`, `PortfolioDetail.tsx`, and `BlogDetail.tsx`.
+- **Light-Mode CMS Lock**: Enforced DaisyUI `themes: ['light --default']`, `data-theme="light"`, `color-scheme: light`, and explicit light surfaces across CMS pages so admin inputs never invert under OS dark mode.
+
 ## 📁 File Structure
 
 ```
 my-portfolio/
 ├── src/
-│   ├── components/         # Reusable UI components (Lightbox, ScrollProgressBar)
-│   ├── pages/             # Public pages (Home, Portfolio, PortfolioDetail)
+│   ├── components/         # Consolidated public UI components (LoadingScreen, FloatingNavigation, HeroProjectStrip, WorkProcessSection, ExperienceEducationSection, CVModal, Footer, Lightbox, ScrollProgressBar, etc.)
+│   ├── pages/             # Public pages (Home, PortfolioPage, PortfolioDetail, BlogPage, BlogDetail, DesignSystemPage)
 │   ├── cms/               # CMS-specific components
 │   │   ├── pages/         # CMS management pages
-│   │   │   ├── PortfolioManagement.tsx  # Redesigned 40%/60% portfolio editor
-│   │   │   ├── AITest.tsx              # AI testing interface
+│   │   │   ├── PortfolioManagement.tsx   # Redesigned 40%/60% portfolio editor
+│   │   │   ├── WorkProcessManagement.tsx # Top-level Work Process CRUD
+│   │   │   ├── SocialLinksManagement.tsx # Social Links CRUD (under About Me ▾)
+│   │   │   ├── AboutManagement.tsx       # About Me, Site Copy, Portrait & CV upload
+│   │   │   ├── AITest.tsx                # AI testing interface
 │   │   │   └── ...
 │   │   └── components/    # CMS-specific components
-│   │       ├── WYSIWYGEditor.tsx       # TipTap WYSIWYG case study editor
-│   │       ├── AIPortfolioModal.tsx    # AI portfolio creation modal
-│   │       └── CMSLayout.tsx           # CMS navigation
+│   │       ├── WYSIWYGEditor.tsx         # TipTap WYSIWYG case study editor
+│   │       ├── AIPortfolioModal.tsx      # AI portfolio creation modal
+│   │       └── CMSLayout.tsx             # CMS navigation (locked light theme)
 │   ├── services/          # API communication
 │   │   ├── api.ts        # Main API service
 │   │   └── ai.ts         # AI service wrapper
@@ -121,13 +140,14 @@ my-portfolio/
 │       ├── aiHelpers.ts        # AI utility functions
 │       └── contentMigration.ts # Markdown to semantic HTML converter
 ├── server/
-│   ├── models/           # MongoDB schemas
-│   ├── routes/           # API endpoints (portfolio, upload, ai, auth)
+│   ├── data/             # Seed defaults (defaultWorkProcessSteps.js, defaultSocialLinks.js)
+│   ├── models/           # MongoDB schemas (Portfolio, Blog, Experience, WorkProcess, SocialLink, Education, TechTool, Role, Contact, About, User)
+│   ├── routes/           # API endpoints (portfolio, blogs, experiences, work-process, social-links, education, tech-tools, roles, about, contact, upload, ai, auth)
 │   ├── services/         # Server-side services (aiService.js)
 │   ├── config/           # Cloudinary storage engine (cloudinary.js)
 │   ├── middleware/       # Authentication, etc.
-│   └── index.js         # Server entry point (Port 5001)
-└── .env                 # Environment variables
+│   └── index.js          # Server entry point (Port 5001)
+└── .env                  # Environment variables
 ```
 
 ## 🔧 Configuration Status
@@ -163,7 +183,7 @@ PORT=5001 (Configured to prevent macOS AirPlay conflict)
 ## 🚀 Deployment Status
 
 ### **Development Environment** ✅
-- Server: `http://localhost:5000` (Node.js/Express)
+- Server: `http://localhost:5001` (Node.js/Express)
 - Client: `http://localhost:5173` (Vite dev server)
 - Database: MongoDB Atlas (Cloud)
 - File Storage: Cloudinary (Cloud)
@@ -176,12 +196,16 @@ Authentication:
 └── POST /api/auth/logout          ✅ Working
 
 Content Management:
-├── GET/POST/PUT/DELETE /api/portfolio    ✅ Working
-├── GET/POST/PUT/DELETE /api/tech-tools   ✅ Working
-├── GET/POST/PUT/DELETE /api/roles        ✅ Working
-├── GET/POST/PUT/DELETE /api/education    ✅ Working
-├── GET/PUT /api/about                    ✅ Working
-└── GET/POST/DELETE /api/contact          ✅ Working
+├── GET/POST/PUT/DELETE /api/portfolio     ✅ Working
+├── GET/POST/PUT/DELETE /api/blogs         ✅ Working
+├── GET/POST/PUT/DELETE /api/experiences   ✅ Working
+├── GET/POST/PUT/DELETE /api/work-process  ✅ Working
+├── GET/POST/PUT/DELETE /api/social-links  ✅ Working
+├── GET/POST/PUT/DELETE /api/tech-tools    ✅ Working
+├── GET/POST/PUT/DELETE /api/roles         ✅ Working
+├── GET/POST/PUT/DELETE /api/education     ✅ Working
+├── GET/PUT /api/about                     ✅ Working
+└── GET/POST/DELETE /api/contact           ✅ Working
 
 AI Integration:
 ├── POST /api/ai/rewrite-project-details    ✅ Working
@@ -244,6 +268,10 @@ AI Integration:
 14. ✅ **Portfolio Filter Z-Index Elevation & Color Badge Synchronization**: Elevated filter container stacking context (`z-30` vs grid `z-10`) preventing cards from rendering above the tech dropdown menu, applied brand cyan `#00BAFE` to active year pills, and synchronized role tab active/inactive outline styling with CMS badge colors.
 15. ✅ **Vercel Serverless Route Parity & Blog 404 Resolution**: Mounted `/api/blog` and `/api/blogs` in `api/serverless.js` eliminating the production 404 outage, implemented non-blocking latched cold-start skills migration, added Mongoose model re-compilation guards across all models, and added full serverless integration tests.
 16. ✅ **Mobile Viewport Layout Containment & Blog Tag Filter Z-Index**: Added `overflow-x: clip` to root containers preventing iOS Safari viewport blowouts and empty whitespace gutters, applied selective `:not(pre) > code` token wrapping while preserving multi-line code blocks, added responsive table/media constraints, elevated blog filter stacking context (`z-30`/`z-40` vs grid `z-10`) solving the tag dropdown clipping behind blog cards, and aligned active year pill styling to `#00BAFE`.
+17. ✅ **Editorial Redesign & Consolidated Architecture**: Consolidated UI components under `src/components/`, added Plus Jakarta Sans + editorial tokens, bottom dock pill nav (`FloatingNavigation`), native `<dialog closedby="any">` modals (`CVModal`, `MobileFilterDialog`, `PasswordProtectionModal`, `ImageLightboxModal`), all-project `16:9` `HeroProjectStrip` carousel, accessible `Experiences`/`Education` tabs, Grid/Table switcher on `/portfolio`, and light-surface code blocks in `PortfolioDetail`.
+18. ✅ **6-Step Spec-Driven Work Process CRUD & CMS Light Theme Lock**: Added `Development` stage (`Empathize` → `Define` → `Ideate` → `Prototype` → `Development` → `Test`), built `/api/work-process` + `/cms/work-process` CRUD, locked DaisyUI/CMS to explicit light surfaces across all admin pages, and fixed staged full-box click/drag portrait upload in `AboutManagement.tsx`.
+19. ✅ **Full Frontend CMS Connectivity & Social Links CRUD**: Added `/api/social-links` + `/cms/social-links` under `About Me ▾`, extended `/api/about` + `AboutManagement.tsx` with 17 identity/hero/process/stats/résumé/contact/footer copy fields, wired company logos in `ExperienceEducationSection.tsx`, custom role ordering in `Home.tsx`, full education list in `CVModal.tsx`, independent `Footer` hydration, and all 9 collections in `Dashboard.tsx`.
+20. ✅ **Brand-Blue Loading Screen & Test Verification**: Created `src/components/LoadingScreen.tsx` (`bg-brand` + centered `/favicon.ico` + `ease-in-out` transition) wired into `App.tsx`, `PortfolioDetail.tsx`, and `BlogDetail.tsx`, with **26 test files, 116 tests passing** (`npm test -- --run`) and clean Vite production build (`npm run build`).
 
 ### **Future Enhancements**
 - [ ] Add AI model selection (chat vs reasoner)
@@ -280,6 +308,6 @@ AI Integration:
 
 ---
 
-**Last Updated**: January 7, 2025
+**Last Updated**: November 15, 2026
 **System Status**: 🟢 Fully Operational
 **AI Status**: 🟢 Active with Timeout Optimization

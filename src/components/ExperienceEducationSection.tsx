@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+  import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import type { Education, Experience } from '../types/portfolio';
 import { formatPublicDescription } from '../utils/contentMigration';
 import { sortByLatestEndDate } from '../utils/dateFormat';
@@ -20,6 +20,7 @@ export function ExperienceEducationSection({
   const [activeTab, setActiveTab] = useState<TimelineTab>(() =>
     activeHash === '#education' ? 'education' : 'experiences',
   );
+  const [failedLogos, setFailedLogos] = useState<Record<string, boolean>>({});
 
   const expTabRef = useRef<HTMLButtonElement>(null);
   const eduTabRef = useRef<HTMLButtonElement>(null);
@@ -169,9 +170,25 @@ export function ExperienceEducationSection({
               {sortedExperiences.map((exp) => (
                 <article key={exp.id} className="border-t border-muted-300 py-6">
                   <div className="flex flex-wrap justify-between gap-3">
-                    <div>
-                      <h4 className="text-xl font-medium tracking-tight">{exp.role}</h4>
-                      <p className="mt-1 text-sm text-brand">{exp.company}</p>
+                    <div className="flex items-start gap-3.5">
+                      {exp.logoURL && !failedLogos[exp.id] && (
+                        <img
+                          src={exp.logoURL}
+                          alt={`${exp.company} logo`}
+                          width={40}
+                          height={40}
+                          loading="lazy"
+                          decoding="async"
+                          onError={() =>
+                            setFailedLogos((prev) => ({ ...prev, [exp.id]: true }))
+                          }
+                          className="mt-0.5 size-10 shrink-0 rounded-lg border border-muted-300 bg-white object-contain p-1"
+                        />
+                      )}
+                      <div>
+                        <h4 className="text-xl font-medium tracking-tight">{exp.role}</h4>
+                        <p className="mt-1 text-sm text-brand">{exp.company}</p>
+                      </div>
                     </div>
                     <p className="text-xs tabular-nums text-muted-600">
                       {exp.period}

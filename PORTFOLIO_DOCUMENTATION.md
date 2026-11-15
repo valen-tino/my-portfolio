@@ -68,6 +68,7 @@ A full-stack portfolio website with an integrated Content Management System (CMS
                     │  - blogs                            │
                     │  - experiences                      │
                     │  - workprocesses                    │
+                    │  - sociallinks                      │
                     │  - education                        │
                     │  - techtools                        │
                     │  - roles                            │
@@ -168,6 +169,7 @@ my-portfolio/
 │   │   ├── PortfolioTable.tsx          # Left-aligned desktop table & minimal 2-column mobile index table
 │   │   ├── MobileFilterDialog.tsx      # Native <dialog closedby="any"> mobile filter popup
 │   │   ├── CVModal.tsx                 # Native <dialog closedby="any"> interactive résumé preview (latest end date first)
+│   │   ├── LoadingScreen.tsx           # Brand-blue full-screen overlay with centered /favicon.ico & ease-in-out fade
 │   │   ├── Footer.tsx                  # Vibrant CTA banner footer, Bali WITA clock, sitemap & social links
 │   │   ├── Icons.tsx                   # Inline SVG icon system (aria-hidden by default)
 │   │   ├── ImagePlaceholder.tsx        # 16:9 editorial visual placeholder fallback
@@ -194,7 +196,7 @@ my-portfolio/
 │   │   └── greeting.tsx       # Time-of-day dynamic greeting helper (getGreetingText)
 │   │
 │   ├── cms/                   # CMS System (locked bright light-mode styling)
-│   │   ├── pages/             # CMS admin pages (Login, Dashboard, Portfolio, Blog, Experience, WorkProcess, Education, TechTools, Roles, Contacts, About, AITest)
+│   │   ├── pages/             # CMS admin pages (Login, Dashboard, Portfolio, Blog, Experience, WorkProcess, Education, TechTools, Roles, SocialLinks, Contacts, About, AITest)
 │   │   ├── components/        # CMSLayout, WYSIWYGEditor, ProtectedRoute, AIPortfolioModal
 │   │   ├── apiStorage.ts      # API integration layer
 │   │   ├── auth.ts            # Authentication utilities
@@ -206,9 +208,9 @@ my-portfolio/
 │
 ├── server/                    # Express backend (port 5001)
 │   ├── index.js               # Server entry point
-│   ├── data/                  # Default seed datasets (defaultWorkProcessSteps.js)
-│   ├── models/                # Mongoose schemas (User, Portfolio, Blog, Experience, WorkProcess, Education, TechTool, Role, Contact, About)
-│   ├── routes/                # API routes (auth, about, portfolio, blog, experiences, workProcess, education, techTools, roles, contact, upload, ai)
+│   ├── data/                  # Default seed datasets (defaultWorkProcessSteps.js, defaultSocialLinks.js)
+│   ├── models/                # Mongoose schemas (User, Portfolio, Blog, Experience, WorkProcess, SocialLink, Education, TechTool, Role, Contact, About)
+│   ├── routes/                # API routes (auth, about, portfolio, blog, experiences, workProcess, socialLinks, education, techTools, roles, contact, upload, ai)
 │   ├── utils/                 # skillMigration.js
 │   ├── scripts/               # initDatabase.js, migrateMarkdownToWYSIWYG.js, syncExistingPortfolioSkills.js
 │   ├── services/              # aiService.js
@@ -220,7 +222,7 @@ my-portfolio/
 │   ├── [...path].js           # Catch-all Vercel route handler
 │   ├── index.js / test.js / diag.js / diag2.js
 │
-├── tests/                     # Automated Vitest test suites (23 files, 104 tests)
+├── tests/                     # Automated Vitest test suites (26 files, 116 tests)
 ├── .gitignore
 ├── package.json
 ├── tailwind.config.cjs
@@ -235,25 +237,27 @@ my-portfolio/
 
 ### 1. Public Portfolio Website
 
-#### Navigation, Transitions & Résumé Modal
+#### Navigation, Loading Screen, Transitions & Résumé Modal
+- **Brand-Blue Loading Screen (`LoadingScreen`)**: Full-screen overlay using the brand blue background (`bg-brand` / `#2563eb`), centered `/favicon.ico`, and smooth `ease-in-out` opacity transition (`transition-opacity duration-500 ease-in-out motion-reduce:duration-150`, toggling `opacity-100` to `opacity-0 pointer-events-none`) integrated in `App.tsx`, `PortfolioDetail.tsx`, and `BlogDetail.tsx`.
 - **Floating Pill Navigation (`FloatingNavigation`)**: Persistent bottom dock (`Home`, `Selected Work`, `Work`, `Journal`, `About`, `Contact`, mobile `More` drawer, and primary brand-blue `.dock-item-primary` `Résumé` action button with white text & `DownloadIcon`).
 - **Native View Transitions (`viewTransitions.ts`)**: Combines `@view-transition { navigation: auto; }` CSS keyframes with `document.startViewTransition()` on route changes and focus handoff to destination `<h1>`/`<main>`.
-- **Interactive Résumé Dialog (`CVModal`)**: Native `<dialog closedby="any">` summarizing experience and education sorted latest-end-date-first (`sortByLatestEndDate`) plus direct PDF download (`aboutData.cvURL`).
+- **Interactive Résumé Dialog (`CVModal`)**: Native `<dialog closedby="any">` summarizing CMS `name`, `location`, `email`, `resumeSummary`, experience, and the full `educationList` sorted latest-end-date-first (`sortByLatestEndDate`) plus direct PDF download (`aboutData.cvURL`).
 
 #### Hero Section & All-Project Preview Strip
-- Dynamic time-of-day greeting (`getGreetingText`: `Good Morning` / `Good Afternoon` / `Good Evening`) paired with Plus Jakarta Sans display typography and `valentinojehaut@gmail.com` contact link.
+- Dynamic time-of-day greeting (`getGreetingText`: `Good Morning` / `Good Afternoon` / `Good Evening`) paired with Plus Jakarta Sans display typography, CMS-driven Hero copy (`heroHeadline`, `heroSubheadline` from `About`), and configurable email/location links.
 - **All-Project Marquee Carousel (`HeroProjectStrip`)**: Displays **all** published `16:9` (`aspect-video`) project visuals without clickable links, titles, or overlay arrows; supports touch swipe, pointer-drag panning, arrow step buttons, Play/Pause icon toggle button, and an accessible `popover="hint"` `"i"` toggletip (`tooltipPolyfills.ts`).
 - GSAP entrance and scroll-triggered section animations (`gsapAnimations.ts`), disabled automatically when `prefers-reduced-motion: reduce`.
 
 #### About Me, Work Process & Design System
-- Personal profile image, rich WYSIWYG biography (`formatPublicDescription`), published Tech Tools list, and curated `/design-system` reference page (`DesignSystemPage`) featuring inspirations led by Daniella Marynova (`hellodani.co`) and Marijana Pavlinić (`marijanapav.com`) ahead of Pentagram, Studio Lenzing, and It’s Nice That.
-- **6-Step Spec-Driven Work Process (`WorkProcessSection`)**: Horizontal single-row ARIA tablist covering **Empathize**, **Define**, **Ideate**, **Prototype**, **Development** (Spec-Driven Development using AI-assisted workflows from PRD → ERD → Design Brief → Local Development → Unit Tests → CI/CD Pipeline → Staging → In Production → Agile iteration), and **Test** in plain paragraph prose, powered dynamically by `GET /api/work-process?published=true` with static fallback.
+- Personal profile image, rich WYSIWYG biography (`formatPublicDescription`), CMS-driven About stat cards (`yearsExperience`, `yearsExperienceLabel`, `selectedProjectsLabel`, `degreesCount`, `degreesLabel`), published Tech Tools list, and curated `/design-system` reference page (`DesignSystemPage`) featuring inspirations led by Daniella Marynova (`hellodani.co`) and Marijana Pavlinić (`marijanapav.com`) ahead of Pentagram, Studio Lenzing, and It’s Nice That.
+- **6-Step Spec-Driven Work Process (`WorkProcessSection`)**: Horizontal single-row ARIA tablist covering **Empathize**, **Define**, **Ideate**, **Prototype**, **Development** (Spec-Driven Development using AI-assisted workflows from PRD → ERD → Design Brief → Local Development → Unit Tests → CI/CD Pipeline → Staging → In Production → Agile iteration), and **Test** in plain paragraph prose with dynamic `workProcessSubtitle` from CMS About copy, powered by `GET /api/work-process?published=true` with static fallback.
 
 #### Experience & Education Tabbed Timeline (`ExperienceEducationSection`)
-- WAI-ARIA `tablist`/`tab`/`tabpanel` separating **Experiences** and **Education** with arrow/`Home`/`End` keyboard switching, `#education` / `#experience` hash linking, and `hidden="until-found"` (`beforematch`) searchability.
+- WAI-ARIA `tablist`/`tab`/`tabpanel` separating **Experiences** and **Education** with uploaded company logo thumbnails (`exp.logoURL`), arrow/`Home`/`End` keyboard switching, `#education` / `#experience` hash linking, and `hidden="until-found"` (`beforematch`) searchability.
 - Timezone-safe ISO date formatting (`Oct 2025 – Present`) via `dateFormat.ts` and automatic latest-end-date-first sorting (`sortByLatestEndDate`).
 
 #### Portfolio Projects (`/portfolio` & `/portfolio/:id`)
+- **Custom Role Ordering**: Homepage Selected Work filter pills follow custom Role `order` metadata fetched from `CMSStorage.getRoles()`.
 - **Slim Inline Filter Bar & Mobile Popup (`PortfolioPage`, `PortfolioFilterControls`, `MobileFilterDialog`)**: Desktop/tablet inline Role pills, Year pills, multi-select Tech dropdown, and keyword `<search>`; collapses on mobile (`< 768px`) to a `Filter` button with active count badge opening a native `<dialog closedby="any">` popup.
 - **Grid & Table View Switcher (`PortfolioTable`)**: Accessible `role="toolbar"` switching between 16:9 Grid cards (`.card-hover-cta` CTA revealed on hover/focus) and a left-aligned Table (`?view=table`, hover/focus 16:9 thumbnail preview on desktop, minimal two-column index rows hiding Role/Link/Year on mobile `@container (width < 640px)`).
 - **Single Portfolio Case Study (`PortfolioDetail`)**: Sticky left metadata column (`lg:sticky`) alongside independently scrollable right details; explicit light editorial styling on `.portfolio-markdown` / `.wysiwyg-content` `<code>` and `<pre>` elements preventing DaisyUI dark-mode surface bleed; native `PasswordProtectionModal`, `ScrollProgressBar`, and `ImageLightboxModal`.
@@ -263,8 +267,8 @@ my-portfolio/
 - Public reading view (`/blogs/:id` or `/blogs/:slug`) with cover images, reading time, rich WYSIWYG content, and embedded interactive Case Study cards.
 
 #### Contact & Vibrant Footer (`Footer`)
-- Live contact form (`valentinojehaut@gmail.com`) submitting via `CMSStorage.addContactEntry` with `mailto:` error fallback and `role="status"` live announcements, paired with clean `SOCIAL_LINKS` pills.
-- Multi-tier `bg-brand` CTA footer featuring editorial color accents (`mint`/`orange`/`pink`), live Bali time (`Asia/Makassar`), route sitemap navigation, social pills (with Upwork and Design System footer links removed), and smooth `"Back to top"` scroll.
+- Live contact form submitting via `CMSStorage.addContactEntry` with `mailto:` error fallback, CMS-configurable contact copy (`contactHeading`, `contactSubtext`, `email`), and `role="status"` live announcements, paired with CMS-managed Social Links (`/api/social-links`).
+- Multi-tier `bg-brand` CTA footer featuring editorial color accents (`mint`/`orange`/`pink`), CMS-configurable `footerCtaHeading` and `footerBio`, live Bali time (`Asia/Makassar`), route sitemap navigation, social pills (independently hydrated on subpages when props are omitted), and smooth `"Back to top"` scroll.
 
 ### 2. Content Management System (CMS)
 
@@ -276,18 +280,25 @@ my-portfolio/
 - Automatic logout on inactivity
 
 #### Dashboard
-- Overview statistics
-- Quick actions
-- Recent activities
+- Overview statistics connected across all 9 CMS collections (Portfolios, Blogs, Experiences, Work Process, Education, Tech Tools, Roles, Social Links, Contact Entries, plus About Me status)
+- Quick actions for creating and managing every content type
+- Recent activity & unpublished/unread status summaries
 - System health status
 
 #### Content Management Modules
 
-##### About Management
+##### About Management & Site Copy
 - Profile photo upload with direct signed Cloudinary upload (`profiles` folder) and `/api/upload/profile` 10MB fallback
 - Full-surface clickable & drag-and-drop dropzone with MIME/10MB client validation and staged preview persistence until **Save Changes** is submitted
 - Dedicated PDF Curriculum Vitae upload (`cvURL`, `cvCloudinaryId`) synced to public CV buttons and modal
+- Structured forms for Identity & Contact (`name`, `fullName`, `location`, `email`), Hero & Process Copy (`heroHeadline`, `heroSubheadline`, `workProcessSubtitle`), About Stats & Résumé Summary (`yearsExperience`, `yearsExperienceLabel`, `selectedProjectsLabel`, `degreesCount`, `degreesLabel`, `resumeSummary`), and Contact & Footer Copy (`contactHeading`, `contactSubtext`, `footerCtaHeading`, `footerBio`)
 - Rich WYSIWYG description editor and real-time public preview
+
+##### Social Links Management
+- Dedicated CMS module (`/cms/social-links`, nested under **About Me ▾** in `CMSLayout.tsx`) backed by `/api/social-links`
+- Full CRUD for footer and contact social pills (`label`, `href`, `external`, `order`, `isPublished`)
+- One-click **Import Default Social Links** seeding (`Email`, `GitHub`, `LinkedIn`)
+- Instant **Up** / **Down** reordering and publish/hide visibility toggles
 
 ##### Portfolio Management
 - CRUD operations for projects
@@ -532,6 +543,23 @@ my-portfolio/
   imageCloudinaryId: String,
   cvURL: String,
   cvCloudinaryId: String,
+  name: String,
+  fullName: String,
+  location: String,
+  email: String,
+  heroHeadline: String,
+  heroSubheadline: String,
+  workProcessSubtitle: String,
+  yearsExperience: String,
+  yearsExperienceLabel: String,
+  selectedProjectsLabel: String,
+  degreesCount: String,
+  degreesLabel: String,
+  resumeSummary: String,
+  contactHeading: String,
+  contactSubtext: String,
+  footerCtaHeading: String,
+  footerBio: String,
   createdAt: Date,
   updatedAt: Date
 }
@@ -543,6 +571,20 @@ my-portfolio/
   _id: ObjectId,
   title: String (required),
   description: String (required),
+  order: Number,
+  isPublished: Boolean,
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+#### sociallinks
+```javascript
+{
+  _id: ObjectId,
+  label: String (required),
+  href: String (required),
+  external: Boolean,
   order: Number,
   isPublished: Boolean,
   createdAt: Date,
@@ -644,6 +686,26 @@ Update an existing process step or reorder/toggle publication.
 
 **DELETE /api/work-process/:id** (Protected)
 Delete a process step.
+
+#### Social Links
+
+**GET /api/social-links**
+List social links sorted by `order` (supports `?published=true`).
+
+**GET /api/social-links/:id**
+Fetch a single social link.
+
+**POST /api/social-links** (Protected)
+Create a new social link (`label`, `href`, `external`, `order`, `isPublished`).
+
+**POST /api/social-links/seed** (Protected)
+Seed default social links (`Email`, `GitHub`, `LinkedIn`) when empty (or with `{ "force": true }`).
+
+**PUT /api/social-links/:id** (Protected)
+Update an existing social link or reorder/toggle publication.
+
+**DELETE /api/social-links/:id** (Protected)
+Delete a social link.
 
 #### Portfolio Management
 
@@ -886,7 +948,8 @@ Generate portfolio content using AI.
 - **ProjectCard / BlogCard**: `16:9` / editorial cards with `.card-hover-cta` hover/focus reveal and formatted metadata
 
 #### Modal, Detail & Utility Components
-- **CVModal**: Native `<dialog closedby="any">` résumé viewer with descending end dates and PDF download
+- **LoadingScreen**: Full-screen brand-blue (`bg-brand`) loading overlay with centered `/favicon.ico` and smooth `ease-in-out` fade transition (`opacity-100` to `opacity-0 pointer-events-none`)
+- **CVModal**: Native `<dialog closedby="any">` résumé viewer with CMS copy, descending end dates, full education list, and PDF download
 - **MobileFilterDialog**: Native `<dialog closedby="any">` mobile filter sheet for `/portfolio`
 - **PasswordProtectionModal**: Native `<dialog closedby="any">` password unlock dialog for protected projects
 - **ImageLightboxModal**: Native `<dialog closedby="any">` single/gallery image lightbox
@@ -972,6 +1035,7 @@ CMS Dashboard
 ├── Contact Entries
 └── About Me ▾
     ├── About Me Content
+    ├── Social Links
     ├── Tech Tools
     ├── Roles
     ├── Education
@@ -1314,7 +1378,7 @@ const handleAIGenerate = async () => {
 
 ### Automated Testing (Vitest & Testing Library)
 
-Run the full automated suite (currently **23 test files, 104 tests**) and production TypeScript + Vite build:
+Run the full automated suite (currently **26 test files, 116 tests**) and production TypeScript + Vite build:
 
 ```bash
 npm test -- --run
@@ -1323,8 +1387,8 @@ npm run build
 
 Automated coverage spans:
 - Public pages & navigation (`App.test.tsx`, `HomeRedesign.test.tsx`, `FloatingNavigation.test.tsx`, `PortfolioPage.test.tsx`, `PortfolioDetail.test.tsx`, `BlogPage.test.tsx`, `blog.test.tsx`)
-- Interactive widgets & dialogs (`CVModal.test.tsx`, `WorkProcessSection.test.tsx`, `EditorialCarousel.test.tsx`, `portfoliocard.test.tsx`)
-- Formatting, CMS CRUD, serverless routing & AI safety (`dateFormat.test.ts`, `publicFormatting.test.tsx`, `PortfolioManagement.test.tsx`, `BlogManagement.test.tsx`, `WorkProcessManagement.test.tsx`, `AboutManagement.test.tsx`, `WYSIWYGEditor.test.tsx`, `techToolAutoSync.test.tsx`, `serverlessBlog.test.ts`, `serverlessWorkProcess.test.ts`, `aiHelpers.test.ts`)
+- Interactive widgets & dialogs (`LoadingScreen.test.tsx`, `CVModal.test.tsx`, `WorkProcessSection.test.tsx`, `EditorialCarousel.test.tsx`, `portfoliocard.test.tsx`)
+- Formatting, CMS CRUD, serverless routing & AI safety (`dateFormat.test.ts`, `publicFormatting.test.tsx`, `PortfolioManagement.test.tsx`, `BlogManagement.test.tsx`, `WorkProcessManagement.test.tsx`, `SocialLinksManagement.test.tsx`, `AboutManagement.test.tsx`, `WYSIWYGEditor.test.tsx`, `techToolAutoSync.test.tsx`, `serverlessBlog.test.ts`, `serverlessWorkProcess.test.ts`, `serverlessSocialLinks.test.ts`, `aiHelpers.test.ts`)
 
 ---
 

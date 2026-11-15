@@ -247,5 +247,53 @@ describe('AboutManagement - WYSIWYG & CV Upload', () => {
       await screen.findByText(/cloudinary upload preset rejected request/i)
     ).toBeInTheDocument();
   });
+
+  it('edits and saves extended About & Site Copy fields via updateAbout', async () => {
+    vi.mocked(CMSStorage.getAbout).mockResolvedValue({
+      description: '<p>Bio text</p>',
+      imageURL: 'me.jpg',
+      name: 'Valentino Jehaut',
+      heroHeadline: 'I design and build digital products 💻📱.',
+      workProcessSubtitle: 'Original process subtitle.',
+      email: 'valentinojehaut@gmail.com',
+    });
+    vi.mocked(CMSStorage.updateAbout).mockResolvedValue(undefined);
+
+    render(
+      <MemoryRouter>
+        <AboutManagement />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/^display name$/i)).toHaveValue('Valentino Jehaut');
+    });
+
+    fireEvent.change(screen.getByLabelText(/^display name$/i), {
+      target: { value: 'Valen Dev' },
+    });
+    fireEvent.change(screen.getByLabelText(/^hero headline$/i), {
+      target: { value: 'Custom CMS Headline' },
+    });
+    fireEvent.change(screen.getByLabelText(/^work process subtitle$/i), {
+      target: { value: 'Custom process subtitle from CMS.' },
+    });
+    fireEvent.change(screen.getByLabelText(/^primary contact email$/i), {
+      target: { value: 'valen@example.com' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() => {
+      expect(CMSStorage.updateAbout).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Valen Dev',
+          heroHeadline: 'Custom CMS Headline',
+          workProcessSubtitle: 'Custom process subtitle from CMS.',
+          email: 'valen@example.com',
+        })
+      );
+    });
+  });
 });
 
