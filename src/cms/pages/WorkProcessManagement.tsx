@@ -1,6 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import CMSLayout from '../components/CMSLayout';
 import { CMSStorage, type CMSWorkProcessStep } from '../apiStorage';
+import {
+  CMSStatusBanner,
+  CMSFieldError,
+  getCMSInputErrorClasses,
+  type CMSMessage,
+} from '../components/CMSStatusBanner';
+import { parseCMSError } from '../utils/errorUtils';
 
 interface WorkProcessFormState {
   title: string;
@@ -21,7 +28,18 @@ const WorkProcessManagement: React.FC = () => {
     order: 1,
     isPublished: true,
   });
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [message, setMessage] = useState<CMSMessage>({ type: '', text: '' });
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const clearFieldError = (field: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
 
   const sortedSteps = useMemo(
     () =>
@@ -32,13 +50,17 @@ const WorkProcessManagement: React.FC = () => {
   const loadSteps = async () => {
     try {
       setLoading(true);
+      setLoadFailed(false);
       const data = await CMSStorage.getWorkProcesses();
       setSteps(data);
     } catch (error) {
       console.error('Error loading work process steps:', error);
+      const parsed = parseCMSError(error, 'Failed to load work process steps.');
+      setLoadFailed(true);
       setMessage({
         type: 'error',
-        text: 'Failed to load work process steps.',
+        text: parsed.message,
+        details: parsed.details,
       });
     } finally {
       setLoading(false);
@@ -52,6 +74,7 @@ const WorkProcessManagement: React.FC = () => {
   const resetForm = () => {
     setEditingStep(null);
     setIsAddingNew(false);
+    setFieldErrors({});
     setFormState({
       title: '',
       description: '',
@@ -63,6 +86,7 @@ const WorkProcessManagement: React.FC = () => {
   const handleStartAdd = () => {
     setIsAddingNew(true);
     setEditingStep(null);
+    setFieldErrors({});
     setMessage({ type: '', text: '' });
     setFormState({
       title: '',
@@ -75,6 +99,7 @@ const WorkProcessManagement: React.FC = () => {
   const handleStartEdit = (step: CMSWorkProcessStep) => {
     setIsAddingNew(false);
     setEditingStep(step);
+    setFieldErrors({});
     setMessage({ type: '', text: '' });
     setFormState({
       title: step.title,
@@ -86,7 +111,15 @@ const WorkProcessManagement: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formState.title.trim() || !formState.description.trim()) {
+    const nextFieldErrors: Record<string, string> = {};
+    if (!formState.title.trim()) {
+      nextFieldErrors.title = 'Step title is required.';
+    }
+    if (!formState.description.trim()) {
+      nextFieldErrors.description = 'Step description is required.';
+    }
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
       setMessage({
         type: 'error',
         text: 'Step title and description are required.',
@@ -95,6 +128,7 @@ const WorkProcessManagement: React.FC = () => {
     }
 
     setSaving(true);
+    setFieldErrors({});
     setMessage({ type: '', text: '' });
 
     try {
@@ -124,10 +158,14 @@ const WorkProcessManagement: React.FC = () => {
       await loadSteps();
     } catch (error: any) {
       console.error('Save work process error:', error);
-      const serverMsg = error?.response?.data?.message || error?.message;
+      const parsed = parseCMSError(error, 'Failed to save work process step.');
+      if (Object.keys(parsed.fieldErrors).length > 0) {
+        setFieldErrors((prev) => ({ ...prev, ...parsed.fieldErrors }));
+      }
       setMessage({
         type: 'error',
-        text: serverMsg || 'Failed to save work process step.',
+        text: parsed.message,
+        details: parsed.details,
       });
     } finally {
       setSaving(false);
@@ -149,9 +187,11 @@ const WorkProcessManagement: React.FC = () => {
       await loadSteps();
     } catch (error: any) {
       console.error('Delete work process error:', error);
+      const parsed = parseCMSError(error, 'Failed to delete work process step.');
       setMessage({
         type: 'error',
-        text: error?.response?.data?.message || 'Failed to delete work process step.',
+        text: parsed.message,
+        details: parsed.details,
       });
     }
   };
@@ -165,9 +205,11 @@ const WorkProcessManagement: React.FC = () => {
       await loadSteps();
     } catch (error) {
       console.error('Toggle publish error:', error);
+      const parsed = parseCMSError(error, 'Failed to update step visibility.');
       setMessage({
         type: 'error',
-        text: 'Failed to update step visibility.',
+        text: parsed.message,
+        details: parsed.details,
       });
     }
   };
@@ -195,9 +237,11 @@ const WorkProcessManagement: React.FC = () => {
       await loadSteps();
     } catch (error) {
       console.error('Reorder work process error:', error);
+      const parsed = parseCMSError(error, 'Failed to reorder work process steps.');
       setMessage({
         type: 'error',
-        text: 'Failed to reorder work process steps.',
+        text: parsed.message,
+        details: parsed.details,
       });
     }
   };
@@ -213,9 +257,11 @@ const WorkProcessManagement: React.FC = () => {
       await loadSteps();
     } catch (error: any) {
       console.error('Seed work processes error:', error);
+      const parsed = parseCMSError(error, 'Failed to import default process steps.');
       setMessage({
         type: 'error',
-        text: error?.response?.data?.message || 'Failed to import default process steps.',
+        text: parsed.message,
+        details: parsed.details,
       });
     } finally {
       setSaving(false);
@@ -257,18 +303,16 @@ const WorkProcessManagement: React.FC = () => {
           </div>
         </div>
 
-        {/* Status Message */}
-        {message.text && (
-          <div
-            role="status"
-            className={`p-4 rounded-lg border flex items-center gap-3 ${
-              message.type === 'success'
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                : 'bg-red-50 border-red-200 text-red-800'
-            }`}
-          >
-            <span>{message.text}</span>
-          </div>
+        {/* Status Message when form is closed */}
+        {!isFormOpen && (
+          <CMSStatusBanner
+            message={message}
+            onDismiss={() => {
+              setMessage({ type: '', text: '' });
+              setLoadFailed(false);
+            }}
+            onRetry={loadFailed ? loadSteps : undefined}
+          />
         )}
 
         {/* Create / Edit Form */}
@@ -277,7 +321,7 @@ const WorkProcessManagement: React.FC = () => {
             <h2 className="text-xl font-semibold text-gray-900 mb-6">
               {editingStep ? `Edit Step: ${editingStep.title}` : 'Add New Process Step'}
             </h2>
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} noValidate className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div className="md:col-span-2">
                   <label htmlFor="process-title" className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -287,11 +331,16 @@ const WorkProcessManagement: React.FC = () => {
                     id="process-title"
                     type="text"
                     required
+                    aria-invalid={Boolean(fieldErrors.title)}
                     value={formState.title}
-                    onChange={(e) => setFormState((prev) => ({ ...prev, title: e.target.value }))}
+                    onChange={(e) => {
+                      clearFieldError('title');
+                      setFormState((prev) => ({ ...prev, title: e.target.value }));
+                    }}
                     placeholder="e.g., Development"
-                    className="w-full px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={`w-full px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 border rounded-lg focus:outline-none focus:ring-2 ${getCMSInputErrorClasses(Boolean(fieldErrors.title))}`}
                   />
+                  <CMSFieldError error={fieldErrors.title} />
                 </div>
                 <div>
                   <label htmlFor="process-order" className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -321,12 +370,22 @@ const WorkProcessManagement: React.FC = () => {
                   id="process-description"
                   rows={4}
                   required
+                  aria-invalid={Boolean(fieldErrors.description)}
                   value={formState.description}
-                  onChange={(e) => setFormState((prev) => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) => {
+                    clearFieldError('description');
+                    setFormState((prev) => ({ ...prev, description: e.target.value }));
+                  }}
                   placeholder="Describe this stage of your workflow..."
-                  className="w-full px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 border rounded-lg focus:outline-none focus:ring-2 ${getCMSInputErrorClasses(Boolean(fieldErrors.description))}`}
                 />
+                <CMSFieldError error={fieldErrors.description} />
               </div>
+
+              <CMSStatusBanner
+                message={message}
+                onDismiss={() => setMessage({ type: '', text: '' })}
+              />
 
               <div className="flex items-center justify-between pt-2">
                 <label className="flex items-center gap-3 cursor-pointer">

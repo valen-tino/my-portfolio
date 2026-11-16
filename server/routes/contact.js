@@ -1,6 +1,7 @@
 const express = require('express');
 const Contact = require('../models/Contact');
 const { authMiddleware } = require('../middleware/auth');
+const { handleRouteError } = require('../utils/errorHandler');
 const router = express.Router();
 
 // @route   GET /api/contact
@@ -15,10 +16,7 @@ router.get('/', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Get contacts error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching contact entries'
-    });
+    return handleRouteError(res, error, 'Server error while fetching contact entries');
   }
 });
 
@@ -57,10 +55,7 @@ router.post('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Create contact error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while sending message'
-    });
+    return handleRouteError(res, error, 'Server error while sending message');
   }
 });
 
@@ -146,10 +141,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete contact error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while deleting contact entry'
-    });
+    return handleRouteError(res, error, 'Server error while deleting contact entry');
   }
 });
 
@@ -166,10 +158,7 @@ router.delete('/', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete all contacts error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while deleting contact entries'
-    });
+    return handleRouteError(res, error, 'Server error while deleting contact entries');
   }
 });
 

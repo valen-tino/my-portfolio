@@ -37,7 +37,8 @@ This document provides a comprehensive, centralized record of all architecture i
 30. [Design System Inspirations, 6-Step Spec-Driven Work Process CRUD, CMS Light Theme & About Upload Fix](#30-design-system-inspirations-6-step-spec-driven-work-process-crud-cms-light-theme--about-upload-fix)
 31. [Full Frontend CMS Connectivity, Social Links CRUD, Extended Site Copy & Brand-Blue Loading Screen](#31-full-frontend-cms-connectivity-social-links-crud-extended-site-copy--brand-blue-loading-screen)
 32. [Database Connectivity Hardening, Vite API Proxy & iPhone Top/Bottom Browser Bar Fix](#32-database-connectivity-hardening-vite-api-proxy--iphone-topbottom-browser-bar-fix)
-33. [Files Created, Modified, or Removed](#33-files-created-modified-or-removed)
+33. [Database Migration to LayerBase (DocumentDB 1.0.0) & CMS-Wide Error States](#33-database-migration-to-layerbase-documentdb-100--cms-wide-error-states)
+34. [Files Created, Modified, or Removed](#34-files-created-modified-or-removed)
 
 ---
 
@@ -625,9 +626,34 @@ This document provides a comprehensive, centralized record of all architecture i
 
 ---
 
-## 33. Files Created, Modified, or Removed
+## 33. Database Migration to LayerBase (DocumentDB 1.0.0) & CMS-Wide Error States
+
+- **Database Provider Migration (MongoDB Atlas → LayerBase / DocumentDB 1.0.0)**:
+  - Migrated the cloud database backend from **MongoDB Atlas** to **LayerBase (using DocumentDB 1.0.0)** while preserving Mongoose 8.18.0 ODM compatibility and connection management through `MONGODB_URI`.
+- **Experience Rich-HTML Validation Limit Fix (`server/models/Experience.js`)**:
+  - Raised `maxlength` constraints (`title` and `companyName` to `200`, `duration` to `100`, and `description` to `20000`) so rich TipTap HTML payloads (`<ul><li><p>...</p></li></ul>`) save cleanly without triggering Mongoose `ValidatorError` rejections at 1,000 characters.
+- **Unified Backend Route Error Handler (`server/utils/errorHandler.js` & `server/routes/*.js`)**:
+  - Added `handleRouteError` in `server/utils/errorHandler.js` to format Mongoose `ValidationError`, duplicate key (`11000`), and `CastError` failures into structured HTTP `400` JSON responses (`{ success: false, message, errors, fieldErrors }`) with `500` fallbacks.
+  - Integrated `handleRouteError` and structured `fieldErrors` across all 10 CMS API route modules (`experiences.js`, `education.js`, `portfolio.js`, `blog.js`, `about.js`, `roles.js`, `techTools.js`, `workProcess.js`, `socialLinks.js`, and `contact.js`).
+- **Frontend Error Parser, Status Banner & CMS-Wide Rollout (`src/cms/*`)**:
+  - Created `src/cms/utils/errorUtils.ts` (`parseCMSError`, `formatCMSErrorText`, `stripHtmlContent`) and `src/cms/components/CMSStatusBanner.tsx` (`CMSStatusBanner` with details, `Retry`, and `Dismiss`; `CMSFieldError`; `getCMSInputErrorClasses`; `CMSMessage`).
+  - Integrated structured error banners and inline field error states across `ExperienceManagement.tsx` (with a `20,000`-character counter), `EducationManagement.tsx`, `PortfolioManagement.tsx`, `BlogManagement.tsx`, `AboutManagement.tsx`, `WorkProcessManagement.tsx`, `SocialLinksManagement.tsx`, `RolesManagement.tsx`, `TechToolsManagement.tsx`, and `ContactEntries.tsx`.
+  - Updated `Dashboard.tsx` to detect partial or total failures across the 9 `Promise.allSettled` collection fetches and render a recoverable `Retry` banner (`dataTestId="dashboard-error-banner"`).
+  - Added `AuthService.loginWithDetails` in `src/cms/auth.ts` and wired `CMSStatusBanner` into `Login.tsx` so network/server errors display real failure details instead of falling back to `"Invalid email or password"`.
+- **Test & Build Verification**:
+  - Added `tests/CMSErrorStates.test.tsx` (6 tests covering `Experience` schema limit, `handleRouteError`, `parseCMSError`, `ExperienceManagement`, and `Dashboard` error states).
+  - Verified full Vitest suite passes (**27 test files, 128 tests**) and `npm run build` (`tsc && vite build`) compiles cleanly with zero errors.
+
+---
+
+## 34. Files Created, Modified, or Removed
 
 | File | Status | Description |
+| :--- | :--- | :--- |
+| `server/utils/errorHandler.js`, `src/cms/utils/errorUtils.ts`, `src/cms/components/CMSStatusBanner.tsx`, `tests/CMSErrorStates.test.tsx` | Created | Unified backend Mongoose/route error formatter (`handleRouteError`), frontend CMS error parser (`parseCMSError`), reusable `CMSStatusBanner`/`CMSFieldError` UI components, and error-state tests (`27 test files, 128 tests`). |
+| `server/models/Experience.js`, `server/routes/*.js` (`about`, `blog`, `contact`, `education`, `experiences`, `portfolio`, `roles`, `socialLinks`, `techTools`, `workProcess`) | Modified | Expanded `Experience` description limit to `20000` characters and standardized HTTP `400`/`500` structured `errors` + `fieldErrors` JSON responses across all CMS routes. |
+| `src/cms/pages/*` (`ExperienceManagement`, `EducationManagement`, `PortfolioManagement`, `BlogManagement`, `AboutManagement`, `WorkProcessManagement`, `SocialLinksManagement`, `RolesManagement`, `TechToolsManagement`, `ContactEntries`, `Dashboard`, `Login`), `src/cms/auth.ts` | Modified | Integrated `parseCMSError`, `CMSStatusBanner` (with `Retry`/`Dismiss`), inline `CMSFieldError` states, `Dashboard` partial/total failure handling, and detailed login error reporting (`AuthService.loginWithDetails`). |
+| `PORTFOLIO_DOCUMENTATION.md`, `DOCUMENTATION_MONO.md`, `CMS_STATUS.md`, `CHANGES_SUMMARY.md` | Modified | Documented database migration from MongoDB Atlas to LayerBase (DocumentDB 1.0.0), CMS-wide error architecture, updated file trees, and verified 27-suite / 128-test metrics. |
 | :--- | :--- | :--- |
 | `src/services/api.ts`, `vite.config.ts`, `.env`, `.env.example` | Modified | Added `resolveApiBaseUrl()`, sanitized `APP_URL`, enabled Vite LAN host + `/api` proxy, and removed `localhost:5001` / placeholder API URL leaks from production builds. |
 | `api/serverless.js`, `server/index.js` | Modified | Added in-flight `cachedPromise` connection pooling, stripped `/api` path normalization, LAN / `*.vercel.app` CORS rules, and live MongoDB `readyState` health reporting on `GET /api/health`. |

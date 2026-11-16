@@ -2,6 +2,7 @@ const express = require('express');
 const WorkProcess = require('../models/WorkProcess');
 const { authMiddleware } = require('../middleware/auth');
 const DEFAULT_WORK_PROCESS_STEPS = require('../data/defaultWorkProcessSteps');
+const { handleRouteError } = require('../utils/errorHandler');
 
 const router = express.Router();
 
@@ -18,11 +19,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Get work process steps error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch work process steps',
-      error: error.message
-    });
+    return handleRouteError(res, error, 'Failed to fetch work process steps');
   }
 });
 
@@ -53,11 +50,7 @@ router.post('/seed', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Seed work process steps error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to seed default work process steps',
-      error: error.message
-    });
+    return handleRouteError(res, error, 'Failed to seed default work process steps');
   }
 });
 
@@ -79,11 +72,7 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Get work process step error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch work process step',
-      error: error.message
-    });
+    return handleRouteError(res, error, 'Failed to fetch work process step');
   }
 });
 
@@ -97,14 +86,18 @@ router.post('/', authMiddleware, async (req, res) => {
     if (!title || !title.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'Title is required'
+        message: 'Title is required',
+        errors: ['Title is required'],
+        fieldErrors: { title: 'Step title is required' }
       });
     }
 
     if (!description || !description.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'Description is required'
+        message: 'Description is required',
+        errors: ['Description is required'],
+        fieldErrors: { description: 'Step description is required' }
       });
     }
 
@@ -112,7 +105,9 @@ router.post('/', authMiddleware, async (req, res) => {
     if (existing) {
       return res.status(400).json({
         success: false,
-        message: 'A work process step with this title already exists'
+        message: 'A work process step with this title already exists',
+        errors: ['A work process step with this title already exists'],
+        fieldErrors: { title: 'A work process step with this title already exists' }
       });
     }
 
@@ -133,11 +128,7 @@ router.post('/', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Create work process step error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create work process step',
-      error: error.message
-    });
+    return handleRouteError(res, error, 'Failed to create work process step');
   }
 });
 
@@ -205,11 +196,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Update work process step error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update work process step',
-      error: error.message
-    });
+    return handleRouteError(res, error, 'Failed to update work process step');
   }
 });
 
@@ -234,11 +221,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete work process step error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete work process step',
-      error: error.message
-    });
+    return handleRouteError(res, error, 'Failed to delete work process step');
   }
 });
 

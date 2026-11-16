@@ -3,6 +3,7 @@ const TechTool = require('../models/TechTool');
 const { authMiddleware } = require('../middleware/auth');
 const { deleteImage } = require('../config/cloudinary');
 const { syncAllPortfolioSkills } = require('../utils/skillMigration');
+const { handleRouteError } = require('../utils/errorHandler');
 const router = express.Router();
 
 // @route   POST /api/tech-tools/sync-from-portfolios
@@ -18,10 +19,7 @@ router.post('/sync-from-portfolios', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Sync skills from portfolios error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while syncing skills from portfolios'
-    });
+    return handleRouteError(res, error, 'Server error while syncing skills from portfolios');
   }
 });
 
@@ -38,10 +36,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Get tech tools error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching tech tools'
-    });
+    return handleRouteError(res, error, 'Server error while fetching tech tools');
   }
 });
 
@@ -52,10 +47,16 @@ router.post('/', authMiddleware, async (req, res) => {
   try {
     const { title, imageURL, imageCloudinaryId, order, isPublished } = req.body;
 
-    if (!title || !imageURL) {
+    const missingFieldErrors = {};
+    if (!title || !String(title).trim()) missingFieldErrors.title = 'Tool title is required';
+    if (!imageURL || !String(imageURL).trim()) missingFieldErrors.imageURL = 'Icon image is required';
+
+    if (Object.keys(missingFieldErrors).length > 0) {
       return res.status(400).json({
         success: false,
-        message: 'Title and image URL are required'
+        message: 'Title and image URL are required',
+        errors: Object.values(missingFieldErrors),
+        fieldErrors: missingFieldErrors
       });
     }
 
@@ -76,10 +77,7 @@ router.post('/', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Create tech tool error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while creating tech tool'
-    });
+    return handleRouteError(res, error, 'Server error while creating tech tool');
   }
 });
 
@@ -124,10 +122,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Update tech tool error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while updating tech tool'
-    });
+    return handleRouteError(res, error, 'Server error while updating tech tool');
   }
 });
 
@@ -161,10 +156,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete tech tool error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while deleting tech tool'
-    });
+    return handleRouteError(res, error, 'Server error while deleting tech tool');
   }
 });
 

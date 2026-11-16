@@ -1,6 +1,7 @@
 const express = require('express');
 const Education = require('../models/Education');
 const { authMiddleware } = require('../middleware/auth');
+const { handleRouteError } = require('../utils/errorHandler');
 const router = express.Router();
 
 // @route   GET /api/education
@@ -23,10 +24,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Get education error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching education data'
-    });
+    return handleRouteError(res, error, 'Server error while fetching education data');
   }
 });
 
@@ -37,10 +35,17 @@ router.post('/', authMiddleware, async (req, res) => {
   try {
     const { title, institution, startDate, endDate, description, link } = req.body;
 
-    if (!title || !institution || !startDate) {
+    const missingFieldErrors = {};
+    if (!title || !String(title).trim()) missingFieldErrors.title = 'Title is required';
+    if (!institution || !String(institution).trim()) missingFieldErrors.institution = 'Institution is required';
+    if (!startDate || !String(startDate).trim()) missingFieldErrors.startDate = 'Start date is required';
+
+    if (Object.keys(missingFieldErrors).length > 0) {
       return res.status(400).json({
         success: false,
-        message: 'Title, institution, and start date are required'
+        message: 'Title, institution, and start date are required',
+        errors: Object.values(missingFieldErrors),
+        fieldErrors: missingFieldErrors
       });
     }
 
@@ -62,10 +67,7 @@ router.post('/', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Create education error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while creating education item'
-    });
+    return handleRouteError(res, error, 'Server error while creating education item');
   }
 });
 
@@ -100,10 +102,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Update education error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while updating education item'
-    });
+    return handleRouteError(res, error, 'Server error while updating education item');
   }
 });
 
@@ -128,10 +127,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete education error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while deleting education item'
-    });
+    return handleRouteError(res, error, 'Server error while deleting education item');
   }
 });
 

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CMSStorage } from '../apiStorage';
 import CMSLayout from '../components/CMSLayout';
+import { CMSStatusBanner, type CMSMessage } from '../components/CMSStatusBanner';
 
 const Dashboard: React.FC = () => {
   const [stats, setStats] = useState({
@@ -15,50 +16,77 @@ const Dashboard: React.FC = () => {
     roles: 0,
     socialLinks: 0,
   });
+  const [statusMessage, setStatusMessage] = useState<CMSMessage>({ type: '', text: '' });
+
+  const fetchStats = async () => {
+    setStatusMessage({ type: '', text: '' });
+    try {
+      const results = await Promise.allSettled([
+        typeof CMSStorage.getTechTools === 'function' ? CMSStorage.getTechTools() : Promise.resolve([]),
+        typeof CMSStorage.getEducation === 'function' ? CMSStorage.getEducation() : Promise.resolve([]),
+        typeof CMSStorage.getPortfolios === 'function' ? CMSStorage.getPortfolios() : Promise.resolve([]),
+        typeof CMSStorage.getContacts === 'function' ? CMSStorage.getContacts() : Promise.resolve([]),
+        typeof CMSStorage.getBlogs === 'function' ? CMSStorage.getBlogs() : Promise.resolve([]),
+        typeof CMSStorage.getExperiences === 'function' ? CMSStorage.getExperiences() : Promise.resolve([]),
+        typeof CMSStorage.getWorkProcesses === 'function' ? CMSStorage.getWorkProcesses() : Promise.resolve([]),
+        typeof CMSStorage.getRoles === 'function' ? CMSStorage.getRoles() : Promise.resolve([]),
+        typeof CMSStorage.getSocialLinks === 'function' ? CMSStorage.getSocialLinks() : Promise.resolve([]),
+      ]);
+
+      const labels = [
+        'Tech Tools',
+        'Education',
+        'Portfolios',
+        'Contact Entries',
+        'Blogs & News',
+        'Experiences',
+        'Work Process',
+        'Roles',
+        'Social Links',
+      ];
+
+      const failedCollections: string[] = [];
+      results.forEach((res, idx) => {
+        if (res.status === 'rejected') {
+          failedCollections.push(labels[idx]);
+        }
+      });
+
+      const countOf = (res: PromiseSettledResult<any[]>) =>
+        res.status === 'fulfilled' && Array.isArray(res.value) ? res.value.length : 0;
+
+      setStats({
+        techTools: countOf(results[0]),
+        education: countOf(results[1]),
+        portfolios: countOf(results[2]),
+        contactEntries: countOf(results[3]),
+        blogs: countOf(results[4]),
+        experiences: countOf(results[5]),
+        workProcesses: countOf(results[6]),
+        roles: countOf(results[7]),
+        socialLinks: countOf(results[8]),
+      });
+
+      if (failedCollections.length > 0) {
+        const allFailed = failedCollections.length === labels.length;
+        setStatusMessage({
+          type: allFailed ? 'error' : 'warning',
+          text: allFailed
+            ? 'Unable to connect to the database API to load dashboard statistics.'
+            : `Some CMS collections failed to load: ${failedCollections.join(', ')}.`,
+          details: failedCollections.map((name) => `${name}: request failed`),
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      setStatusMessage({
+        type: 'error',
+        text: 'Failed to load dashboard statistics. Please try again.',
+      });
+    }
+  };
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const [
-          techToolsRes,
-          educationRes,
-          portfoliosRes,
-          contactsRes,
-          blogsRes,
-          experiencesRes,
-          workProcessRes,
-          rolesRes,
-          socialLinksRes,
-        ] = await Promise.allSettled([
-          typeof CMSStorage.getTechTools === 'function' ? CMSStorage.getTechTools() : Promise.resolve([]),
-          typeof CMSStorage.getEducation === 'function' ? CMSStorage.getEducation() : Promise.resolve([]),
-          typeof CMSStorage.getPortfolios === 'function' ? CMSStorage.getPortfolios() : Promise.resolve([]),
-          typeof CMSStorage.getContacts === 'function' ? CMSStorage.getContacts() : Promise.resolve([]),
-          typeof CMSStorage.getBlogs === 'function' ? CMSStorage.getBlogs() : Promise.resolve([]),
-          typeof CMSStorage.getExperiences === 'function' ? CMSStorage.getExperiences() : Promise.resolve([]),
-          typeof CMSStorage.getWorkProcesses === 'function' ? CMSStorage.getWorkProcesses() : Promise.resolve([]),
-          typeof CMSStorage.getRoles === 'function' ? CMSStorage.getRoles() : Promise.resolve([]),
-          typeof CMSStorage.getSocialLinks === 'function' ? CMSStorage.getSocialLinks() : Promise.resolve([]),
-        ]);
-
-        const countOf = (res: PromiseSettledResult<any[]>) =>
-          res.status === 'fulfilled' && Array.isArray(res.value) ? res.value.length : 0;
-
-        setStats({
-          techTools: countOf(techToolsRes),
-          education: countOf(educationRes),
-          portfolios: countOf(portfoliosRes),
-          contactEntries: countOf(contactsRes),
-          blogs: countOf(blogsRes),
-          experiences: countOf(experiencesRes),
-          workProcesses: countOf(workProcessRes),
-          roles: countOf(rolesRes),
-          socialLinks: countOf(socialLinksRes),
-        });
-      } catch (error) {
-        console.error('Error fetching dashboard stats:', error);
-      }
-    };
     fetchStats();
   }, []);
 
@@ -188,6 +216,13 @@ const Dashboard: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="mt-2 text-gray-600">Welcome back! Here&apos;s an overview of your portfolio content.</p>
         </div>
+
+        <CMSStatusBanner
+          message={statusMessage}
+          onDismiss={() => setStatusMessage({ type: '', text: '' })}
+          onRetry={statusMessage.text ? fetchStats : undefined}
+          dataTestId="dashboard-error-banner"
+        />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

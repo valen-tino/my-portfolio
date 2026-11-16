@@ -1,4 +1,5 @@
 import apiService from '../services/api';
+import { parseCMSError } from './utils/errorUtils';
 
 export interface User {
   id: string;
@@ -6,15 +7,41 @@ export interface User {
   role: string;
 }
 
+export interface LoginResult {
+  success: boolean;
+  error?: string;
+}
+
 export class AuthService {
-  static async login(email: string, password: string): Promise<boolean> {
+  static async loginWithDetails(email: string, password: string): Promise<LoginResult> {
     try {
       const response = await apiService.login(email, password);
-      return response.success;
-    } catch (error) {
+      if (response.success) {
+        return { success: true };
+      }
+      return {
+        success: false,
+        error: response.message || 'Invalid email or password',
+      };
+    } catch (error: any) {
       console.error('Login error:', error);
-      return false;
+      const parsed = parseCMSError(error, 'Invalid email or password');
+      if (parsed.status === 401 && !parsed.isNetworkError) {
+        return {
+          success: false,
+          error: parsed.message || 'Invalid email or password',
+        };
+      }
+      return {
+        success: false,
+        error: parsed.message,
+      };
     }
+  }
+
+  static async login(email: string, password: string): Promise<boolean> {
+    const result = await this.loginWithDetails(email, password);
+    return result.success;
   }
 
   static async logout(): Promise<void> {

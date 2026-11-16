@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import CMSLayout from '../components/CMSLayout';
 import { CMSStorage, ContactEntry } from '../apiStorage';
+import { CMSStatusBanner, type CMSMessage } from '../components/CMSStatusBanner';
+import { parseCMSError } from '../utils/errorUtils';
 
 const ContactEntries: React.FC = () => {
   const [contactEntries, setContactEntries] = useState<ContactEntry[]>([]);
   const [selectedEntry, setSelectedEntry] = useState<ContactEntry | null>(null);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [message, setMessage] = useState<CMSMessage>({ type: '', text: '' });
 
   useEffect(() => {
     loadContactEntries();
@@ -14,13 +17,17 @@ const ContactEntries: React.FC = () => {
 
   const loadContactEntries = async () => {
     try {
+      setLoadFailed(false);
       const entries = await CMSStorage.getContacts();
       setContactEntries(entries);
     } catch (error) {
       console.error('Error loading contact entries:', error);
+      const parsed = parseCMSError(error, 'Failed to load contact entries. Please refresh the page.');
+      setLoadFailed(true);
       setMessage({
         type: 'error',
-        text: 'Failed to load contact entries. Please refresh the page.'
+        text: parsed.message,
+        details: parsed.details,
       });
     }
   };
@@ -53,9 +60,11 @@ const ContactEntries: React.FC = () => {
         });
       } catch (error) {
         console.error('Delete error:', error);
+        const parsed = parseCMSError(error, 'Failed to delete contact entry. Please try again.');
         setMessage({
           type: 'error',
-          text: 'Failed to delete contact entry. Please try again.'
+          text: parsed.message,
+          details: parsed.details,
         });
       } finally {
         setLoading(false);
@@ -79,9 +88,11 @@ const ContactEntries: React.FC = () => {
         });
       } catch (error) {
         console.error('Clear all error:', error);
+        const parsed = parseCMSError(error, 'Failed to delete all contact entries. Please try again.');
         setMessage({
           type: 'error',
-          text: 'Failed to delete all contact entries. Please try again.'
+          text: parsed.message,
+          details: parsed.details,
         });
         // Reload entries to get accurate state
         loadContactEntries();
@@ -115,21 +126,14 @@ const ContactEntries: React.FC = () => {
         </div>
 
         {/* Message */}
-        {message.text && (
-          <div className={`alert ${
-            message.type === 'success' ? 'alert-success' : 'alert-error'
-          }`}>
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                d={message.type === 'success' ? 
-                  "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" :
-                  "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                } 
-              />
-            </svg>
-            <span>{message.text}</span>
-          </div>
-        )}
+        <CMSStatusBanner
+          message={message}
+          onDismiss={() => {
+            setMessage({ type: '', text: '' });
+            setLoadFailed(false);
+          }}
+          onRetry={loadFailed ? loadContactEntries : undefined}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Entries List */}

@@ -16,7 +16,7 @@ A full-stack portfolio Content Management System with AI integration using the D
 ### **Backend (Node.js + Express)**
 - **Runtime**: Node.js 22.19.0
 - **Framework**: Express 5.1.0
-- **Database**: MongoDB (Cloud Atlas + Mongoose 8.18.0)
+- **Database**: LayerBase (DocumentDB 1.0.0, MongoDB-compatible + Mongoose 8.18.0)
 - **Authentication**: JWT (jsonwebtoken 9.0.2)
 - **Password Hashing**: bcryptjs 3.0.2
 - **File Upload**: Cloudinary integration
@@ -114,6 +114,11 @@ Browser ──► API Service ──► Server Routes ──► AI Service ─�
 - **Loading Screen (`src/components/LoadingScreen.tsx`)**: Full-screen overlay with `bg-brand` (`#2563eb`), centered `/favicon.ico`, smooth `ease-in-out` opacity fade (`opacity-100` to `opacity-0 pointer-events-none`), and clean unmount (`return null`) after transition completion, paired with `<meta name="theme-color" content="#f8f8fa" />` in `index.html` so iPhone (iOS Safari) top/bottom bars remain light.
 - **Light-Mode CMS Lock**: Enforced DaisyUI `themes: ['light --default']`, `data-theme="light"`, `color-scheme: light`, and explicit light surfaces across CMS pages so admin inputs never invert under OS dark mode.
 
+#### 11. **LayerBase (DocumentDB 1.0.0) Database Migration & CMS-Wide Error States** ✅
+- **Database Migration**: Switched cloud database hosting from **MongoDB Atlas** to **LayerBase (using DocumentDB 1.0.0)** via `MONGODB_URI` with full Mongoose 8.18.0 compatibility.
+- **Backend Validation & `Experience` Limit Fix**: Raised `Experience` schema `maxlength` limits (`title` & `companyName` `200`, `duration` `100`, `description` `20000`) in `server/models/Experience.js` and added `handleRouteError` in `server/utils/errorHandler.js` across all 10 CMS API routers to return structured HTTP `400` `{ success: false, message, errors, fieldErrors }` responses.
+- **Frontend Error States**: Created `src/cms/utils/errorUtils.ts` (`parseCMSError`, `formatCMSErrorText`, `stripHtmlContent`) and `src/cms/components/CMSStatusBanner.tsx` (`CMSStatusBanner`, `CMSFieldError`, `getCMSInputErrorClasses`), integrated across all 10 CRUD management pages, `Dashboard.tsx` (`Retry` banner on partial/total failures), `src/cms/auth.ts` (`AuthService.loginWithDetails`), and `Login.tsx`.
+
 ## 📁 File Structure
 
 ```
@@ -130,6 +135,7 @@ my-portfolio/
 │   │   │   ├── AITest.tsx                # AI testing interface
 │   │   │   └── ...
 │   │   └── components/    # CMS-specific components
+│   │       ├── CMSStatusBanner.tsx       # Standardized status/error banner & inline field errors
 │   │       ├── WYSIWYGEditor.tsx         # TipTap WYSIWYG case study editor
 │   │       ├── AIPortfolioModal.tsx      # AI portfolio creation modal
 │   │       └── CMSLayout.tsx             # CMS navigation (locked light theme)
@@ -141,8 +147,9 @@ my-portfolio/
 │       └── contentMigration.ts # Markdown to semantic HTML converter
 ├── server/
 │   ├── data/             # Seed defaults (defaultWorkProcessSteps.js, defaultSocialLinks.js)
-│   ├── models/           # MongoDB schemas (Portfolio, Blog, Experience, WorkProcess, SocialLink, Education, TechTool, Role, Contact, About, User)
+│   ├── models/           # MongoDB-compatible schemas (Portfolio, Blog, Experience, WorkProcess, SocialLink, Education, TechTool, Role, Contact, About, User)
 │   ├── routes/           # API endpoints (portfolio, blogs, experiences, work-process, social-links, education, tech-tools, roles, about, contact, upload, ai, auth)
+│   ├── utils/            # Server utilities (errorHandler.js, skillMigration.js)
 │   ├── services/         # Server-side services (aiService.js)
 │   ├── config/           # Cloudinary storage engine (cloudinary.js)
 │   ├── middleware/       # Authentication, etc.
@@ -155,7 +162,7 @@ my-portfolio/
 ### **Environment Variables** ✅
 ```bash
 # Database
-MONGODB_URI=mongodb://127.0.0.1:27017/portfolio (Local) / MongoDB Atlas (Production)
+MONGODB_URI=mongodb://127.0.0.1:27017/portfolio (Local) / LayerBase DocumentDB 1.0.0 (Production)
 
 # Cloudinary (Image & Video uploads)
 CLOUDINARY_CLOUD_NAME=dzdiaslf9 (Configured)
@@ -185,7 +192,7 @@ PORT=5001 (Configured to prevent macOS AirPlay conflict)
 ### **Development Environment** ✅
 - Server: `http://localhost:5001` (Node.js/Express)
 - Client: `http://localhost:5173` (Vite dev server)
-- Database: MongoDB Atlas (Cloud)
+- Database: LayerBase (DocumentDB 1.0.0)
 - File Storage: Cloudinary (Cloud)
 
 ### **API Endpoints Status** ✅
@@ -223,10 +230,10 @@ AI Integration:
 - **Connection Tests**: 1 minute (60s)
 
 ### **Error Handling**
-- Client-side axios interceptors
-- Server-side try-catch blocks
-- User-friendly error messages
-- Automatic token refresh handling
+- Unified backend error formatter (`server/utils/errorHandler.js` -> `handleRouteError`) converting Mongoose `ValidationError`, duplicate keys (`11000`), and `CastError` into HTTP `400` `{ success: false, message, errors, fieldErrors }` responses across all 10 CMS API routers
+- Shared frontend error parser (`src/cms/utils/errorUtils.ts` -> `parseCMSError`) and reusable `CMSStatusBanner` / `CMSFieldError` UI components (`src/cms/components/CMSStatusBanner.tsx`) with `Retry` / `Dismiss` controls
+- Dashboard partial/total fetch recovery banner (`src/cms/pages/Dashboard.tsx`) and server/network-aware login errors (`AuthService.loginWithDetails` in `src/cms/auth.ts`)
+- Client-side axios interceptors and automatic expired-session handling
 
 ## 🧪 Testing & Quality Assurance
 
@@ -272,7 +279,8 @@ AI Integration:
 18. ✅ **6-Step Spec-Driven Work Process CRUD & CMS Light Theme Lock**: Added `Development` stage (`Empathize` → `Define` → `Ideate` → `Prototype` → `Development` → `Test`), built `/api/work-process` + `/cms/work-process` CRUD, locked DaisyUI/CMS to explicit light surfaces across all admin pages, and fixed staged full-box click/drag portrait upload in `AboutManagement.tsx`.
 19. ✅ **Full Frontend CMS Connectivity & Social Links CRUD**: Added `/api/social-links` + `/cms/social-links` under `About Me ▾`, extended `/api/about` + `AboutManagement.tsx` with 17 identity/hero/process/stats/résumé/contact/footer copy fields, wired company logos in `ExperienceEducationSection.tsx`, custom role ordering in `Home.tsx`, full education list in `CVModal.tsx`, independent `Footer` hydration, and all 9 collections in `Dashboard.tsx`.
 20. ✅ **Brand-Blue Loading Screen & iPhone Top/Bottom Bar Fix**: Created `src/components/LoadingScreen.tsx` (`bg-brand` + centered `/favicon.ico` + `ease-in-out` fade that cleanly unmounts after completion) wired into `App.tsx`, `PortfolioDetail.tsx`, and `BlogDetail.tsx`, plus `<meta name="theme-color" content="#f8f8fa" />` in `index.html` so iOS Safari top and bottom bars match the light site palette.
-21. ✅ **Database Connectivity Hardening & Vite Proxy**: Added `resolveApiBaseUrl()` (`src/services/api.ts`) so production and non-localhost (iPhone/Vercel) builds never leak `localhost:5001` or placeholder URLs, configured Vite `host: true` + `/api` proxy (`vite.config.ts`), added in-flight `cachedPromise` connection pooling (`api/serverless.js`, `server/index.js`), `/api` prefix normalization, LAN/`*.vercel.app` CORS, and live `GET /api/health` MongoDB status reporting, with **26 test files, 122 tests passing** (`npm test -- --run`).
+21. ✅ **Database Connectivity Hardening & Vite Proxy**: Added `resolveApiBaseUrl()` (`src/services/api.ts`) so production and non-localhost (iPhone/Vercel) builds never leak `localhost:5001` or placeholder URLs, configured Vite `host: true` + `/api` proxy (`vite.config.ts`), added in-flight `cachedPromise` connection pooling (`api/serverless.js`, `server/index.js`), `/api` prefix normalization, LAN/`*.vercel.app` CORS, and live `GET /api/health` database status reporting.
+22. ✅ **LayerBase (DocumentDB 1.0.0) Migration & CMS-Wide Error States**: Migrated database hosting from MongoDB Atlas to LayerBase (DocumentDB 1.0.0), raised `Experience` description limit to `20,000` characters (`server/models/Experience.js`), standardized backend validation/cast/duplicate responses via `handleRouteError` (`server/utils/errorHandler.js`), and rolled out `parseCMSError`, `CMSStatusBanner`, and `CMSFieldError` across all 10 CMS management pages, `Dashboard.tsx`, `Login.tsx`, and `auth.ts` (**27 test files, 128 tests passing** via `npm test -- --run`).
 
 ### **Future Enhancements**
 - [ ] Add AI model selection (chat vs reasoner)
@@ -309,6 +317,6 @@ AI Integration:
 
 ---
 
-**Last Updated**: November 15, 2026
+**Last Updated**: November 16, 2026
 **System Status**: 🟢 Fully Operational
 **AI Status**: 🟢 Active with Timeout Optimization

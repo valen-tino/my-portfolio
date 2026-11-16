@@ -5,7 +5,7 @@ const experienceSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Experience title is required'],
     trim: true,
-    maxlength: [100, 'Title cannot exceed 100 characters']
+    maxlength: [200, 'Title cannot exceed 200 characters']
   },
   status: {
     type: String,
@@ -17,7 +17,7 @@ const experienceSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Company name is required'],
     trim: true,
-    maxlength: [100, 'Company name cannot exceed 100 characters']
+    maxlength: [200, 'Company name cannot exceed 200 characters']
   },
   startDate: {
     type: Date,
@@ -30,14 +30,14 @@ const experienceSchema = new mongoose.Schema({
   duration: {
     type: String,
     trim: true,
-    maxlength: [50, 'Duration cannot exceed 50 characters'],
+    maxlength: [100, 'Duration cannot exceed 100 characters'],
     default: ''
   },
   description: {
     type: String,
     required: [true, 'Description is required'],
     trim: true,
-    maxlength: [1000, 'Description cannot exceed 1000 characters']
+    maxlength: [20000, 'Description cannot exceed 20000 characters']
   },
   logoURL: {
     type: String,

@@ -1,6 +1,7 @@
 const express = require('express');
 const { authMiddleware } = require('../middleware/auth');
 const Experience = require('../models/Experience');
+const { handleRouteError } = require('../utils/errorHandler');
 
 const router = express.Router();
 
@@ -21,10 +22,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching experiences:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching experiences'
-    });
+    return handleRouteError(res, error, 'Server error while fetching experiences');
   }
 });
 
@@ -49,18 +47,7 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching experience:', error);
-    
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid experience ID format'
-      });
-    }
-    
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching experience'
-    });
+    return handleRouteError(res, error, 'Server error while fetching experience');
   }
 });
 
@@ -84,10 +71,18 @@ router.post('/', authMiddleware, async (req, res) => {
     } = req.body;
 
     // Validation
-    if (!title || !companyName || !startDate || !description) {
+    const missingFieldErrors = {};
+    if (!title || !String(title).trim()) missingFieldErrors.title = 'Job title is required';
+    if (!companyName || !String(companyName).trim()) missingFieldErrors.companyName = 'Company name is required';
+    if (!startDate || !String(startDate).trim()) missingFieldErrors.startDate = 'Start date is required';
+    if (!description || !String(description).trim()) missingFieldErrors.description = 'Description is required';
+
+    if (Object.keys(missingFieldErrors).length > 0) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide title, company name, start date, and description'
+        message: 'Please provide title, company name, start date, and description',
+        errors: Object.values(missingFieldErrors),
+        fieldErrors: missingFieldErrors
       });
     }
 
@@ -114,20 +109,7 @@ router.post('/', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating experience:', error);
-    
-    if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({
-        success: false,
-        message: 'Validation error',
-        errors
-      });
-    }
-    
-    res.status(500).json({
-      success: false,
-      message: 'Server error while creating experience'
-    });
+    return handleRouteError(res, error, 'Server error while creating experience');
   }
 });
 
@@ -181,27 +163,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating experience:', error);
-    
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid experience ID format'
-      });
-    }
-    
-    if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({
-        success: false,
-        message: 'Validation error',
-        errors
-      });
-    }
-    
-    res.status(500).json({
-      success: false,
-      message: 'Server error while updating experience'
-    });
+    return handleRouteError(res, error, 'Server error while updating experience');
   }
 });
 
@@ -227,18 +189,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Error deleting experience:', error);
-    
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid experience ID format'
-      });
-    }
-    
-    res.status(500).json({
-      success: false,
-      message: 'Server error while deleting experience'
-    });
+    return handleRouteError(res, error, 'Server error while deleting experience');
   }
 });
 
@@ -271,10 +222,7 @@ router.get('/stats/overview', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching experience stats:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching statistics'
-    });
+    return handleRouteError(res, error, 'Server error while fetching statistics');
   }
 });
 

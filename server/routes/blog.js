@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const Blog = require('../models/Blog');
 const { authMiddleware } = require('../middleware/auth');
 const { deleteImage } = require('../config/cloudinary');
+const { handleRouteError } = require('../utils/errorHandler');
 const router = express.Router();
 
 // @route   GET /api/blog
@@ -41,10 +42,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Get blogs error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching blogs'
-    });
+    return handleRouteError(res, error, 'Server error while fetching blogs');
   }
 });
 
@@ -73,10 +71,7 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching blog post:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching blog post'
-    });
+    return handleRouteError(res, error, 'Server error while fetching blog post');
   }
 });
 
@@ -106,7 +101,9 @@ router.post('/', authMiddleware, async (req, res) => {
     if (!title || !title.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'Title is required'
+        message: 'Title is required',
+        errors: ['Title is required'],
+        fieldErrors: { title: 'Title is required' }
       });
     }
 
@@ -137,10 +134,7 @@ router.post('/', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Create blog post error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while creating blog post'
-    });
+    return handleRouteError(res, error, 'Server error while creating blog post');
   }
 });
 
@@ -215,10 +209,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Update blog post error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while updating blog post'
-    });
+    return handleRouteError(res, error, 'Server error while updating blog post');
   }
 });
 
@@ -257,10 +248,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete blog post error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while deleting blog post'
-    });
+    return handleRouteError(res, error, 'Server error while deleting blog post');
   }
 });
 

@@ -2,6 +2,7 @@ const express = require('express');
 const About = require('../models/About');
 const { authMiddleware } = require('../middleware/auth');
 const { deleteImage } = require('../config/cloudinary');
+const { handleRouteError } = require('../utils/errorHandler');
 const router = express.Router();
 
 // @route   GET /api/about
@@ -28,10 +29,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Get about error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching about data'
-    });
+    return handleRouteError(res, error, 'Server error while fetching about data');
   }
 });
 
@@ -63,10 +61,12 @@ router.put('/', authMiddleware, async (req, res) => {
     const { description, imageURL, imageCloudinaryId, cvURL, cvCloudinaryId } = req.body;
 
     // Validation
-    if (!description) {
+    if (!description || !String(description).trim()) {
       return res.status(400).json({
         success: false,
-        message: 'Description is required'
+        message: 'Description is required',
+        errors: ['Description is required'],
+        fieldErrors: { description: 'Description is required' }
       });
     }
 
@@ -133,10 +133,7 @@ router.put('/', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Update about error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while updating about data'
-    });
+    return handleRouteError(res, error, 'Server error while updating about data');
   }
 });
 

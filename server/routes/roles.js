@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Role = require('../models/Role');
 const { authMiddleware } = require('../middleware/auth');
+const { handleRouteError } = require('../utils/errorHandler');
 
 // Get all roles (public)
 router.get('/', async (req, res) => {
@@ -13,11 +14,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Get roles error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch roles',
-      error: error.message
-    });
+    return handleRouteError(res, error, 'Failed to fetch roles');
   }
 });
 
@@ -37,11 +34,7 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Get role error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch role',
-      error: error.message
-    });
+    return handleRouteError(res, error, 'Failed to fetch role');
   }
 });
 
@@ -53,7 +46,9 @@ router.post('/', authMiddleware, async (req, res) => {
     if (!title || !title.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'Title is required'
+        message: 'Title is required',
+        errors: ['Title is required'],
+        fieldErrors: { title: 'Role title is required' }
       });
     }
 
@@ -62,7 +57,9 @@ router.post('/', authMiddleware, async (req, res) => {
     if (existingRole) {
       return res.status(400).json({
         success: false,
-        message: 'Role with this title already exists'
+        message: 'Role with this title already exists',
+        errors: ['Role with this title already exists'],
+        fieldErrors: { title: 'Role with this title already exists' }
       });
     }
 
@@ -82,11 +79,7 @@ router.post('/', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Create role error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create role',
-      error: error.message
-    });
+    return handleRouteError(res, error, 'Failed to create role');
   }
 });
 
@@ -112,7 +105,9 @@ router.put('/:id', authMiddleware, async (req, res) => {
       if (existingRole) {
         return res.status(400).json({
           success: false,
-          message: 'Role with this title already exists'
+          message: 'Role with this title already exists',
+          errors: ['Role with this title already exists'],
+          fieldErrors: { title: 'Role with this title already exists' }
         });
       }
     }
@@ -132,11 +127,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Update role error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update role',
-      error: error.message
-    });
+    return handleRouteError(res, error, 'Failed to update role');
   }
 });
 
@@ -159,11 +150,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete role error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete role',
-      error: error.message
-    });
+    return handleRouteError(res, error, 'Failed to delete role');
   }
 });
 

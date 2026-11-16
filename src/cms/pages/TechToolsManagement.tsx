@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import CMSLayout from '../components/CMSLayout';
 import { CMSStorage, TechTool } from '../apiStorage';
+import {
+  CMSStatusBanner,
+  CMSFieldError,
+  getCMSInputErrorClasses,
+  type CMSMessage,
+} from '../components/CMSStatusBanner';
+import { parseCMSError } from '../utils/errorUtils';
 
 const TechToolsManagement: React.FC = () => {
   const [techTools, setTechTools] = useState<TechTool[]>([]);
   const [editingTool, setEditingTool] = useState<TechTool | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [message, setMessage] = useState<CMSMessage>({ type: '', text: '' });
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
   const [syncingSkills, setSyncingSkills] = useState(false);
@@ -14,6 +23,15 @@ const TechToolsManagement: React.FC = () => {
   useEffect(() => {
     loadTechTools();
   }, []);
+
+  const clearFieldError = (field: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
 
   const handleSyncSkills = async () => {
     setSyncingSkills(true);
@@ -26,9 +44,11 @@ const TechToolsManagement: React.FC = () => {
       await loadTechTools();
     } catch (error: any) {
       console.error('Failed to sync skills from portfolios:', error);
+      const parsed = parseCMSError(error, 'Failed to sync skills from portfolios. Please try again.');
       setMessage({
         type: 'error',
-        text: error.response?.data?.message || 'Failed to sync skills from portfolios. Please try again.'
+        text: parsed.message,
+        details: parsed.details,
       });
     } finally {
       setSyncingSkills(false);
@@ -37,13 +57,17 @@ const TechToolsManagement: React.FC = () => {
 
   const loadTechTools = async () => {
     try {
+      setLoadFailed(false);
       const tools = await CMSStorage.getTechTools();
       setTechTools(tools);
     } catch (error) {
       console.error('Error loading tech tools:', error);
+      const parsed = parseCMSError(error, 'Failed to load tech tools. Please refresh the page.');
+      setLoadFailed(true);
       setMessage({
         type: 'error',
-        text: 'Failed to load tech tools. Please refresh the page.'
+        text: parsed.message,
+        details: parsed.details,
       });
     }
   };
@@ -59,6 +83,8 @@ const TechToolsManagement: React.FC = () => {
         savedTool = await CMSStorage.updateTechTool(tool.id, tool);
         setTechTools(prev => prev.map(t => t.id === tool.id ? savedTool : t).sort((a, b) => (a.order || 0) - (b.order || 0)));
       }
+      setFieldErrors({});
+      setLoadFailed(false);
       setMessage({
         type: 'success',
         text: `Tech tool ${isNew ? 'added' : 'updated'} successfully!`
@@ -66,9 +92,14 @@ const TechToolsManagement: React.FC = () => {
       return savedTool;
     } catch (error) {
       console.error('Save error:', error);
+      const parsed = parseCMSError(error, `Failed to ${isNew ? 'add' : 'update'} tech tool. Please try again.`);
+      if (Object.keys(parsed.fieldErrors).length > 0) {
+        setFieldErrors((prev) => ({ ...prev, ...parsed.fieldErrors }));
+      }
       setMessage({
         type: 'error',
-        text: `Failed to ${isNew ? 'add' : 'update'} tech tool. Please try again.`
+        text: parsed.message,
+        details: parsed.details,
       });
       throw error;
     } finally {
@@ -85,22 +116,38 @@ const TechToolsManagement: React.FC = () => {
     };
     setEditingTool(newTool);
     setIsAddingNew(true);
+    setFieldErrors({});
+    setMessage({ type: '', text: '' });
   };
 
   const handleEdit = (tool: TechTool) => {
     setEditingTool(tool);
     setIsAddingNew(false);
+    setFieldErrors({});
+    setMessage({ type: '', text: '' });
   };
 
   const handleSave = async () => {
-    if (!editingTool || !editingTool.title.trim()) {
+    if (!editingTool) return;
+
+    const nextFieldErrors: Record<string, string> = {};
+    if (!editingTool.title.trim()) {
+      nextFieldErrors.title = 'Tool title is required.';
+    }
+    if (isAddingNew && !editingTool.imageURL.trim()) {
+      nextFieldErrors.imageURL = 'Please upload an icon image for the new tech tool.';
+    }
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
       setMessage({
         type: 'error',
-        text: 'Please provide a title for the tech tool.'
+        text: 'Please fix the highlighted validation errors before saving.',
       });
       return;
     }
 
+    setFieldErrors({});
     try {
       await saveTechTool(editingTool, isAddingNew);
       setEditingTool(null);
@@ -121,9 +168,11 @@ const TechToolsManagement: React.FC = () => {
         });
       } catch (error) {
         console.error('Delete error:', error);
+        const parsed = parseCMSError(error, 'Failed to delete tech tool. Please try again.');
         setMessage({
           type: 'error',
-          text: 'Failed to delete tech tool. Please try again.'
+          text: parsed.message,
+          details: parsed.details,
         });
       }
     }
@@ -132,12 +181,15 @@ const TechToolsManagement: React.FC = () => {
   const handleCancel = () => {
     setEditingTool(null);
     setIsAddingNew(false);
+    setFieldErrors({});
+    setMessage({ type: '', text: '' });
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && editingTool) {
       setImageUploading(true);
+      clearFieldError('imageURL');
       try {
         const uploadResult = await CMSStorage.uploadTechToolImage(file);
         setEditingTool({
@@ -151,9 +203,12 @@ const TechToolsManagement: React.FC = () => {
         });
       } catch (error) {
         console.error('Image upload error:', error);
+        const parsed = parseCMSError(error, 'Failed to upload image. Please try again.');
+        setFieldErrors((prev) => ({ ...prev, imageURL: parsed.message }));
         setMessage({
           type: 'error',
-          text: 'Failed to upload image. Please try again.'
+          text: parsed.message,
+          details: parsed.details,
         });
       } finally {
         setImageUploading(false);
@@ -204,21 +259,16 @@ const TechToolsManagement: React.FC = () => {
           </div>
         </div>
 
-        {/* Message */}
-        {message.text && (
-          <div className={`alert ${
-            message.type === 'success' ? 'alert-success' : 'alert-error'
-          }`}>
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                d={message.type === 'success' ? 
-                  "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" :
-                  "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                } 
-              />
-            </svg>
-            <span>{message.text}</span>
-          </div>
+        {/* Message when form is closed */}
+        {!editingTool && (
+          <CMSStatusBanner
+            message={message}
+            onDismiss={() => {
+              setMessage({ type: '', text: '' });
+              setLoadFailed(false);
+            }}
+            onRetry={loadFailed ? loadTechTools : undefined}
+          />
         )}
 
         {/* Edit/Add Form */}
@@ -237,11 +287,16 @@ const TechToolsManagement: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      aria-invalid={Boolean(fieldErrors.title)}
+                      className={`w-full px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 border rounded-md focus:outline-none focus:ring-2 ${getCMSInputErrorClasses(Boolean(fieldErrors.title))}`}
                       placeholder="e.g., React JS, Node.js, Python"
                       value={editingTool.title}
-                      onChange={(e) => setEditingTool({ ...editingTool, title: e.target.value })}
+                      onChange={(e) => {
+                        clearFieldError('title');
+                        setEditingTool({ ...editingTool, title: e.target.value });
+                      }}
                     />
+                    <CMSFieldError error={fieldErrors.title} />
                   </div>
 
                   <div>
@@ -252,7 +307,7 @@ const TechToolsManagement: React.FC = () => {
                       <input
                         type="file"
                         accept="image/*"
-                        className={`w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${imageUploading ? 'opacity-50' : ''}`}
+                        className={`w-full px-3 py-2 bg-white text-gray-900 border rounded-md focus:outline-none focus:ring-2 ${getCMSInputErrorClasses(Boolean(fieldErrors.imageURL))} ${imageUploading ? 'opacity-50' : ''}`}
                         onChange={handleImageUpload}
                         disabled={imageUploading}
                       />
@@ -262,6 +317,7 @@ const TechToolsManagement: React.FC = () => {
                         </div>
                       )}
                     </div>
+                    <CMSFieldError error={fieldErrors.imageURL} />
                     {editingTool.imageURL && !imageUploading && (
                       <p className="text-sm text-gray-500 mt-1">
                         ✓ Image uploaded successfully
@@ -303,6 +359,12 @@ const TechToolsManagement: React.FC = () => {
                   )}
                 </div>
               </div>
+
+              <CMSStatusBanner
+                message={message}
+                onDismiss={() => setMessage({ type: '', text: '' })}
+                className="mt-6"
+              />
 
               <div className="flex justify-end space-x-4 mt-6">
                 <button

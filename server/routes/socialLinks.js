@@ -2,6 +2,7 @@ const express = require('express');
 const SocialLink = require('../models/SocialLink');
 const { authMiddleware } = require('../middleware/auth');
 const DEFAULT_SOCIAL_LINKS = require('../data/defaultSocialLinks');
+const { handleRouteError } = require('../utils/errorHandler');
 
 const router = express.Router();
 
@@ -19,11 +20,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Get social links error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch social links',
-      error: error.message,
-    });
+    return handleRouteError(res, error, 'Failed to fetch social links');
   }
 });
 
@@ -60,11 +57,7 @@ router.post('/seed', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Seed social links error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to seed default social links',
-      error: error.message,
-    });
+    return handleRouteError(res, error, 'Failed to seed default social links');
   }
 });
 
@@ -86,11 +79,7 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Get social link error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch social link',
-      error: error.message,
-    });
+    return handleRouteError(res, error, 'Failed to fetch social link');
   }
 });
 
@@ -105,6 +94,8 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Platform name is required',
+        errors: ['Platform name is required'],
+        fieldErrors: { name: 'Platform name is required' },
       });
     }
 
@@ -112,6 +103,8 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'URL is required',
+        errors: ['URL is required'],
+        fieldErrors: { url: 'URL is required' },
       });
     }
 
@@ -140,11 +133,7 @@ router.post('/', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Create social link error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create social link',
-      error: error.message,
-    });
+    return handleRouteError(res, error, 'Failed to create social link');
   }
 });
 
@@ -212,11 +201,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Update social link error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update social link',
-      error: error.message,
-    });
+    return handleRouteError(res, error, 'Failed to update social link');
   }
 });
 
@@ -239,11 +224,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete social link error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete social link',
-      error: error.message,
-    });
+    return handleRouteError(res, error, 'Failed to delete social link');
   }
 });
 

@@ -1,27 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import CMSLayout from '../components/CMSLayout';
 import { CMSStorage, Role } from '../apiStorage';
+import {
+  CMSStatusBanner,
+  CMSFieldError,
+  getCMSInputErrorClasses,
+  type CMSMessage,
+} from '../components/CMSStatusBanner';
+import { parseCMSError } from '../utils/errorUtils';
 
 const RolesManagement: React.FC = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [message, setMessage] = useState<CMSMessage>({ type: '', text: '' });
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadRoles();
   }, []);
 
+  const clearFieldError = (field: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
   const loadRoles = async () => {
     try {
+      setLoadFailed(false);
       const data = await CMSStorage.getRoles();
       setRoles(data);
     } catch (error) {
       console.error('Error loading roles:', error);
+      const parsed = parseCMSError(error, 'Failed to load roles. Please refresh the page.');
+      setLoadFailed(true);
       setMessage({
         type: 'error',
-        text: 'Failed to load roles. Please refresh the page.'
+        text: parsed.message,
+        details: parsed.details,
       });
     }
   };
@@ -37,6 +59,8 @@ const RolesManagement: React.FC = () => {
         savedRole = await CMSStorage.updateRole(role.id, role);
         setRoles(prev => prev.map(r => r.id === role.id ? savedRole : r).sort((a, b) => (a.order || 0) - (b.order || 0)));
       }
+      setFieldErrors({});
+      setLoadFailed(false);
       setMessage({
         type: 'success',
         text: `Role ${isNew ? 'added' : 'updated'} successfully!`
@@ -44,9 +68,14 @@ const RolesManagement: React.FC = () => {
       return savedRole;
     } catch (error) {
       console.error('Save error:', error);
+      const parsed = parseCMSError(error, `Failed to ${isNew ? 'add' : 'update'} role. Please try again.`);
+      if (Object.keys(parsed.fieldErrors).length > 0) {
+        setFieldErrors((prev) => ({ ...prev, ...parsed.fieldErrors }));
+      }
       setMessage({
         type: 'error',
-        text: `Failed to ${isNew ? 'add' : 'update'} role. Please try again.`
+        text: parsed.message,
+        details: parsed.details,
       });
       throw error;
     } finally {
@@ -63,22 +92,28 @@ const RolesManagement: React.FC = () => {
     };
     setEditingRole(newRole);
     setIsAddingNew(true);
+    setFieldErrors({});
+    setMessage({ type: '', text: '' });
   };
 
   const handleEdit = (role: Role) => {
     setEditingRole(role);
     setIsAddingNew(false);
+    setFieldErrors({});
+    setMessage({ type: '', text: '' });
   };
 
   const handleSave = async () => {
     if (!editingRole || !editingRole.title.trim()) {
+      setFieldErrors({ title: 'Role title is required.' });
       setMessage({
         type: 'error',
-        text: 'Please provide a title for the role.'
+        text: 'Please provide a title for the role.',
       });
       return;
     }
 
+    setFieldErrors({});
     try {
       await saveRole(editingRole, isAddingNew);
       setEditingRole(null);
@@ -99,9 +134,11 @@ const RolesManagement: React.FC = () => {
         });
       } catch (error) {
         console.error('Delete error:', error);
+        const parsed = parseCMSError(error, 'Failed to delete role. Please try again.');
         setMessage({
           type: 'error',
-          text: 'Failed to delete role. Please try again.'
+          text: parsed.message,
+          details: parsed.details,
         });
       }
     }
@@ -110,6 +147,8 @@ const RolesManagement: React.FC = () => {
   const handleCancel = () => {
     setEditingRole(null);
     setIsAddingNew(false);
+    setFieldErrors({});
+    setMessage({ type: '', text: '' });
   };
 
   const colorOptions = [
@@ -143,21 +182,16 @@ const RolesManagement: React.FC = () => {
           </button>
         </div>
 
-        {/* Message */}
-        {message.text && (
-          <div className={`alert ${
-            message.type === 'success' ? 'alert-success' : 'alert-error'
-          }`}>
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                d={message.type === 'success' ? 
-                  "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" :
-                  "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                } 
-              />
-            </svg>
-            <span>{message.text}</span>
-          </div>
+        {/* Message when form is closed */}
+        {!editingRole && (
+          <CMSStatusBanner
+            message={message}
+            onDismiss={() => {
+              setMessage({ type: '', text: '' });
+              setLoadFailed(false);
+            }}
+            onRetry={loadFailed ? loadRoles : undefined}
+          />
         )}
 
         {/* Edit/Add Form */}
@@ -176,11 +210,16 @@ const RolesManagement: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      aria-invalid={Boolean(fieldErrors.title)}
+                      className={`w-full px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 border rounded-md focus:outline-none focus:ring-2 ${getCMSInputErrorClasses(Boolean(fieldErrors.title))}`}
                       placeholder="e.g., UI/UX Designer, Web Developer"
                       value={editingRole.title}
-                      onChange={(e) => setEditingRole({ ...editingRole, title: e.target.value })}
+                      onChange={(e) => {
+                        clearFieldError('title');
+                        setEditingRole({ ...editingRole, title: e.target.value });
+                      }}
                     />
+                    <CMSFieldError error={fieldErrors.title} />
                   </div>
 
                   <div>
@@ -232,6 +271,12 @@ const RolesManagement: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              <CMSStatusBanner
+                message={message}
+                onDismiss={() => setMessage({ type: '', text: '' })}
+                className="mt-6"
+              />
 
               <div className="flex justify-end space-x-4 mt-6">
                 <button

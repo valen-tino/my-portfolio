@@ -49,7 +49,7 @@
    - [Security & Maintenance Checklist](#security--maintenance-checklist)
 6. [Part VI: Vercel Troubleshooting Guide](#part-vi-vercel-troubleshooting-guide)
    - [NS_BINDING_ABORTED Errors Fix](#ns_binding_aborted-errors-fix)
-   - [MongoDB Atlas Troubleshooting](#mongodb-atlas-troubleshooting)
+   - [LayerBase (DocumentDB 1.0.0) Connection Checklist](#ns_binding_aborted-errors-fix)
    - [Vercel Environment Variables & Debug Steps](#vercel-environment-variables--debug-steps)
    - [Emergency Minimal Test Endpoint](#emergency-minimal-test-endpoint)
 
@@ -62,7 +62,7 @@
 # portfolio-react
 My Actual Portfolio (Updated)
 
-Full-stack portfolio Content Management System with AI integration, React frontend, Express.js backend, and MongoDB database.
+Full-stack portfolio Content Management System with AI integration, React frontend, Express.js backend, and LayerBase (DocumentDB 1.0.0) database via Mongoose.
 
 ---
 
@@ -110,8 +110,8 @@ A full-stack portfolio website with an integrated Content Management System (CMS
 └──────────────────────────────────────┼──────────────────┘
                                        │
                     ┌──────────────────▼──────────────────┐
-                    │         MongoDB Atlas               │
-                    │      (Cloud Database)               │
+                    │      LayerBase (DocumentDB 1.0.0)   │
+                    │         (Cloud Database)            │
                     │                                     │
                     │  Collections:                       │
                     │  - users                            │
@@ -140,7 +140,7 @@ A full-stack portfolio website with an integrated Content Management System (CMS
 2. React Router handles client-side routing
 3. API calls are made to `/api/*` endpoints
 4. Vercel serverless functions process requests
-5. MongoDB Atlas stores/retrieves data
+5. LayerBase (DocumentDB 1.0.0) stores/retrieves data
 6. Response sent back through the stack
 
 ---
@@ -162,7 +162,7 @@ A full-stack portfolio website with an integrated Content Management System (CMS
 ### Backend
 - **Node.js 22.19.0+**: JavaScript runtime
 - **Express.js 5.1.0**: Web application framework (port `5001`)
-- **MongoDB / Mongoose 8.18.0**: NoSQL database and ODM
+- **LayerBase (DocumentDB 1.0.0) / Mongoose 8.18.0**: MongoDB-compatible cloud database and ODM (migrated from MongoDB Atlas)
 - **JWT (jsonwebtoken 9.0.2)**: JSON Web Tokens for authentication
 - **Bcrypt (bcryptjs 3.0.2)**: Password hashing
 - **Multer 2.0.2 & Custom Cloudinary Storage Engine**: File upload handling
@@ -215,8 +215,9 @@ my-portfolio/
 │   │   ├── Icons.tsx / ImagePlaceholder.tsx / ScrollProgressBar.tsx / ImageLightboxModal.tsx / PasswordProtectionModal.tsx
 │   │
 │   ├── cms/                      # Complete CMS system (locked bright light-mode styling)
-│   │   ├── components/           # CMS-specific components (CMSLayout, WYSIWYGEditor, ProtectedRoute, AIPortfolioModal)
+│   │   ├── components/           # CMS-specific components (CMSLayout, CMSStatusBanner, WYSIWYGEditor, ProtectedRoute, AIPortfolioModal)
 │   │   ├── pages/                # CMS pages (Dashboard, Portfolios, Blogs, Experiences, WorkProcess, SocialLinks, Education, TechTools, Roles, Contacts, About, AITest)
+│   │   ├── utils/                # errorUtils.ts (parseCMSError, formatCMSErrorText, stripHtmlContent)
 │   │   ├── apiStorage.ts         # Client-side API storage helper
 │   │   ├── auth.ts               # Authentication utilities
 │   │   └── education.ts          # Fallback education seed
@@ -233,7 +234,7 @@ my-portfolio/
 │   ├── middleware/               # Auth middlewares
 │   ├── models/                   # Mongoose schemas (Portfolio, Blog, Experience, WorkProcess, SocialLink, Education, TechTool, Role, Contact, About, User)
 │   ├── routes/                   # Express route handlers (about, ai, auth, blog, contact, education, experiences, portfolio, roles, socialLinks, techTools, upload, workProcess)
-│   ├── utils/                    # Utility modules (skillMigration.js)
+│   ├── utils/                    # Utility modules (errorHandler.js, skillMigration.js)
 │   ├── scripts/                  # Seed & maintenance scripts (initDatabase.js, migrateMarkdownToWYSIWYG.js, syncExistingPortfolioSkills.js)
 │   ├── services/                 # Server services (aiService.js)
 │   └── index.js                  # Server entry point (port 5001)
@@ -242,7 +243,7 @@ my-portfolio/
 │   ├── [...path].js              # Catch-all serverless handler
 │   └── serverless.js             # Express app serverless wrapper
 │
-├── tests/                        # Automated Vitest suite (26 test files, 122 tests)
+├── tests/                        # Automated Vitest suite (27 test files, 128 tests)
 ├── tailwind.config.cjs           # Tailwind & DaisyUI theme tokens
 ├── vercel.json                   # Vercel deployment configuration
 └── package.json                  # Project dependencies & scripts
@@ -573,7 +574,8 @@ All media uploads go through Cloudinary via custom Multer storage engine:
 - **6-Step Spec-Driven Work Process & CMS CRUD**: `WorkProcessSection` combines 5 Design Thinking stages with **Development** right after **Prototype** (`Empathize` → `Define` → `Ideate` → `Prototype` → `Development` → `Test`) via plain-paragraph steps powered dynamically by `/api/work-process` and top-level CMS CRUD (`/cms/work-process`)
 - **CMS Light Theme Lock & Staged Portrait Upload**: `tailwind.config.cjs` (`themes: ['light --default']`), `index.html`, `src/index.css`, and explicit Tailwind surfaces keep CMS contrast clean under OS dark mode; `AboutManagement` pairs direct Cloudinary / 10MB `/api/upload/profile` fallback with full-box drag-and-drop and staged previews until `Save Changes`
 - **Full Frontend CMS Connectivity, Social Links CRUD & Brand-Blue Loading Screen**: `/api/social-links` + `/cms/social-links` (nested under `About Me ▾`), 17 extended `About` copy/identity fields, Experience company logo rendering (`exp.logoURL`), custom role ordering (`CMSStorage.getRoles()`), full education rendering in `CVModal`, 9-collection `Dashboard` stats, independent `Footer` CMS hydration, and `<LoadingScreen />` (`bg-brand` + centered `/favicon.ico` + `ease-in-out` fade that unmounts after transition completion alongside `<meta name="theme-color" content="#f8f8fa" />` in `index.html` to keep iOS Safari top/bottom bars light) integrated in `App.tsx`, `PortfolioDetail.tsx`, and `BlogDetail.tsx`
-- **Automated Test Verification**: `npm test -- --run` runs **26 test suites (122 tests)** cleanly under Vitest + JSDOM, and `npm run build` validates TypeScript and Vite production bundling (`5173` frontend / `5001` backend)
+- **LayerBase (DocumentDB 1.0.0) & CMS-Wide Error States**: Production database migrated from MongoDB Atlas to **LayerBase (using DocumentDB 1.0.0)** via `MONGODB_URI`; `server/models/Experience.js` expanded (`title`/`companyName` `200`, `duration` `100`, `description` `20000` chars) for rich TipTap HTML payloads; unified backend `handleRouteError` (`server/utils/errorHandler.js`) returns structured HTTP `400` `{ success: false, message, errors, fieldErrors }` responses across all 10 CMS routes; frontend `parseCMSError` (`src/cms/utils/errorUtils.ts`), `CMSStatusBanner`, and `CMSFieldError` (`src/cms/components/CMSStatusBanner.tsx`) power consistent error banners and field-level validation across all 10 CRUD modules, `Dashboard.tsx` (`Retry` banner on partial/total failures), `Login.tsx`, and `auth.ts` (`AuthService.loginWithDetails`)
+- **Automated Test Verification**: `npm test -- --run` runs **27 test suites (128 tests)** cleanly under Vitest + JSDOM, and `npm run build` validates TypeScript and Vite production bundling (`5173` frontend / `5001` backend)
 
 > For full changelog history across every iteration, see [CHANGES_SUMMARY.md](file:///Users/valentinojehaut/Documents/GitHub/my-portfolio/CHANGES_SUMMARY.md).
 
@@ -615,14 +617,13 @@ All media uploads go through Cloudinary via custom Multer storage engine:
 
 ## NS_BINDING_ABORTED Errors Fix
 If API requests abort or fail with `NS_BINDING_ABORTED`:
-1. **MongoDB Atlas IP Whitelist**: Ensure `0.0.0.0/0` is added to Network Access whitelist.
-2. **Database Name in URI**: Ensure the connection string includes `/portfolio`:
-   `mongodb+srv://<user>:<pwd>@cluster.mongodb.net/portfolio?retryWrites=true&w=majority`
+1. **LayerBase (DocumentDB 1.0.0) Network Access**: Ensure LayerBase allows connections from your deployment / serverless egress IPs (`0.0.0.0/0` where required for Vercel).
+2. **Database Name & Connection Options in URI**: Ensure `MONGODB_URI` points to your LayerBase DocumentDB 1.0.0 cluster and specifies the target database (e.g. `portfolio_cms`).
 3. **Vercel Environment Variables**: Ensure environment variables are assigned to Production and Redeploy.
 4. **Vercel Function Logs**: Run `vercel logs --follow` to inspect function runtime errors.
-5. **Emergency Minimal Test Endpoint**: Use `api/test.js` to isolate connection issues between Vercel and MongoDB.
+5. **Emergency Minimal Test Endpoint**: Use `api/test.js` or `GET /api/health` to isolate connection issues between Vercel and LayerBase (DocumentDB 1.0.0).
 
 ---
 
-*Mono-Documentation consolidated and updated on November 15, 2026.*
+*Mono-Documentation consolidated and updated on November 16, 2026.*
 

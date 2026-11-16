@@ -4,6 +4,7 @@ const Portfolio = require('../models/Portfolio');
 const TechTool = require('../models/TechTool');
 const { authMiddleware } = require('../middleware/auth');
 const { deleteImage } = require('../config/cloudinary');
+const { handleRouteError } = require('../utils/errorHandler');
 const router = express.Router();
 
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -47,10 +48,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Get portfolios error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching portfolio data'
-    });
+    return handleRouteError(res, error, 'Server error while fetching portfolio data');
   }
 });
 
@@ -73,10 +71,7 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Get portfolio error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching portfolio item'
-    });
+    return handleRouteError(res, error, 'Server error while fetching portfolio item');
   }
 });
 
@@ -87,17 +82,26 @@ router.post('/', authMiddleware, async (req, res) => {
   try {
     const { title, desc, projectDetails, linkTo, imageURL, imageCloudinaryId, videoURL, videoCloudinaryId, tech, roles, order, isPublished, isPasswordProtected, password, isPinned, year, relatedExperience, relatedExperienceCompany, relatedEducation, relatedEducationInstitution } = req.body;
 
-    if (!title || !desc || (!imageURL && !videoURL)) {
+    const missingFieldErrors = {};
+    if (!title || !String(title).trim()) missingFieldErrors.title = 'Project title is required';
+    if (!desc || !String(desc).trim()) missingFieldErrors.desc = 'Short description is required';
+    if (!imageURL && !videoURL) missingFieldErrors.media = 'Either an image or video is required';
+
+    if (Object.keys(missingFieldErrors).length > 0) {
       return res.status(400).json({
         success: false,
-        message: 'Title, description, and either image URL or video URL are required'
+        message: 'Title, description, and either image URL or video URL are required',
+        errors: Object.values(missingFieldErrors),
+        fieldErrors: missingFieldErrors
       });
     }
 
     if (isPasswordProtected && (!password || !password.trim())) {
       return res.status(400).json({
         success: false,
-        message: 'Password is required when enabling password protection'
+        message: 'Password is required when enabling password protection',
+        errors: ['Password is required when enabling password protection'],
+        fieldErrors: { password: 'Password is required when enabling password protection' }
       });
     }
 
@@ -135,10 +139,7 @@ router.post('/', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Create portfolio error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while creating portfolio item'
-    });
+    return handleRouteError(res, error, 'Server error while creating portfolio item');
   }
 });
 
@@ -241,10 +242,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Update portfolio error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while updating portfolio item'
-    });
+    return handleRouteError(res, error, 'Server error while updating portfolio item');
   }
 });
 
@@ -287,10 +285,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Delete portfolio error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while deleting portfolio item'
-    });
+    return handleRouteError(res, error, 'Server error while deleting portfolio item');
   }
 });
 

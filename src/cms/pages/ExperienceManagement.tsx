@@ -3,12 +3,23 @@ import CMSLayout from '../components/CMSLayout';
 import { CMSStorage, Experience } from '../apiStorage';
 import WYSIWYGEditor from '../components/WYSIWYGEditor';
 import { formatMonthYear } from '../../utils/dateFormat';
+import {
+  CMSStatusBanner,
+  CMSFieldError,
+  getCMSInputErrorClasses,
+  type CMSMessage,
+} from '../components/CMSStatusBanner';
+import { parseCMSError, stripHtmlContent } from '../utils/errorUtils';
+
+const MAX_EXPERIENCE_DESCRIPTION_LENGTH = 20000;
 
 const ExperienceManagement: React.FC = () => {
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [editingExperience, setEditingExperience] = useState<Experience | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [message, setMessage] = useState<CMSMessage>({ type: '', text: '' });
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
 
@@ -25,15 +36,28 @@ const ExperienceManagement: React.FC = () => {
     loadExperiences();
   }, []);
 
+  const clearFieldError = (field: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
   const loadExperiences = async () => {
     try {
+      setLoadFailed(false);
       const items = await CMSStorage.getExperiences();
       setExperiences(items);
     } catch (error) {
       console.error('Error loading experiences:', error);
+      const parsed = parseCMSError(error, 'Failed to load experiences. Please refresh the page.');
+      setLoadFailed(true);
       setMessage({
         type: 'error',
-        text: 'Failed to load experiences. Please refresh the page.'
+        text: parsed.message,
+        details: parsed.details,
       });
     }
   };
@@ -49,6 +73,8 @@ const ExperienceManagement: React.FC = () => {
         savedExperience = await CMSStorage.updateExperience(experience.id, experience);
         setExperiences(prev => prev.map(exp => exp.id === experience.id ? savedExperience : exp));
       }
+      setFieldErrors({});
+      setLoadFailed(false);
       setMessage({
         type: 'success',
         text: `Experience ${isNew ? 'added' : 'updated'} successfully!`
@@ -56,9 +82,17 @@ const ExperienceManagement: React.FC = () => {
       return savedExperience;
     } catch (error) {
       console.error('Save error:', error);
+      const parsed = parseCMSError(
+        error,
+        `Failed to ${isNew ? 'add' : 'update'} experience. Please try again.`
+      );
+      if (Object.keys(parsed.fieldErrors).length > 0) {
+        setFieldErrors((prev) => ({ ...prev, ...parsed.fieldErrors }));
+      }
       setMessage({
         type: 'error',
-        text: `Failed to ${isNew ? 'add' : 'update'} experience. Please try again.`
+        text: parsed.message,
+        details: parsed.details,
       });
       throw error;
     } finally {
@@ -82,24 +116,54 @@ const ExperienceManagement: React.FC = () => {
     };
     setEditingExperience(newExperience);
     setIsAddingNew(true);
+    setFieldErrors({});
+    setMessage({ type: '', text: '' });
   };
 
   const handleEdit = (experience: Experience) => {
     setEditingExperience(experience);
     setIsAddingNew(false);
+    setFieldErrors({});
+    setMessage({ type: '', text: '' });
   };
 
   const handleSave = async () => {
-    if (!editingExperience || !editingExperience.title.trim() || 
-        !editingExperience.companyName.trim() || !editingExperience.startDate.trim() || 
-        !editingExperience.description.trim()) {
+    if (!editingExperience) return;
+
+    const nextFieldErrors: Record<string, string> = {};
+    if (!editingExperience.title.trim()) {
+      nextFieldErrors.title = 'Job title is required.';
+    } else if (editingExperience.title.trim().length > 200) {
+      nextFieldErrors.title = 'Job title cannot exceed 200 characters.';
+    }
+
+    if (!editingExperience.companyName.trim()) {
+      nextFieldErrors.companyName = 'Company name is required.';
+    } else if (editingExperience.companyName.trim().length > 200) {
+      nextFieldErrors.companyName = 'Company name cannot exceed 200 characters.';
+    }
+
+    if (!editingExperience.startDate.trim()) {
+      nextFieldErrors.startDate = 'Start date is required.';
+    }
+
+    const plainDesc = stripHtmlContent(editingExperience.description);
+    if (!plainDesc) {
+      nextFieldErrors.description = 'Description is required.';
+    } else if (editingExperience.description.length > MAX_EXPERIENCE_DESCRIPTION_LENGTH) {
+      nextFieldErrors.description = `Description cannot exceed ${MAX_EXPERIENCE_DESCRIPTION_LENGTH.toLocaleString()} characters.`;
+    }
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
       setMessage({
         type: 'error',
-        text: 'Please fill in all required fields (title, company, start date, description).'
+        text: 'Please fix the highlighted validation errors before saving.',
       });
       return;
     }
 
+    setFieldErrors({});
     try {
       await saveExperience(editingExperience, isAddingNew);
       setEditingExperience(null);
@@ -120,9 +184,11 @@ const ExperienceManagement: React.FC = () => {
         });
       } catch (error) {
         console.error('Delete error:', error);
+        const parsed = parseCMSError(error, 'Failed to delete experience. Please try again.');
         setMessage({
           type: 'error',
-          text: 'Failed to delete experience. Please try again.'
+          text: parsed.message,
+          details: parsed.details,
         });
       }
     }
@@ -131,12 +197,15 @@ const ExperienceManagement: React.FC = () => {
   const handleCancel = () => {
     setEditingExperience(null);
     setIsAddingNew(false);
+    setFieldErrors({});
+    setMessage({ type: '', text: '' });
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && editingExperience) {
       setLogoUploading(true);
+      clearFieldError('logoURL');
       try {
         const uploadResult = await CMSStorage.uploadExperienceLogo(file);
         setEditingExperience({
@@ -150,9 +219,12 @@ const ExperienceManagement: React.FC = () => {
         });
       } catch (error) {
         console.error('Logo upload error:', error);
+        const parsed = parseCMSError(error, 'Failed to upload logo. Please try again.');
+        setFieldErrors((prev) => ({ ...prev, logoURL: parsed.message }));
         setMessage({
           type: 'error',
-          text: 'Failed to upload logo. Please try again.'
+          text: parsed.message,
+          details: parsed.details,
         });
       } finally {
         setLogoUploading(false);
@@ -191,26 +263,16 @@ const ExperienceManagement: React.FC = () => {
           </button>
         </div>
 
-        {/* Messages */}
-        {message.text && (
-          <div
-            role="status"
-            className={`p-4 rounded-lg border flex items-center gap-3 ${
-              message.type === 'success'
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                : 'bg-red-50 border-red-200 text-red-800'
-            }`}
-          >
-            <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                d={message.type === 'success' ? 
-                  "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" :
-                  "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                } 
-              />
-            </svg>
-            <span>{message.text}</span>
-          </div>
+        {/* Messages when form is closed */}
+        {!editingExperience && (
+          <CMSStatusBanner
+            message={message}
+            onDismiss={() => {
+              setMessage({ type: '', text: '' });
+              setLoadFailed(false);
+            }}
+            onRetry={loadFailed ? loadExperiences : undefined}
+          />
         )}
 
         {/* Edit/Add Form */}
@@ -230,14 +292,19 @@ const ExperienceManagement: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      className="input input-bordered bg-white text-gray-900 placeholder:text-gray-400 border-gray-300 w-full"
+                      aria-invalid={Boolean(fieldErrors.title)}
+                      className={`input input-bordered bg-white text-gray-900 placeholder:text-gray-400 w-full ${getCMSInputErrorClasses(Boolean(fieldErrors.title))}`}
                       placeholder="e.g., Senior Software Developer"
                       value={editingExperience.title}
-                      onChange={(e) => setEditingExperience({ 
-                        ...editingExperience, 
-                        title: e.target.value 
-                      })}
+                      onChange={(e) => {
+                        clearFieldError('title');
+                        setEditingExperience({ 
+                          ...editingExperience, 
+                          title: e.target.value 
+                        });
+                      }}
                     />
+                    <CMSFieldError error={fieldErrors.title} />
                   </div>
 
                   <div className="form-control">
@@ -246,14 +313,19 @@ const ExperienceManagement: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      className="input input-bordered bg-white text-gray-900 placeholder:text-gray-400 border-gray-300 w-full"
+                      aria-invalid={Boolean(fieldErrors.companyName)}
+                      className={`input input-bordered bg-white text-gray-900 placeholder:text-gray-400 w-full ${getCMSInputErrorClasses(Boolean(fieldErrors.companyName))}`}
                       placeholder="e.g., Tech Company Inc."
                       value={editingExperience.companyName}
-                      onChange={(e) => setEditingExperience({ 
-                        ...editingExperience, 
-                        companyName: e.target.value 
-                      })}
+                      onChange={(e) => {
+                        clearFieldError('companyName');
+                        setEditingExperience({ 
+                          ...editingExperience, 
+                          companyName: e.target.value 
+                        });
+                      }}
                     />
+                    <CMSFieldError error={fieldErrors.companyName} />
                   </div>
 
                   <div className="form-control">
@@ -283,13 +355,18 @@ const ExperienceManagement: React.FC = () => {
                       </label>
                       <input
                         type="month"
-                        className="input input-bordered bg-white text-gray-900 border-gray-300 w-full"
+                        aria-invalid={Boolean(fieldErrors.startDate)}
+                        className={`input input-bordered bg-white text-gray-900 w-full ${getCMSInputErrorClasses(Boolean(fieldErrors.startDate))}`}
                         value={editingExperience.startDate}
-                        onChange={(e) => setEditingExperience({ 
-                          ...editingExperience, 
-                          startDate: e.target.value 
-                        })}
+                        onChange={(e) => {
+                          clearFieldError('startDate');
+                          setEditingExperience({ 
+                            ...editingExperience, 
+                            startDate: e.target.value 
+                          });
+                        }}
                       />
+                      <CMSFieldError error={fieldErrors.startDate} />
                     </div>
                     <div className="form-control">
                       <label className="label">
@@ -329,10 +406,11 @@ const ExperienceManagement: React.FC = () => {
                     <input
                       type="file"
                       accept="image/*"
-                      className={`file-input file-input-bordered bg-white text-gray-800 border-gray-300 w-full ${logoUploading ? 'loading' : ''}`}
+                      className={`file-input file-input-bordered bg-white text-gray-800 w-full ${getCMSInputErrorClasses(Boolean(fieldErrors.logoURL))} ${logoUploading ? 'loading' : ''}`}
                       onChange={handleLogoUpload}
                       disabled={logoUploading}
                     />
+                    <CMSFieldError error={fieldErrors.logoURL} />
                     <label className="label">
                       <span className="label-text-alt text-gray-500">Upload company logo (PNG, JPG, GIF)</span>
                     </label>
@@ -379,20 +457,48 @@ const ExperienceManagement: React.FC = () => {
                     <label className="label">
                       <span className="label-text font-medium text-gray-700">Description *</span>
                     </label>
-                    <WYSIWYGEditor
-                      value={editingExperience.description}
-                      onChange={(html) => setEditingExperience({ 
-                        ...editingExperience, 
-                        description: html 
-                      })}
-                      placeholder="Describe your role, responsibilities, achievements, and key contributions. Be specific about technologies used and impact made."
-                      enableSectionPresets={false}
-                      enableGalleries={false}
-                      minHeight="220px"
-                    />
+                    <div
+                      className={`rounded-lg ${
+                        fieldErrors.description ? 'ring-2 ring-red-500 border border-red-500' : ''
+                      }`}
+                    >
+                      <WYSIWYGEditor
+                        value={editingExperience.description}
+                        onChange={(html) => {
+                          clearFieldError('description');
+                          setEditingExperience({ 
+                            ...editingExperience, 
+                            description: html 
+                          });
+                        }}
+                        placeholder="Describe your role, responsibilities, achievements, and key contributions. Be specific about technologies used and impact made."
+                        enableSectionPresets={false}
+                        enableGalleries={false}
+                        minHeight="220px"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-2 mt-1">
+                      <CMSFieldError error={fieldErrors.description} />
+                      <span
+                        className={`text-xs ml-auto ${
+                          editingExperience.description.length > MAX_EXPERIENCE_DESCRIPTION_LENGTH
+                            ? 'text-red-600 font-semibold'
+                            : 'text-gray-500'
+                        }`}
+                      >
+                        {(editingExperience.description || '').length.toLocaleString()} /{' '}
+                        {MAX_EXPERIENCE_DESCRIPTION_LENGTH.toLocaleString()} characters
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
+
+              <CMSStatusBanner
+                message={message}
+                onDismiss={() => setMessage({ type: '', text: '' })}
+                className="mt-6"
+              />
 
               <div className="flex justify-end mt-6 gap-3">
                 <button

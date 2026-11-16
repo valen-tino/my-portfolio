@@ -3,6 +3,13 @@ import CMSLayout from '../components/CMSLayout';
 import WYSIWYGEditor from '../components/WYSIWYGEditor';
 import { CMSStorage, BlogItem } from '../apiStorage';
 import { formatFullDate } from '../../utils/dateFormat';
+import {
+  CMSStatusBanner,
+  CMSFieldError,
+  getCMSInputErrorClasses,
+  type CMSMessage,
+} from '../components/CMSStatusBanner';
+import { parseCMSError } from '../utils/errorUtils';
 
 const CATEGORIES = ['Event', 'Personal', 'News', 'Tech'] as const;
 
@@ -12,7 +19,9 @@ const BlogManagement: React.FC = () => {
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [loading, setLoading] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [message, setMessage] = useState<CMSMessage>({ type: '', text: '' });
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('All');
   const [tagInput, setTagInput] = useState('');
@@ -21,15 +30,28 @@ const BlogManagement: React.FC = () => {
     loadBlogs();
   }, []);
 
+  const clearFieldError = (field: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
   const loadBlogs = async () => {
     try {
+      setLoadFailed(false);
       const data = await CMSStorage.getBlogs(false);
       setBlogs(data);
     } catch (error) {
       console.error('Error loading blogs:', error);
+      const parsed = parseCMSError(error, 'Failed to load blog posts. Please refresh the page.');
+      setLoadFailed(true);
       setMessage({
         type: 'error',
-        text: 'Failed to load blog posts. Please refresh the page.'
+        text: parsed.message,
+        details: parsed.details,
       });
     }
   };
@@ -51,18 +73,24 @@ const BlogManagement: React.FC = () => {
     };
     setEditingBlog(newBlog);
     setIsAddingNew(true);
+    setFieldErrors({});
+    setMessage({ type: '', text: '' });
     setTagInput('');
   };
 
   const handleEdit = (blog: BlogItem) => {
     setEditingBlog({ ...blog });
     setIsAddingNew(false);
+    setFieldErrors({});
+    setMessage({ type: '', text: '' });
     setTagInput('');
   };
 
   const handleCancel = () => {
     setEditingBlog(null);
     setIsAddingNew(false);
+    setFieldErrors({});
+    setMessage({ type: '', text: '' });
     setTagInput('');
   };
 
@@ -71,6 +99,7 @@ const BlogManagement: React.FC = () => {
     if (!file || !editingBlog) return;
 
     setImageUploading(true);
+    clearFieldError('imageURL');
     try {
       const result = await CMSStorage.uploadBlogImage(file);
       setEditingBlog({
@@ -84,9 +113,12 @@ const BlogManagement: React.FC = () => {
       });
     } catch (error: any) {
       console.error('Image upload error:', error);
+      const parsed = parseCMSError(error, 'Failed to upload cover image.');
+      setFieldErrors((prev) => ({ ...prev, imageURL: parsed.message }));
       setMessage({
         type: 'error',
-        text: error.message || 'Failed to upload cover image.'
+        text: parsed.message,
+        details: parsed.details,
       });
     } finally {
       setImageUploading(false);
@@ -120,14 +152,16 @@ const BlogManagement: React.FC = () => {
 
   const handleSave = async () => {
     if (!editingBlog || !editingBlog.title.trim()) {
+      setFieldErrors({ title: 'Title is required for the blog post.' });
       setMessage({
         type: 'error',
-        text: 'Title is required for the blog post.'
+        text: 'Title is required for the blog post.',
       });
       return;
     }
 
     setLoading(true);
+    setFieldErrors({});
     try {
       if (isAddingNew) {
         const created = await CMSStorage.addBlog(editingBlog);
@@ -150,9 +184,14 @@ const BlogManagement: React.FC = () => {
       setIsAddingNew(false);
     } catch (error: any) {
       console.error('Error saving blog post:', error);
+      const parsed = parseCMSError(error, 'Failed to save blog post. Please try again.');
+      if (Object.keys(parsed.fieldErrors).length > 0) {
+        setFieldErrors((prev) => ({ ...prev, ...parsed.fieldErrors }));
+      }
       setMessage({
         type: 'error',
-        text: error.message || 'Failed to save blog post. Please try again.'
+        text: parsed.message,
+        details: parsed.details,
       });
     } finally {
       setLoading(false);
@@ -171,9 +210,11 @@ const BlogManagement: React.FC = () => {
       });
     } catch (error) {
       console.error('Delete blog error:', error);
+      const parsed = parseCMSError(error, 'Failed to delete blog post.');
       setMessage({
         type: 'error',
-        text: 'Failed to delete blog post.'
+        text: parsed.message,
+        details: parsed.details,
       });
     }
   };
@@ -213,14 +254,16 @@ const BlogManagement: React.FC = () => {
           </button>
         </div>
 
-        {/* Status Alert */}
-        {message.text && (
-          <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'}`}>
-            <span>{message.text}</span>
-            <button type="button" onClick={() => setMessage({ type: '', text: '' })} className="ml-auto font-bold">
-              ✕
-            </button>
-          </div>
+        {/* Status Alert when form is closed */}
+        {!editingBlog && (
+          <CMSStatusBanner
+            message={message}
+            onDismiss={() => {
+              setMessage({ type: '', text: '' });
+              setLoadFailed(false);
+            }}
+            onRetry={loadFailed ? loadBlogs : undefined}
+          />
         )}
 
         {/* Edit / Create Form Modal */}
@@ -242,12 +285,17 @@ const BlogManagement: React.FC = () => {
                   </label>
                   <input
                     type="text"
+                    aria-invalid={Boolean(fieldErrors.title)}
                     value={editingBlog.title}
-                    onChange={(e) => setEditingBlog({ ...editingBlog, title: e.target.value })}
+                    onChange={(e) => {
+                      clearFieldError('title');
+                      setEditingBlog({ ...editingBlog, title: e.target.value });
+                    }}
                     placeholder="e.g. Speaking at Google I/O 2026: The Future of Agents"
-                    className="w-full px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={`w-full px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 border rounded-lg focus:outline-none focus:ring-2 ${getCMSInputErrorClasses(Boolean(fieldErrors.title))}`}
                     data-testid="blog-title-input"
                   />
+                  <CMSFieldError error={fieldErrors.title} />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -465,6 +513,11 @@ const BlogManagement: React.FC = () => {
                   </span>
                 </label>
               </div>
+
+              <CMSStatusBanner
+                message={message}
+                onDismiss={() => setMessage({ type: '', text: '' })}
+              />
 
               {/* Form Action Buttons */}
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">

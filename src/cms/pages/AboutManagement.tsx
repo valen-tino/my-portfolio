@@ -3,6 +3,13 @@ import CMSLayout from '../components/CMSLayout';
 import { CMSStorage, AboutData } from '../apiStorage';
 import WYSIWYGEditor from '../components/WYSIWYGEditor';
 import { formatPublicDescription } from '../../utils/contentMigration';
+import {
+  CMSStatusBanner,
+  CMSFieldError,
+  getCMSInputErrorClasses,
+  type CMSMessage,
+} from '../components/CMSStatusBanner';
+import { parseCMSError } from '../utils/errorUtils';
 
 const ALLOWED_IMAGE_EXTENSIONS = /\.(png|jpe?g|gif|webp|svg)$/i;
 const MAX_PROFILE_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -35,42 +42,46 @@ const DEFAULT_ABOUT_FIELDS: AboutData = {
 const AboutManagement: React.FC = () => {
   const [aboutData, setAboutData] = useState<AboutData>(DEFAULT_ABOUT_FIELDS);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [message, setMessage] = useState<CMSMessage>({ type: '', text: '' });
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [imageUploading, setImageUploading] = useState(false);
   const [isDraggingImage, setIsDraggingImage] = useState(false);
   const [cvUploading, setCvUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const clearFieldError = (field: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const fetchAboutData = async () => {
+    try {
+      setLoadFailed(false);
+      const data = await CMSStorage.getAbout();
+      setAboutData({ ...DEFAULT_ABOUT_FIELDS, ...data });
+    } catch (error) {
+      console.error('Error fetching about data:', error);
+      const parsed = parseCMSError(error, 'Failed to load about data. Please refresh the page.');
+      setLoadFailed(true);
+      setMessage({
+        type: 'error',
+        text: parsed.message,
+        details: parsed.details,
+      });
+    }
+  };
+
   useEffect(() => {
-    const fetchAboutData = async () => {
-      try {
-        const data = await CMSStorage.getAbout();
-        setAboutData({ ...DEFAULT_ABOUT_FIELDS, ...data });
-      } catch (error) {
-        console.error('Error fetching about data:', error);
-        setMessage({
-          type: 'error',
-          text: 'Failed to load about data. Please refresh the page.'
-        });
-      }
-    };
-    
     fetchAboutData();
   }, []);
 
   const extractUploadErrorMessage = (error: unknown, fallback: string): string => {
-    if (error && typeof error === 'object') {
-      const errObj = error as {
-        response?: { data?: { message?: string; error?: { message?: string } } };
-        message?: string;
-      };
-      const cloudinaryMsg = errObj.response?.data?.error?.message;
-      const apiMsg = errObj.response?.data?.message;
-      if (cloudinaryMsg) return cloudinaryMsg;
-      if (apiMsg) return apiMsg;
-      if (errObj.message) return errObj.message;
-    }
-    return fallback;
+    return parseCMSError(error, fallback).message;
   };
 
   const processProfileImageFile = async (file: File) => {
@@ -195,20 +206,46 @@ const AboutManagement: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const nextFieldErrors: Record<string, string> = {};
+    if (
+      aboutData.email &&
+      aboutData.email.trim() &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(aboutData.email.trim())
+    ) {
+      nextFieldErrors.email = 'Please enter a valid primary contact email address.';
+    }
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
+      setMessage({
+        type: 'error',
+        text: 'Please fix the highlighted validation errors before saving.',
+      });
+      return;
+    }
+
     setLoading(true);
+    setFieldErrors({});
     setMessage({ type: '', text: '' });
 
     try {
       await CMSStorage.updateAbout(aboutData);
+      setLoadFailed(false);
       setMessage({
         type: 'success',
         text: 'About section updated successfully!'
       });
     } catch (error) {
       console.error('Update error:', error);
+      const parsed = parseCMSError(error, 'Failed to update about section. Please try again.');
+      if (Object.keys(parsed.fieldErrors).length > 0) {
+        setFieldErrors((prev) => ({ ...prev, ...parsed.fieldErrors }));
+      }
       setMessage({
         type: 'error',
-        text: 'Failed to update about section. Please try again.'
+        text: parsed.message,
+        details: parsed.details,
       });
     } finally {
       setLoading(false);
@@ -230,26 +267,14 @@ const AboutManagement: React.FC = () => {
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {/* Message */}
-            {message.text && (
-              <div
-                role="status"
-                className={`p-4 rounded-lg border flex items-center gap-3 ${
-                  message.type === 'success'
-                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                    : 'bg-red-50 border-red-200 text-red-800'
-                }`}
-              >
-                <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                    d={message.type === 'success' ? 
-                      "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" :
-                      "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                    } 
-                  />
-                </svg>
-                <span className="text-sm font-medium">{message.text}</span>
-              </div>
-            )}
+            <CMSStatusBanner
+              message={message}
+              onDismiss={() => {
+                setMessage({ type: '', text: '' });
+                setLoadFailed(false);
+              }}
+              onRetry={loadFailed ? fetchAboutData : undefined}
+            />
 
             {/* Current Profile Image */}
             {aboutData.imageURL && (
@@ -363,14 +388,24 @@ const AboutManagement: React.FC = () => {
               <label className="block text-sm font-medium text-gray-800">
                 About Description
               </label>
-              <WYSIWYGEditor
-                value={aboutData.description}
-                onChange={(html) => setAboutData(prev => ({ ...prev, description: html }))}
-                placeholder="Write your personal story..."
-                enableSectionPresets={false}
-                enableGalleries={false}
-                minHeight="280px"
-              />
+              <div
+                className={`rounded-lg ${
+                  fieldErrors.description ? 'ring-2 ring-red-500 border border-red-500' : ''
+                }`}
+              >
+                <WYSIWYGEditor
+                  value={aboutData.description}
+                  onChange={(html) => {
+                    clearFieldError('description');
+                    setAboutData(prev => ({ ...prev, description: html }));
+                  }}
+                  placeholder="Write your personal story..."
+                  enableSectionPresets={false}
+                  enableGalleries={false}
+                  minHeight="280px"
+                />
+              </div>
+              <CMSFieldError error={fieldErrors.description} />
               <p className="text-xs text-gray-500">
                 Write a compelling description about yourself, your experience, and what you do.
                 This will be displayed on your portfolio&apos;s About section.
@@ -432,11 +467,16 @@ const AboutManagement: React.FC = () => {
                   <input
                     id="about-email"
                     type="email"
+                    aria-invalid={Boolean(fieldErrors.email)}
                     value={aboutData.email ?? ''}
-                    onChange={(e) => setAboutData(prev => ({ ...prev, email: e.target.value }))}
+                    onChange={(e) => {
+                      clearFieldError('email');
+                      setAboutData(prev => ({ ...prev, email: e.target.value }));
+                    }}
                     placeholder="valentinojehaut@gmail.com"
-                    className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={`w-full px-3 py-2 bg-white text-gray-900 border rounded-lg focus:outline-none focus:ring-2 ${getCMSInputErrorClasses(Boolean(fieldErrors.email))}`}
                   />
+                  <CMSFieldError error={fieldErrors.email} />
                 </div>
               </div>
             </div>
@@ -646,6 +686,15 @@ const AboutManagement: React.FC = () => {
               </div>
             </div>
 
+            {message.type === 'error' && (
+              <div
+                role="alert"
+                className="p-3 rounded-lg border border-red-300 bg-red-50 text-red-800 text-xs font-medium"
+              >
+                Unable to save — please review the error banner and highlighted fields above.
+              </div>
+            )}
+
             {/* Submit Button */}
             <div className="flex justify-end mt-6 gap-3">
               <button
@@ -655,12 +704,16 @@ const AboutManagement: React.FC = () => {
                   try {
                     const data = await CMSStorage.getAbout();
                     setAboutData({ ...DEFAULT_ABOUT_FIELDS, ...data });
+                    setFieldErrors({});
+                    setLoadFailed(false);
                     setMessage({ type: '', text: '' });
                   } catch (error) {
                     console.error('Reset error:', error);
+                    const parsed = parseCMSError(error, 'Failed to reset data. Please refresh the page.');
                     setMessage({
                       type: 'error',
-                      text: 'Failed to reset data. Please refresh the page.'
+                      text: parsed.message,
+                      details: parsed.details,
                     });
                   }
                 }}

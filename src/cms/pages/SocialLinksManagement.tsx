@@ -1,6 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import CMSLayout from '../components/CMSLayout';
 import { CMSStorage, type CMSSocialLink } from '../apiStorage';
+import {
+  CMSStatusBanner,
+  CMSFieldError,
+  getCMSInputErrorClasses,
+  type CMSMessage,
+} from '../components/CMSStatusBanner';
+import { parseCMSError } from '../utils/errorUtils';
 
 interface SocialLinkFormState {
   name: string;
@@ -38,7 +45,18 @@ const SocialLinksManagement: React.FC = () => {
     order: 1,
     isPublished: true,
   });
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [message, setMessage] = useState<CMSMessage>({ type: '', text: '' });
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const clearFieldError = (field: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
 
   const sortedLinks = useMemo(
     () => [...links].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
@@ -48,13 +66,17 @@ const SocialLinksManagement: React.FC = () => {
   const loadLinks = async () => {
     try {
       setLoading(true);
+      setLoadFailed(false);
       const data = await CMSStorage.getSocialLinks();
       setLinks(data);
     } catch (error) {
       console.error('Error loading social links:', error);
+      const parsed = parseCMSError(error, 'Failed to load social links.');
+      setLoadFailed(true);
       setMessage({
         type: 'error',
-        text: 'Failed to load social links.',
+        text: parsed.message,
+        details: parsed.details,
       });
     } finally {
       setLoading(false);
@@ -68,6 +90,7 @@ const SocialLinksManagement: React.FC = () => {
   const resetForm = () => {
     setEditingLink(null);
     setIsAddingNew(false);
+    setFieldErrors({});
     setFormState({
       name: '',
       handle: '',
@@ -82,6 +105,7 @@ const SocialLinksManagement: React.FC = () => {
   const handleStartAdd = () => {
     setIsAddingNew(true);
     setEditingLink(null);
+    setFieldErrors({});
     setMessage({ type: '', text: '' });
     setFormState({
       name: '',
@@ -97,6 +121,7 @@ const SocialLinksManagement: React.FC = () => {
   const handleStartEdit = (link: CMSSocialLink) => {
     setIsAddingNew(false);
     setEditingLink(link);
+    setFieldErrors({});
     setMessage({ type: '', text: '' });
     setFormState({
       name: link.name,
@@ -111,15 +136,27 @@ const SocialLinksManagement: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formState.name.trim() || !formState.url.trim()) {
+    const nextFieldErrors: Record<string, string> = {};
+    if (!formState.name.trim()) {
+      nextFieldErrors.name = 'Platform name is required.';
+    }
+    if (!formState.url.trim()) {
+      nextFieldErrors.url = 'URL is required.';
+    } else if (!/^(https?:\/\/|mailto:|tel:|\/)/i.test(formState.url.trim())) {
+      nextFieldErrors.url = 'URL should start with https://, http://, mailto:, tel:, or /.';
+    }
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
       setMessage({
         type: 'error',
-        text: 'Platform name and URL are required.',
+        text: 'Please fix the highlighted validation errors before saving.',
       });
       return;
     }
 
     setSaving(true);
+    setFieldErrors({});
     setMessage({ type: '', text: '' });
 
     try {
@@ -152,10 +189,14 @@ const SocialLinksManagement: React.FC = () => {
       await loadLinks();
     } catch (error: any) {
       console.error('Save social link error:', error);
-      const serverMsg = error?.response?.data?.message || error?.message;
+      const parsed = parseCMSError(error, 'Failed to save social link.');
+      if (Object.keys(parsed.fieldErrors).length > 0) {
+        setFieldErrors((prev) => ({ ...prev, ...parsed.fieldErrors }));
+      }
       setMessage({
         type: 'error',
-        text: serverMsg || 'Failed to save social link.',
+        text: parsed.message,
+        details: parsed.details,
       });
     } finally {
       setSaving(false);
@@ -177,9 +218,11 @@ const SocialLinksManagement: React.FC = () => {
       await loadLinks();
     } catch (error: any) {
       console.error('Delete social link error:', error);
+      const parsed = parseCMSError(error, 'Failed to delete social link.');
       setMessage({
         type: 'error',
-        text: error?.response?.data?.message || 'Failed to delete social link.',
+        text: parsed.message,
+        details: parsed.details,
       });
     }
   };
@@ -193,9 +236,11 @@ const SocialLinksManagement: React.FC = () => {
       await loadLinks();
     } catch (error) {
       console.error('Toggle social link visibility error:', error);
+      const parsed = parseCMSError(error, 'Failed to update social link visibility.');
       setMessage({
         type: 'error',
-        text: 'Failed to update social link visibility.',
+        text: parsed.message,
+        details: parsed.details,
       });
     }
   };
@@ -223,9 +268,11 @@ const SocialLinksManagement: React.FC = () => {
       await loadLinks();
     } catch (error) {
       console.error('Reorder social links error:', error);
+      const parsed = parseCMSError(error, 'Failed to reorder social links.');
       setMessage({
         type: 'error',
-        text: 'Failed to reorder social links.',
+        text: parsed.message,
+        details: parsed.details,
       });
     }
   };
@@ -241,9 +288,11 @@ const SocialLinksManagement: React.FC = () => {
       await loadLinks();
     } catch (error: any) {
       console.error('Seed social links error:', error);
+      const parsed = parseCMSError(error, 'Failed to import default social links.');
       setMessage({
         type: 'error',
-        text: error?.response?.data?.message || 'Failed to import default social links.',
+        text: parsed.message,
+        details: parsed.details,
       });
     } finally {
       setSaving(false);
@@ -285,18 +334,16 @@ const SocialLinksManagement: React.FC = () => {
           </div>
         </div>
 
-        {/* Status Message */}
-        {message.text && (
-          <div
-            role="status"
-            className={`p-4 rounded-lg border flex items-center gap-3 ${
-              message.type === 'success'
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                : 'bg-red-50 border-red-200 text-red-800'
-            }`}
-          >
-            <span>{message.text}</span>
-          </div>
+        {/* Status Message when form is closed */}
+        {!isFormOpen && (
+          <CMSStatusBanner
+            message={message}
+            onDismiss={() => {
+              setMessage({ type: '', text: '' });
+              setLoadFailed(false);
+            }}
+            onRetry={loadFailed ? loadLinks : undefined}
+          />
         )}
 
         {/* Create / Edit Form */}
@@ -305,7 +352,7 @@ const SocialLinksManagement: React.FC = () => {
             <h2 className="text-xl font-semibold text-gray-900 mb-6">
               {editingLink ? `Edit Link: ${editingLink.name}` : 'Add New Social Link'}
             </h2>
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} noValidate className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                   <label htmlFor="social-name" className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -315,11 +362,16 @@ const SocialLinksManagement: React.FC = () => {
                     id="social-name"
                     type="text"
                     required
+                    aria-invalid={Boolean(fieldErrors.name)}
                     value={formState.name}
-                    onChange={(e) => setFormState((prev) => ({ ...prev, name: e.target.value }))}
+                    onChange={(e) => {
+                      clearFieldError('name');
+                      setFormState((prev) => ({ ...prev, name: e.target.value }));
+                    }}
                     placeholder="e.g., GitHub, LinkedIn, Instagram"
-                    className="w-full px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={`w-full px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 border rounded-lg focus:outline-none focus:ring-2 ${getCMSInputErrorClasses(Boolean(fieldErrors.name))}`}
                   />
+                  <CMSFieldError error={fieldErrors.name} />
                 </div>
                 <div>
                   <label htmlFor="social-url" className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -329,11 +381,16 @@ const SocialLinksManagement: React.FC = () => {
                     id="social-url"
                     type="text"
                     required
+                    aria-invalid={Boolean(fieldErrors.url)}
                     value={formState.url}
-                    onChange={(e) => setFormState((prev) => ({ ...prev, url: e.target.value }))}
+                    onChange={(e) => {
+                      clearFieldError('url');
+                      setFormState((prev) => ({ ...prev, url: e.target.value }));
+                    }}
                     placeholder="https://github.com/username or mailto:..."
-                    className="w-full px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={`w-full px-3 py-2 bg-white text-gray-900 placeholder:text-gray-400 border rounded-lg focus:outline-none focus:ring-2 ${getCMSInputErrorClasses(Boolean(fieldErrors.url))}`}
                   />
+                  <CMSFieldError error={fieldErrors.url} />
                 </div>
               </div>
 
@@ -402,6 +459,11 @@ const SocialLinksManagement: React.FC = () => {
                   />
                 </div>
               </div>
+
+              <CMSStatusBanner
+                message={message}
+                onDismiss={() => setMessage({ type: '', text: '' })}
+              />
 
               <div className="flex items-center justify-between pt-2">
                 <label className="flex items-center gap-3 cursor-pointer">

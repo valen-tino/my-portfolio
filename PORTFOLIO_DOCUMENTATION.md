@@ -59,8 +59,8 @@ A full-stack portfolio website with an integrated Content Management System (CMS
 └──────────────────────────────────────┼──────────────────┘
                                        │
                     ┌──────────────────▼──────────────────┐
-                    │         MongoDB Atlas               │
-                    │      (Cloud Database)               │
+                    │      LayerBase (DocumentDB 1.0.0)   │
+                    │         (Cloud Database)            │
                     │                                      │
                     │  Collections:                       │
                     │  - users                            │
@@ -89,7 +89,7 @@ A full-stack portfolio website with an integrated Content Management System (CMS
 2. React Router handles client-side routing
 3. API calls are made to `/api/*` endpoints
 4. Vercel serverless functions process requests
-5. MongoDB Atlas stores/retrieves data
+5. LayerBase (DocumentDB 1.0.0) stores/retrieves data
 6. Response sent back through the stack
 
 ---
@@ -112,7 +112,7 @@ A full-stack portfolio website with an integrated Content Management System (CMS
 ### Backend
 - **Node.js**: JavaScript runtime
 - **Express.js 5.1.0**: Web application framework (dev server port `5001`)
-- **MongoDB/Mongoose 8.18.0**: NoSQL database and ODM
+- **LayerBase (DocumentDB 1.0.0) / Mongoose 8.18.0**: MongoDB-compatible cloud database and ODM (migrated from MongoDB Atlas)
 - **JWT**: JSON Web Tokens for authentication
 - **Bcrypt**: Password hashing
 - **Multer**: File upload handling
@@ -126,7 +126,7 @@ A full-stack portfolio website with an integrated Content Management System (CMS
 
 ### Deployment
 - **Vercel**: Hosting platform with serverless functions
-- **MongoDB Atlas**: Cloud database hosting
+- **LayerBase (DocumentDB 1.0.0)**: Cloud database hosting (migrated from MongoDB Atlas)
 - **GitHub**: Version control and CI/CD integration
 
 ---
@@ -197,9 +197,10 @@ my-portfolio/
 │   │
 │   ├── cms/                   # CMS System (locked bright light-mode styling)
 │   │   ├── pages/             # CMS admin pages (Login, Dashboard, Portfolio, Blog, Experience, WorkProcess, Education, TechTools, Roles, SocialLinks, Contacts, About, AITest)
-│   │   ├── components/        # CMSLayout, WYSIWYGEditor, ProtectedRoute, AIPortfolioModal
+│   │   ├── components/        # CMSLayout, CMSStatusBanner, WYSIWYGEditor, ProtectedRoute, AIPortfolioModal
+│   │   ├── utils/             # errorUtils.ts (parseCMSError, formatCMSErrorText, stripHtmlContent)
 │   │   ├── apiStorage.ts      # API integration layer
-│   │   ├── auth.ts            # Authentication utilities
+│   │   ├── auth.ts            # Authentication utilities (with AuthService.loginWithDetails)
 │   │   └── education.ts       # Static fallback education entries
 │   │
 │   └── services/              # API clients
@@ -211,7 +212,7 @@ my-portfolio/
 │   ├── data/                  # Default seed datasets (defaultWorkProcessSteps.js, defaultSocialLinks.js)
 │   ├── models/                # Mongoose schemas (User, Portfolio, Blog, Experience, WorkProcess, SocialLink, Education, TechTool, Role, Contact, About)
 │   ├── routes/                # API routes (auth, about, portfolio, blog, experiences, workProcess, socialLinks, education, techTools, roles, contact, upload, ai)
-│   ├── utils/                 # skillMigration.js
+│   ├── utils/                 # errorHandler.js, skillMigration.js
 │   ├── scripts/               # initDatabase.js, migrateMarkdownToWYSIWYG.js, syncExistingPortfolioSkills.js
 │   ├── services/              # aiService.js
 │   ├── middleware/            # auth.js
@@ -222,7 +223,7 @@ my-portfolio/
 │   ├── [...path].js           # Catch-all Vercel route handler
 │   ├── index.js / test.js / diag.js / diag2.js
 │
-├── tests/                     # Automated Vitest test suites (26 files, 122 tests)
+├── tests/                     # Automated Vitest test suites (27 files, 128 tests)
 ├── .gitignore
 ├── package.json
 ├── tailwind.config.cjs
@@ -273,7 +274,7 @@ my-portfolio/
 ### 2. Content Management System (CMS)
 
 #### Authentication System
-- Secure login page
+- Secure login page (`Login.tsx`) with detailed server/network error states (`AuthService.loginWithDetails` in `src/cms/auth.ts`)
 - JWT-based authentication
 - Session management
 - Protected routes
@@ -281,6 +282,7 @@ my-portfolio/
 
 #### Dashboard
 - Overview statistics connected across all 9 CMS collections (Portfolios, Blogs, Experiences, Work Process, Education, Tech Tools, Roles, Social Links, Contact Entries, plus About Me status)
+- Partial and total collection fetch error detection via `Promise.allSettled` with recoverable `CMSStatusBanner` + `Retry` (`dataTestId="dashboard-error-banner"`)
 - Quick actions for creating and managing every content type
 - Recent activity & unpublished/unread status summaries
 - System health status
@@ -462,13 +464,13 @@ my-portfolio/
 ```javascript
 {
   _id: ObjectId,
-  title: String (required),
+  title: String (required, maxlength: 200),
   status: String (enum: ['Current', 'Past', 'Contract', 'Internship', 'Freelance', 'Volunteer']),
-  companyName: String (required),
+  companyName: String (required, maxlength: 200),
   startDate: Date (required),
   endDate: Date,
-  duration: String (deprecated),
-  description: String (required),
+  duration: String (deprecated, maxlength: 100),
+  description: String (required, maxlength: 20000),
   logoURL: String,
   logoCloudinaryId: String,
   order: Number (default: 0),
@@ -1004,11 +1006,11 @@ User Input → Component State → API Call → Database Update
 - Automatic optimization
 - Cloudinary CDN delivery
 
-#### Data Validation
-- Required field validation
-- Format validation (email, URL)
-- Size limits
-- Type checking
+#### Data Validation & Error States
+- Unified backend error formatter (`server/utils/errorHandler.js` -> `handleRouteError`) converting Mongoose `ValidationError`, duplicate keys (`11000`), and `CastError` into HTTP `400` `{ success: false, message, errors, fieldErrors }` JSON responses across all 10 CMS API routers
+- Shared frontend error parser (`src/cms/utils/errorUtils.ts` -> `parseCMSError`, `formatCMSErrorText`, `stripHtmlContent`) with reusable `CMSStatusBanner` (details, `Retry`, `Dismiss`), `CMSFieldError`, and `getCMSInputErrorClasses` (`src/cms/components/CMSStatusBanner.tsx`)
+- Inline validation and server error recovery across all 10 CMS management pages, `Dashboard.tsx`, `Login.tsx`, and `auth.ts`
+- Required field validation, format validation (email, URL), character limits (e.g. `20,000` chars on `Experience.description`), and upload size/type checking
 
 #### Bulk Operations
 - Multiple item selection
@@ -1056,7 +1058,7 @@ CMS Dashboard
 1. **Accounts Required**
    - GitHub account
    - Vercel account
-   - MongoDB Atlas account
+   - LayerBase account (DocumentDB 1.0.0)
    - Cloudinary account
    - OpenAI API account (optional)
 
@@ -1082,14 +1084,12 @@ cp .env.example .env
 # Edit .env with your credentials
 ```
 
-#### 2. Set Up MongoDB Atlas
+#### 2. Set Up LayerBase (DocumentDB 1.0.0)
 
-1. Create a MongoDB Atlas account
-2. Create a new cluster
-3. Create a database user
-4. Whitelist IP addresses (0.0.0.0/0 for all)
-5. Get connection string
-6. Update `MONGODB_URI` in .env
+1. Provision a LayerBase database instance running **DocumentDB 1.0.0** (MongoDB-compatible)
+2. Create a database user and configure network access (`0.0.0.0/0` where needed for serverless deployment)
+3. Obtain the MongoDB-compatible connection string
+4. Update `MONGODB_URI` in `.env` (and Vercel Environment Variables)
 
 #### 3. Configure Cloudinary
 
@@ -1172,7 +1172,7 @@ git push
 
 #### 3. Monitor & Maintain
 - Check Vercel logs for errors
-- Monitor MongoDB Atlas metrics
+- Monitor LayerBase (DocumentDB 1.0.0) metrics
 - Review Cloudinary usage
 - Update dependencies regularly
 
@@ -1184,8 +1184,7 @@ git push
 
 ```env
 # Database
-MONGODB_URI=              # MongoDB connection string
-                         # Format: mongodb+srv://user:pass@cluster.mongodb.net/dbname
+MONGODB_URI=              # LayerBase (DocumentDB 1.0.0) or local MongoDB connection string
 
 # Authentication
 JWT_SECRET=              # Random string for JWT signing (min 32 chars)
@@ -1378,7 +1377,7 @@ const handleAIGenerate = async () => {
 
 ### Automated Testing (Vitest & Testing Library)
 
-Run the full automated suite (currently **26 test files, 122 tests**) and production TypeScript + Vite build:
+Run the full automated suite (currently **27 test files, 128 tests**) and production TypeScript + Vite build:
 
 ```bash
 npm test -- --run
@@ -1388,7 +1387,7 @@ npm run build
 Automated coverage spans:
 - Public pages & navigation (`App.test.tsx`, `HomeRedesign.test.tsx`, `FloatingNavigation.test.tsx`, `PortfolioPage.test.tsx`, `PortfolioDetail.test.tsx`, `BlogPage.test.tsx`, `blog.test.tsx`)
 - Interactive widgets & dialogs (`LoadingScreen.test.tsx`, `CVModal.test.tsx`, `WorkProcessSection.test.tsx`, `EditorialCarousel.test.tsx`, `portfoliocard.test.tsx`)
-- Formatting, CMS CRUD, serverless routing & AI safety (`dateFormat.test.ts`, `publicFormatting.test.tsx`, `PortfolioManagement.test.tsx`, `BlogManagement.test.tsx`, `WorkProcessManagement.test.tsx`, `SocialLinksManagement.test.tsx`, `AboutManagement.test.tsx`, `WYSIWYGEditor.test.tsx`, `techToolAutoSync.test.tsx`, `serverlessBlog.test.ts`, `serverlessWorkProcess.test.ts`, `serverlessSocialLinks.test.ts`, `aiHelpers.test.ts`)
+- Formatting, CMS CRUD, error states, serverless routing & AI safety (`dateFormat.test.ts`, `publicFormatting.test.tsx`, `CMSErrorStates.test.tsx`, `PortfolioManagement.test.tsx`, `BlogManagement.test.tsx`, `WorkProcessManagement.test.tsx`, `SocialLinksManagement.test.tsx`, `AboutManagement.test.tsx`, `WYSIWYGEditor.test.tsx`, `techToolAutoSync.test.tsx`, `serverlessBlog.test.ts`, `serverlessWorkProcess.test.ts`, `serverlessSocialLinks.test.ts`, `aiHelpers.test.ts`)
 
 ---
 
@@ -1513,11 +1512,11 @@ if (process.env.NODE_ENV === 'development') {
 
 #### Database Backup
 ```bash
-# MongoDB Atlas automatic backups
-# Configure in Atlas dashboard → Backup
+# LayerBase (DocumentDB 1.0.0) managed backups
+# Configure snapshots in LayerBase console
 
-# Manual backup
-mongodump --uri="mongodb+srv://..." --out=backup-$(date +%Y%m%d)
+# Manual backup using MongoDB-compatible dump tooling
+mongodump --uri="<LAYERBASE_DOCUMENTDB_URI>" --out=backup-$(date +%Y%m%d)
 ```
 
 #### Code Backup
@@ -1529,7 +1528,7 @@ mongodump --uri="mongodb+srv://..." --out=backup-$(date +%Y%m%d)
 
 #### Application Monitoring
 - Vercel Analytics (built-in)
-- MongoDB Atlas monitoring
+- LayerBase (DocumentDB 1.0.0) database monitoring
 - Cloudinary usage dashboard
 
 #### Error Tracking (Recommended)
@@ -1545,13 +1544,13 @@ mongodump --uri="mongodb+srv://..." --out=backup-$(date +%Y%m%d)
 - React.js by Facebook
 - DaisyUI by Pouya Saadeghi
 - Tailwind CSS by Adam Wathan
-- MongoDB by MongoDB Inc.
+- Mongoose ODM & DocumentDB 1.0.0 (MongoDB wire-compatible)
 - Express.js by TJ Holowaychuk
 - Node.js by OpenJS Foundation
 
 ### Third-Party Services
 - Vercel for hosting
-- MongoDB Atlas for database
+- LayerBase (DocumentDB 1.0.0) for cloud database
 - Cloudinary for image management
 - OpenAI for AI features
 
@@ -1570,5 +1569,5 @@ For questions, issues, or feature requests:
 
 ---
 
-*Last Updated: November 15, 2026*
+*Last Updated: November 16, 2026*
 *Version: 2.0.0*

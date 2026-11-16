@@ -11,6 +11,13 @@ import {
   sanitizeTextForAI
 } from '../../utils/aiHelpers';
 import { migrateContentToHtml, optimizeCloudinaryVideoUrl } from '../../utils/contentMigration';
+import {
+  CMSStatusBanner,
+  CMSFieldError,
+  getCMSInputErrorClasses,
+  type CMSMessage,
+} from '../components/CMSStatusBanner';
+import { parseCMSError } from '../utils/errorUtils';
 
 /**
  * Normalizes incoming technology tokens:
@@ -45,7 +52,9 @@ const PortfolioManagement: React.FC = () => {
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
   const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [message, setMessage] = useState<CMSMessage>({ type: '', text: '' });
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [techInput, setTechInput] = useState('');
   const techInputRef = useRef(techInput);
   useEffect(() => {
@@ -72,15 +81,28 @@ const PortfolioManagement: React.FC = () => {
     loadEducation();
   }, []);
 
+  const clearFieldError = (field: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
   const loadPortfolioItems = async () => {
     try {
+      setLoadFailed(false);
       const items = await CMSStorage.getPortfolios();
       setPortfolioItems(items);
     } catch (error) {
       console.error('Error loading portfolio items:', error);
+      const parsed = parseCMSError(error, 'Failed to load portfolio items. Please refresh the page.');
+      setLoadFailed(true);
       setMessage({
         type: 'error',
-        text: 'Failed to load portfolio items. Please refresh the page.'
+        text: parsed.message,
+        details: parsed.details,
       });
     }
   };
@@ -145,6 +167,8 @@ const PortfolioManagement: React.FC = () => {
         savedItem = await CMSStorage.updatePortfolio(item.id, item);
         setPortfolioItems(prev => prev.map(p => p.id === item.id ? savedItem : p));
       }
+      setFieldErrors({});
+      setLoadFailed(false);
       setMessage({
         type: 'success',
         text: `Portfolio item ${isNew ? 'added' : 'updated'} successfully!`
@@ -154,9 +178,17 @@ const PortfolioManagement: React.FC = () => {
       return savedItem;
     } catch (error) {
       console.error('Save error:', error);
+      const parsed = parseCMSError(
+        error,
+        `Failed to ${isNew ? 'add' : 'update'} portfolio item. Please try again.`
+      );
+      if (Object.keys(parsed.fieldErrors).length > 0) {
+        setFieldErrors((prev) => ({ ...prev, ...parsed.fieldErrors }));
+      }
       setMessage({
         type: 'error',
-        text: `Failed to ${isNew ? 'add' : 'update'} portfolio item. Please try again.`
+        text: parsed.message,
+        details: parsed.details,
       });
       throw error;
     } finally {
@@ -183,6 +215,8 @@ const PortfolioManagement: React.FC = () => {
     };
     setEditingItem(newItem);
     setIsAddingNew(true);
+    setFieldErrors({});
+    setMessage({ type: '', text: '' });
     setTechInput('');
     techInputRef.current = '';
     setTechSearch('');
@@ -217,6 +251,8 @@ const PortfolioManagement: React.FC = () => {
     };
     setEditingItem(itemWithDefaults);
     setIsAddingNew(false);
+    setFieldErrors({});
+    setMessage({ type: '', text: '' });
     setTechInput(''); // Clear custom tech input when editing existing item
     techInputRef.current = '';
     setTechSearch('');
@@ -241,22 +277,29 @@ const PortfolioManagement: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!editingItem || !editingItem.title.trim() || !editingItem.desc.trim()) {
+    if (!editingItem) return;
+
+    const nextFieldErrors: Record<string, string> = {};
+    if (!editingItem.title.trim()) {
+      nextFieldErrors.title = 'Project title is required.';
+    }
+    if (!editingItem.desc.trim()) {
+      nextFieldErrors.desc = 'Short description is required.';
+    }
+    if (editingItem.isPasswordProtected && (!editingItem.password || !editingItem.password.trim())) {
+      nextFieldErrors.password = 'Password is required when enabling password protection.';
+    }
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
       setMessage({
         type: 'error',
-        text: 'Please provide at least title and description.'
+        text: 'Please fix the highlighted validation errors before saving.',
       });
       return;
     }
 
-    // Validate password protection
-    if (editingItem.isPasswordProtected && (!editingItem.password || !editingItem.password.trim())) {
-      setMessage({
-        type: 'error',
-        text: 'Please provide a password for password-protected portfolio.'
-      });
-      return;
-    }
+    setFieldErrors({});
 
     // Reconcile any uncommitted text remaining in custom tech input buffer
     const pendingRaw = techInputRef.current.trim();
@@ -296,9 +339,11 @@ const PortfolioManagement: React.FC = () => {
         });
       } catch (error) {
         console.error('Delete error:', error);
+        const parsed = parseCMSError(error, 'Failed to delete portfolio item. Please try again.');
         setMessage({
           type: 'error',
-          text: 'Failed to delete portfolio item. Please try again.'
+          text: parsed.message,
+          details: parsed.details,
         });
       }
     }
@@ -307,6 +352,8 @@ const PortfolioManagement: React.FC = () => {
   const handleCancel = () => {
     setEditingItem(null);
     setIsAddingNew(false);
+    setFieldErrors({});
+    setMessage({ type: '', text: '' });
     setTechInput('');
     techInputRef.current = '';
     setAiError('');
@@ -412,6 +459,7 @@ const PortfolioManagement: React.FC = () => {
     const file = e.target.files?.[0];
     if (file && editingItem) {
       setImageUploading(true);
+      clearFieldError('media');
       try {
         const uploadResult = await CMSStorage.uploadPortfolioImage(file);
         setEditingItem({
@@ -425,9 +473,12 @@ const PortfolioManagement: React.FC = () => {
         });
       } catch (error) {
         console.error('Image upload error:', error);
+        const parsed = parseCMSError(error, 'Failed to upload image. Please try again.');
+        setFieldErrors((prev) => ({ ...prev, media: parsed.message }));
         setMessage({
           type: 'error',
-          text: 'Failed to upload image. Please try again.'
+          text: parsed.message,
+          details: parsed.details,
         });
       } finally {
         setImageUploading(false);
@@ -440,6 +491,10 @@ const PortfolioManagement: React.FC = () => {
     if (file && editingItem) {
       const maxSizeBytes = 100 * 1024 * 1024; // 100MB limit
       if (file.size > maxSizeBytes) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          media: 'Video file is too large. Maximum file size is 100MB.',
+        }));
         setMessage({
           type: 'error',
           text: 'Video file is too large. Maximum file size is 100MB.'
@@ -449,6 +504,7 @@ const PortfolioManagement: React.FC = () => {
       }
 
       setVideoUploading(true);
+      clearFieldError('media');
       try {
         const uploadResult = await CMSStorage.uploadPortfolioVideo(file);
         setEditingItem({
@@ -463,15 +519,16 @@ const PortfolioManagement: React.FC = () => {
       } catch (error: any) {
         console.error('Video upload error:', error);
         const status = error?.response?.status;
+        const parsed = parseCMSError(error, 'Failed to upload video. Please try again.');
         const errorMessage =
           status === 413
             ? 'Video file is too large for the server. Maximum file size is 100MB.'
-            : error?.response?.data?.error?.message ||
-              error?.response?.data?.message ||
-              'Failed to upload video. Please try again.';
+            : parsed.message;
+        setFieldErrors((prev) => ({ ...prev, media: errorMessage }));
         setMessage({
           type: 'error',
-          text: errorMessage
+          text: errorMessage,
+          details: parsed.details,
         });
       } finally {
         setVideoUploading(false);
@@ -521,21 +578,16 @@ const PortfolioManagement: React.FC = () => {
           </div>
         </div>
 
-        {/* Message */}
-        {message.text && (
-          <div className={`alert ${
-            message.type === 'success' ? 'alert-success' : 'alert-error'
-          }`}>
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                d={message.type === 'success' ? 
-                  "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" :
-                  "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                } 
-              />
-            </svg>
-            <span>{message.text}</span>
-          </div>
+        {/* Message when form is closed */}
+        {!editingItem && (
+          <CMSStatusBanner
+            message={message}
+            onDismiss={() => {
+              setMessage({ type: '', text: '' });
+              setLoadFailed(false);
+            }}
+            onRetry={loadFailed ? loadPortfolioItems : undefined}
+          />
         )}
 
         {/* Edit/Add Form */}
@@ -597,6 +649,15 @@ const PortfolioManagement: React.FC = () => {
               </div>
             </div>
 
+            {message.text && (
+              <div className="px-6 pt-4">
+                <CMSStatusBanner
+                  message={message}
+                  onDismiss={() => setMessage({ type: '', text: '' })}
+                />
+              </div>
+            )}
+
             {/* Two-Column Layout: Left Column 40% & Right Column 60% */}
             <div className="p-6 lg:p-8 flex flex-col lg:flex-row gap-8 items-start">
               {/* Left Column (40% width): Project Metadata, Settings & Media */}
@@ -607,11 +668,16 @@ const PortfolioManagement: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3.5 py-2 bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
+                    aria-invalid={Boolean(fieldErrors.title)}
+                    className={`w-full px-3.5 py-2 bg-white text-gray-900 placeholder:text-gray-400 border rounded-lg focus:outline-none focus:ring-2 text-sm font-medium ${getCMSInputErrorClasses(Boolean(fieldErrors.title))}`}
                     placeholder="e.g., E-commerce Website, Mobile App"
                     value={editingItem.title}
-                    onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })}
+                    onChange={(e) => {
+                      clearFieldError('title');
+                      setEditingItem({ ...editingItem, title: e.target.value });
+                    }}
                   />
+                  <CMSFieldError error={fieldErrors.title} />
                 </div>
 
                 <div>
@@ -620,11 +686,16 @@ const PortfolioManagement: React.FC = () => {
                   </label>
                   <textarea
                     rows={4}
-                    className="w-full px-3.5 py-2 bg-white text-gray-900 placeholder:text-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    aria-invalid={Boolean(fieldErrors.desc)}
+                    className={`w-full px-3.5 py-2 bg-white text-gray-900 placeholder:text-gray-400 border rounded-lg focus:outline-none focus:ring-2 text-sm ${getCMSInputErrorClasses(Boolean(fieldErrors.desc))}`}
                     placeholder="Brief description that appears on portfolio cards (2-3 sentences)"
                     value={editingItem.desc}
-                    onChange={(e) => setEditingItem({ ...editingItem, desc: e.target.value })}
+                    onChange={(e) => {
+                      clearFieldError('desc');
+                      setEditingItem({ ...editingItem, desc: e.target.value });
+                    }}
                   />
+                  <CMSFieldError error={fieldErrors.desc} />
                 </div>
 
                 <div>
@@ -787,11 +858,16 @@ const PortfolioManagement: React.FC = () => {
                         </label>
                         <input
                           type="text"
-                          className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          aria-invalid={Boolean(fieldErrors.password)}
+                          className={`w-full px-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 bg-white ${getCMSInputErrorClasses(Boolean(fieldErrors.password))}`}
                           placeholder="Enter password for this portfolio"
                           value={editingItem.password || ''}
-                          onChange={(e) => setEditingItem({ ...editingItem, password: e.target.value })}
+                          onChange={(e) => {
+                            clearFieldError('password');
+                            setEditingItem({ ...editingItem, password: e.target.value });
+                          }}
                         />
+                        <CMSFieldError error={fieldErrors.password} />
                         <p className="text-xs text-orange-600 mt-1">
                           ⚠️ Visitors must enter this password to view details
                         </p>
@@ -1067,6 +1143,7 @@ const PortfolioManagement: React.FC = () => {
                       <span className="loading loading-spinner loading-xs"></span> Uploading & optimizing video...
                     </p>
                   )}
+                  <CMSFieldError error={fieldErrors.media} />
                 </div>
               </div>
 

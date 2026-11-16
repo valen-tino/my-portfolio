@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthService } from '../auth';
+import { CMSStatusBanner } from '../components/CMSStatusBanner';
+import { parseCMSError } from '../utils/errorUtils';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -22,15 +24,24 @@ const Login: React.FC = () => {
     setError('');
 
     try {
-      const success = await AuthService.login(email, password);
-      
-      if (success) {
-        navigate('/cms/dashboard');
+      if (typeof AuthService.loginWithDetails === 'function') {
+        const result = await AuthService.loginWithDetails(email, password);
+        if (result.success) {
+          navigate('/cms/dashboard');
+        } else {
+          setError(result.error || 'Invalid email or password');
+        }
       } else {
-        setError('Invalid email or password');
+        const success = await AuthService.login(email, password);
+        if (success) {
+          navigate('/cms/dashboard');
+        } else {
+          setError('Invalid email or password');
+        }
       }
     } catch (err) {
-      setError('An error occurred during login');
+      const parsed = parseCMSError(err, 'An error occurred during login');
+      setError(parsed.message);
       console.error('Login error:', err);
     } finally {
       setLoading(false);
@@ -53,12 +64,10 @@ const Login: React.FC = () => {
           <div className="p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               {error && (
-                <div className="alert alert-error">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                  <span>{error}</span>
-                </div>
+                <CMSStatusBanner
+                  message={{ type: 'error', text: error }}
+                  onDismiss={() => setError('')}
+                />
               )}
 
               <div className="form-control">
