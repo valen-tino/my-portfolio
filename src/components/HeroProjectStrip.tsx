@@ -12,17 +12,20 @@ import type { Project } from '../types/portfolio';
 import { ensureTooltipSupport } from '../utils/tooltipPolyfills';
 import { ArrowLeftIcon, ArrowRightIcon, InfoIcon, PauseIcon, PlayIcon } from './Icons';
 import { ImagePlaceholder } from './ImagePlaceholder';
+import { HeroStripSkeleton, ProgressiveImageFrame } from './Skeleton';
 
 interface HeroProjectStripProps {
   projects?: Project[];
+  isLoading?: boolean;
 }
 
 function PreviewVisual({ project }: { project: Project }) {
   const [imgError, setImgError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
 
   if (project.imageURL && !project.isPasswordProtected && !imgError) {
     return (
-      <div className="aspect-video w-full overflow-hidden bg-[#e7e7e9] outline outline-1 -outline-offset-1 outline-black/10">
+      <ProgressiveImageFrame aspectRatio="aspect-video" loaded={imgLoaded}>
         <img
           src={project.imageURL}
           alt={project.title}
@@ -30,10 +33,14 @@ function PreviewVisual({ project }: { project: Project }) {
           height={360}
           decoding="async"
           draggable={false}
-          onError={() => setImgError(true)}
-          className="pointer-events-none h-full w-full select-none object-cover"
+          onLoad={() => setImgLoaded(true)}
+          onError={() => {
+            setImgLoaded(true);
+            setImgError(true);
+          }}
+          className="pointer-events-none relative z-[1] h-full w-full select-none object-cover"
         />
-      </div>
+      </ProgressiveImageFrame>
     );
   }
 
@@ -51,8 +58,15 @@ function PreviewVisual({ project }: { project: Project }) {
  * Ambient hero marquee preview strip with non-clickable 16:9 visuals, swipe/drag/arrow browsing,
  * toggletip instructions, and Play/Pause playback control.
  */
-export function HeroProjectStrip({ projects: customProjects }: HeroProjectStripProps = {}) {
-  const projects = customProjects && customProjects.length > 0 ? customProjects : PROJECTS;
+export function HeroProjectStrip({
+  projects: customProjects,
+  isLoading = false,
+}: HeroProjectStripProps = {}) {
+  const projects = isLoading
+    ? []
+    : customProjects && customProjects.length > 0
+      ? customProjects
+      : PROJECTS;
   const root = useRef<HTMLDivElement>(null);
   const group = useRef<HTMLDivElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
@@ -121,7 +135,7 @@ export function HeroProjectStrip({ projects: customProjects }: HeroProjectStripP
     return () => {
       tooltipEl.removeEventListener('toggle', handleToggle);
     };
-  }, []);
+  }, [isLoading]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
@@ -147,16 +161,16 @@ export function HeroProjectStrip({ projects: customProjects }: HeroProjectStripP
       document.removeEventListener('visibilitychange', visibility);
       observer?.disconnect();
     };
-  }, []);
+  }, [isLoading]);
 
   useEffect(() => {
-    if (!group.current || typeof ResizeObserver === 'undefined') return;
+    if (isLoading || !group.current || typeof ResizeObserver === 'undefined') return;
     const measure = () => setWidth(group.current?.getBoundingClientRect().width ?? 0);
     const observer = new ResizeObserver(measure);
     observer.observe(group.current);
     measure();
     return () => observer.disconnect();
-  }, [staticMode, projects.length]);
+  }, [staticMode, projects.length, isLoading]);
 
   useEffect(() => {
     if (!staticMode && viewport.current) viewport.current.scrollLeft = 0;
@@ -230,6 +244,10 @@ export function HeroProjectStrip({ projects: customProjects }: HeroProjectStripP
         <PreviewVisual project={project} />
       </div>
     ));
+
+  if (isLoading) {
+    return <HeroStripSkeleton />;
+  }
 
   return (
     <div

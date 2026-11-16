@@ -170,6 +170,7 @@ my-portfolio/
 │   │   ├── MobileFilterDialog.tsx      # Native <dialog closedby="any"> mobile filter popup
 │   │   ├── CVModal.tsx                 # Native <dialog closedby="any"> interactive résumé preview (latest end date first)
 │   │   ├── LoadingScreen.tsx           # Brand-blue full-screen overlay with centered /favicon.ico (unmounts after fade-out)
+│   │   ├── Skeleton.tsx                # Reduced-motion-safe layout skeletons & ProgressiveImageFrame media shimmer
 │   │   ├── Footer.tsx                  # Vibrant CTA banner footer, Bali WITA clock, sitemap & social links
 │   │   ├── Icons.tsx                   # Inline SVG icon system (aria-hidden by default)
 │   │   ├── ImagePlaceholder.tsx        # 16:9 editorial visual placeholder fallback
@@ -223,7 +224,7 @@ my-portfolio/
 │   ├── [...path].js           # Catch-all Vercel route handler
 │   ├── index.js / test.js / diag.js / diag2.js
 │
-├── tests/                     # Automated Vitest test suites (27 files, 128 tests)
+├── tests/                     # Automated Vitest test suites (28 files, 134 tests)
 ├── .gitignore
 ├── package.json
 ├── tailwind.config.cjs
@@ -238,8 +239,10 @@ my-portfolio/
 
 ### 1. Public Portfolio Website
 
-#### Navigation, Loading Screen, Transitions & Résumé Modal
-- **Brand-Blue Loading Screen (`LoadingScreen`)**: Full-screen overlay using the brand blue background (`bg-brand` / `#2563eb`), centered `/favicon.ico`, and smooth `ease-in-out` opacity transition (`transition-opacity duration-500 ease-in-out motion-reduce:duration-150`, toggling `opacity-100` to `opacity-0 pointer-events-none`) that unmounts from the DOM once fade-out completes (`onTransitionEnd` + `550ms` fallback), working together with `<meta name="theme-color" content="#f8f8fa" />` (`index.html`) so iPhone (iOS Safari) top and bottom browser bars stay light (`#f8f8fa`). Integrated in `App.tsx`, `PortfolioDetail.tsx`, and `BlogDetail.tsx`.
+#### Navigation, Loading Screen, Skeletons, Transitions & Résumé Modal
+- **Brand-Blue Loading Screen & Structural Skeletons (`LoadingScreen`, `Skeleton.tsx`)**: Full-screen overlay using the brand blue background (`bg-brand` / `#2563eb`), centered `/favicon.ico`, and smooth `ease-in-out` opacity transition (`transition-opacity duration-500 ease-in-out motion-reduce:duration-150`, toggling `opacity-100` to `opacity-0 pointer-events-none`) that unmounts from the DOM once fade-out completes (`onTransitionEnd` + `550ms` fallback), working together with `<meta name="theme-color" content="#f8f8fa" />` (`index.html`) so iPhone (iOS Safari) top and bottom browser bars stay light (`#f8f8fa`). While LayerBase (DocumentDB 1.0.0) data fetches run on initial load or navigation (`App.tsx`, `Home.tsx`, `PortfolioPage.tsx`, `BlogPage.tsx`, `PortfolioDetail.tsx`, `BlogDetail.tsx`, `CVModal.tsx`, `Footer.tsx`, and home sections), layout-matched skeletons and `ProgressiveImageFrame` media shimmers render temporarily instead of flashing upfront static datasets, reserving static fallbacks for failed/offline recovery.
+- **Hidden Scrollbars (`src/index.css`, `src/App.css`)**: Standard `scrollbar-width: none` applied across `html`, `body`, nested scrollable regions, and mobile `.portfolio-gallery` strips with an `@supports not (scrollbar-width: none)` `::-webkit-scrollbar` fallback to hide scrollbar chrome without impairing touch, wheel, or keyboard scrolling.
+- **Route & Vendor Code-Splitting (`src/App.tsx`, `vite.config.ts`)**: `Home.tsx` stays eager while public subpages and all 13 CMS routes load dynamically via `React.lazy` + `<Suspense>`, paired with Rollup `manualChunks` (`vendor-react`, `vendor-prosemirror`, `vendor-tiptap`, `vendor-gsap`, `vendor-utils`) keeping entry bundle size at `233.96 kB` (`42.85 kB` gzip) with zero `> 500 kB` warnings.
 - **Floating Pill Navigation (`FloatingNavigation`)**: Persistent bottom dock (`Home`, `Selected Work`, `Work`, `Journal`, `About`, `Contact`, mobile `More` drawer, and primary brand-blue `.dock-item-primary` `Résumé` action button with white text & `DownloadIcon`).
 - **Native View Transitions (`viewTransitions.ts`)**: Combines `@view-transition { navigation: auto; }` CSS keyframes with `document.startViewTransition()` on route changes and focus handoff to destination `<h1>`/`<main>`.
 - **Interactive Résumé Dialog (`CVModal`)**: Native `<dialog closedby="any">` summarizing CMS `name`, `location`, `email`, `resumeSummary`, experience, and the full `educationList` sorted latest-end-date-first (`sortByLatestEndDate`) plus direct PDF download (`aboutData.cvURL`).
@@ -1377,7 +1380,7 @@ const handleAIGenerate = async () => {
 
 ### Automated Testing (Vitest & Testing Library)
 
-Run the full automated suite (currently **27 test files, 128 tests**) and production TypeScript + Vite build:
+Run the full automated suite (currently **28 test files, 134 tests**) and production TypeScript + Vite build:
 
 ```bash
 npm test -- --run
@@ -1386,7 +1389,7 @@ npm run build
 
 Automated coverage spans:
 - Public pages & navigation (`App.test.tsx`, `HomeRedesign.test.tsx`, `FloatingNavigation.test.tsx`, `PortfolioPage.test.tsx`, `PortfolioDetail.test.tsx`, `BlogPage.test.tsx`, `blog.test.tsx`)
-- Interactive widgets & dialogs (`LoadingScreen.test.tsx`, `CVModal.test.tsx`, `WorkProcessSection.test.tsx`, `EditorialCarousel.test.tsx`, `portfoliocard.test.tsx`)
+- Interactive widgets & dialogs (`LoadingScreen.test.tsx`, `SkeletonLoading.test.tsx`, `CVModal.test.tsx`, `WorkProcessSection.test.tsx`, `EditorialCarousel.test.tsx`, `portfoliocard.test.tsx`)
 - Formatting, CMS CRUD, error states, serverless routing & AI safety (`dateFormat.test.ts`, `publicFormatting.test.tsx`, `CMSErrorStates.test.tsx`, `PortfolioManagement.test.tsx`, `BlogManagement.test.tsx`, `WorkProcessManagement.test.tsx`, `SocialLinksManagement.test.tsx`, `AboutManagement.test.tsx`, `WYSIWYGEditor.test.tsx`, `techToolAutoSync.test.tsx`, `serverlessBlog.test.ts`, `serverlessWorkProcess.test.ts`, `serverlessSocialLinks.test.ts`, `aiHelpers.test.ts`)
 
 ---

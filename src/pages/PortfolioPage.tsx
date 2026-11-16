@@ -8,6 +8,11 @@ import PasswordProtectionModal from '../components/PasswordProtectionModal';
 import { PortfolioFilterControls } from '../components/PortfolioFilterControls';
 import { PortfolioTable } from '../components/PortfolioTable';
 import { ProjectCard } from '../components/ProjectCard';
+import {
+  FilterBarSkeleton,
+  PortfolioTableSkeleton,
+  ProjectCardSkeletonGrid,
+} from '../components/Skeleton';
 import { PROJECTS, mapPortfolioItemToProject } from '../data/portfolioData';
 import type { Project } from '../types/portfolio';
 import { useGSAPPageEntrance } from '../utils/gsapAnimations';
@@ -23,7 +28,8 @@ export default function PortfolioPage() {
   const gridToggleRef = useRef<HTMLButtonElement>(null);
   const tableToggleRef = useRef<HTMLButtonElement>(null);
 
-  const [projects, setProjects] = useState<Project[]>(PROJECTS);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
   const [cmsRoles, setCmsRoles] = useState<Role[]>([]);
   const [role, setRole] = useState('All');
   const [year, setYear] = useState('All');
@@ -59,7 +65,13 @@ export default function PortfolioPage() {
           setCmsRoles(rolesData);
         }
       } catch {
-        // Fallback to static PROJECTS when backend is unavailable
+        if (active) {
+          setProjects(PROJECTS);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
       }
     }
     loadProjects();
@@ -245,12 +257,16 @@ export default function PortfolioPage() {
           </p>
         </div>
 
-        {!mobileFilterOpen && <PortfolioFilterControls variant="inline" {...filterControlProps} />}
+        {loading ? (
+          <FilterBarSkeleton />
+        ) : (
+          !mobileFilterOpen && <PortfolioFilterControls variant="inline" {...filterControlProps} />
+        )}
 
         <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3">
             <p role="status" className="text-xs tabular-nums text-muted-600">
-              Showing {results.length} of {projects.length} projects
+              {loading ? 'Loading projects...' : `Showing ${results.length} of ${projects.length} projects`}
             </p>
             {activeFilters && (
               <button
@@ -325,7 +341,13 @@ export default function PortfolioPage() {
           </div>
         </div>
 
-        {results.length ? (
+        {loading ? (
+          viewMode === 'table' ? (
+            <PortfolioTableSkeleton />
+          ) : (
+            <ProjectCardSkeletonGrid count={6} />
+          )
+        ) : results.length ? (
           viewMode === 'table' ? (
             <PortfolioTable projects={results} onSelectProject={handleSelectProject} />
           ) : (

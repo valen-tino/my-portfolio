@@ -1,30 +1,12 @@
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { CVModal } from './components/CVModal';
 import { FloatingNavigation } from './components/FloatingNavigation';
 import { LoadingScreen } from './components/LoadingScreen';
-import BlogDetail from './pages/BlogDetail';
-import BlogPage from './pages/BlogPage';
-import DesignSystemPage from './pages/DesignSystemPage';
 import Home from './pages/Home';
-import PortfolioDetail from './pages/PortfolioDetail';
-import PortfolioPage from './pages/PortfolioPage';
 
-// CMS imports
+// CMS guard
 import ProtectedRoute from './cms/components/ProtectedRoute';
-import AboutManagement from './cms/pages/AboutManagement';
-import AITest from './cms/pages/AITest';
-import BlogManagement from './cms/pages/BlogManagement';
-import ContactEntries from './cms/pages/ContactEntries';
-import Dashboard from './cms/pages/Dashboard';
-import EducationManagement from './cms/pages/EducationManagement';
-import ExperienceManagement from './cms/pages/ExperienceManagement';
-import Login from './cms/pages/Login';
-import PortfolioManagement from './cms/pages/PortfolioManagement';
-import RolesManagement from './cms/pages/RolesManagement';
-import SocialLinksManagement from './cms/pages/SocialLinksManagement';
-import TechToolsManagement from './cms/pages/TechToolsManagement';
-import WorkProcessManagement from './cms/pages/WorkProcessManagement';
 import { CMSStorage, type AboutData } from './cms/apiStorage';
 import {
   EDUCATION_LIST,
@@ -35,6 +17,43 @@ import {
 import apiService from './services/api';
 import type { Education, Experience } from './types/portfolio';
 import { sortByLatestEndDate } from './utils/dateFormat';
+
+// Code-split public subpages and CMS routes so initial landing bundle stays lean
+const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
+const PortfolioDetail = lazy(() => import('./pages/PortfolioDetail'));
+const BlogPage = lazy(() => import('./pages/BlogPage'));
+const BlogDetail = lazy(() => import('./pages/BlogDetail'));
+const DesignSystemPage = lazy(() => import('./pages/DesignSystemPage'));
+
+const Login = lazy(() => import('./cms/pages/Login'));
+const Dashboard = lazy(() => import('./cms/pages/Dashboard'));
+const BlogManagement = lazy(() => import('./cms/pages/BlogManagement'));
+const AITest = lazy(() => import('./cms/pages/AITest'));
+const ExperienceManagement = lazy(() => import('./cms/pages/ExperienceManagement'));
+const TechToolsManagement = lazy(() => import('./cms/pages/TechToolsManagement'));
+const RolesManagement = lazy(() => import('./cms/pages/RolesManagement'));
+const EducationManagement = lazy(() => import('./cms/pages/EducationManagement'));
+const PortfolioManagement = lazy(() => import('./cms/pages/PortfolioManagement'));
+const AboutManagement = lazy(() => import('./cms/pages/AboutManagement'));
+const ContactEntries = lazy(() => import('./cms/pages/ContactEntries'));
+const WorkProcessManagement = lazy(() => import('./cms/pages/WorkProcessManagement'));
+const SocialLinksManagement = lazy(() => import('./cms/pages/SocialLinksManagement'));
+
+function RouteSuspenseFallback({ isCMSRoute }: { isCMSRoute: boolean }) {
+  if (isCMSRoute) {
+    return (
+      <div
+        data-theme="light"
+        className="flex min-h-screen items-center justify-center bg-gray-50 text-sm text-gray-600"
+        role="status"
+        aria-live="polite"
+      >
+        Loading CMS...
+      </div>
+    );
+  }
+  return <div className="min-h-screen bg-white" aria-busy="true" />;
+}
 
 function getPageTitle(pathname: string): string {
   if (pathname.startsWith('/cms')) return "Valen's Portfolio CMS";
@@ -52,10 +71,8 @@ function App() {
   const [cvModalOpen, setCvModalOpen] = useState(false);
   const [initialLoading, setInitialLoading] = useState(!isCMSRoute);
   const [aboutData, setAboutData] = useState<AboutData | null>(null);
-  const [experiences, setExperiences] = useState<Experience[]>(() => sortByLatestEndDate(EXPERIENCES));
-  const [educationList, setEducationList] = useState<Education[]>(() =>
-    sortByLatestEndDate(EDUCATION_LIST),
-  );
+  const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [educationList, setEducationList] = useState<Education[]>([]);
 
   useEffect(() => {
     document.title = getPageTitle(location.pathname);
@@ -82,6 +99,8 @@ function App() {
         }
         if (eduRes.status === 'fulfilled' && Array.isArray(eduRes.value) && eduRes.value.length > 0) {
           setEducationList(sortByLatestEndDate(eduRes.value.map(mapCMSEducationToView)));
+        } else {
+          setEducationList(sortByLatestEndDate(EDUCATION_LIST));
         }
         if (
           expRes.status === 'fulfilled' &&
@@ -90,7 +109,13 @@ function App() {
           expRes.value.data.length > 0
         ) {
           setExperiences(sortByLatestEndDate(expRes.value.data.map(mapCMSExperienceToView)));
+        } else {
+          setExperiences(sortByLatestEndDate(EXPERIENCES));
         }
+      } catch {
+        if (!active) return;
+        setEducationList(sortByLatestEndDate(EDUCATION_LIST));
+        setExperiences(sortByLatestEndDate(EXPERIENCES));
       } finally {
         if (active) {
           setInitialLoading(false);
@@ -106,7 +131,8 @@ function App() {
 
   return (
     <>
-      <Routes>
+      <Suspense fallback={<RouteSuspenseFallback isCMSRoute={isCMSRoute} />}>
+        <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Home onOpenCVModal={() => setCvModalOpen(true)} />} />
         <Route path="/portfolio" element={<PortfolioPage />} />
@@ -218,7 +244,8 @@ function App() {
             </ProtectedRoute>
           }
         />
-      </Routes>
+        </Routes>
+      </Suspense>
 
       {!isCMSRoute && (
         <>
@@ -233,6 +260,7 @@ function App() {
             fullName={aboutData?.fullName}
             resumeSummary={aboutData?.resumeSummary}
             email={aboutData?.email}
+            isLoading={initialLoading}
           />
         </>
       )}

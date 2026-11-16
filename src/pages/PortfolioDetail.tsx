@@ -8,6 +8,7 @@ import { ImagePlaceholder } from '../components/ImagePlaceholder';
 import { LoadingScreen } from '../components/LoadingScreen';
 import PasswordProtectionModal from '../components/PasswordProtectionModal';
 import ScrollProgressBar from '../components/ScrollProgressBar';
+import { PortfolioDetailSkeleton, ProgressiveImageFrame } from '../components/Skeleton';
 import { PROJECTS, mapPortfolioItemToProject } from '../data/portfolioData';
 import type { Project } from '../types/portfolio';
 import { migrateContentToHtml, optimizeCloudinaryVideoUrl } from '../utils/contentMigration';
@@ -24,6 +25,7 @@ export default function PortfolioDetail() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [imgError, setImgError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
 
   const [lightboxImages, setLightboxImages] = useState<LightboxImageItem[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -34,6 +36,7 @@ export default function PortfolioDetail() {
   useEffect(() => {
     let active = true;
     setImgError(false);
+    setImgLoaded(false);
 
     async function fetchPortfolio() {
       if (!id) {
@@ -138,7 +141,7 @@ export default function PortfolioDetail() {
     <div ref={rootRef} className="min-h-screen bg-white text-ink">
       <LoadingScreen isLoading={loading} label="Loading portfolio..." />
       {loading ? (
-        <main className="page-shell py-24 text-center" />
+        <PortfolioDetailSkeleton />
       ) : !project ? (
         <main className="page-shell py-24 text-center">
           <h1 className="text-4xl font-medium tracking-tight">Portfolio Not Found</h1>
@@ -222,14 +225,18 @@ export default function PortfolioDetail() {
                   />
                 </div>
               ) : project.imageURL && !imgError ? (
-                <div className="overflow-hidden bg-[#e7e7e9] outline outline-1 -outline-offset-1 outline-black/10">
+                <ProgressiveImageFrame aspectRatio="aspect-video" loaded={imgLoaded}>
                   <img
                     src={project.imageURL}
                     alt={project.title}
                     fetchPriority="high"
                     decoding="async"
-                    onError={() => setImgError(true)}
-                    className="aspect-video w-full cursor-zoom-in object-cover"
+                    onLoad={() => setImgLoaded(true)}
+                    onError={() => {
+                      setImgLoaded(true);
+                      setImgError(true);
+                    }}
+                    className="aspect-video relative z-[1] h-full w-full cursor-zoom-in object-cover"
                     data-testid="portfolio-hero-image"
                     onClick={() => {
                       setLightboxImages([
@@ -239,7 +246,7 @@ export default function PortfolioDetail() {
                       setLightboxOpen(true);
                     }}
                   />
-                </div>
+                </ProgressiveImageFrame>
               ) : (
                 <ImagePlaceholder
                   label={project.title}
@@ -402,7 +409,7 @@ export default function PortfolioDetail() {
         onSelectIndex={setLightboxIndex}
       />
 
-      <Footer aboutData={aboutData} />
+      <Footer aboutData={aboutData} isLoading={loading} />
     </div>
   );
 }

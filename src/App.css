@@ -411,7 +411,7 @@ figure.gallery-item {
     -webkit-overflow-scrolling: touch;
     gap: 0.875rem !important;
     padding-bottom: 0.75rem !important;
-    scrollbar-width: thin;
+    scrollbar-width: none;
   }
 
   .portfolio-gallery .gallery-item {

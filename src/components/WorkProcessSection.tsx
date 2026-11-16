@@ -2,16 +2,24 @@ import { useId, useRef, useState } from 'react';
 import { WORK_PROCESS_STEPS } from '../data/portfolioData';
 import type { WorkProcessStep } from '../types/portfolio';
 import { ArrowLeftIcon, ArrowRightIcon } from './Icons';
+import { SkeletonBox, WorkProcessSkeleton } from './Skeleton';
 
 interface WorkProcessSectionProps {
   steps?: WorkProcessStep[];
   subtitle?: string;
+  isLoading?: boolean;
+  subtitleLoading?: boolean;
 }
 
 const DEFAULT_WORK_PROCESS_SUBTITLE =
   'I combine design thinking with spec-driven development—from research and prototyping through structured engineering, automated testing, and iterative delivery.';
 
-export function WorkProcessSection({ steps, subtitle }: WorkProcessSectionProps = {}) {
+export function WorkProcessSection({
+  steps,
+  subtitle,
+  isLoading = false,
+  subtitleLoading = false,
+}: WorkProcessSectionProps = {}) {
   const [index, setIndex] = useState(0);
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
   const id = useId();
@@ -40,89 +48,102 @@ export function WorkProcessSection({ steps, subtitle }: WorkProcessSectionProps 
               <br className="hidden sm:block" /> can work together
               <span className="text-brand">.</span>
             </h2>
-            <p className="mt-6 max-w-lg text-base leading-relaxed text-muted-600">
-              {subtitle || DEFAULT_WORK_PROCESS_SUBTITLE}
-            </p>
+            {subtitleLoading ? (
+              <div className="mt-6 max-w-lg space-y-2" aria-hidden="true">
+                <SkeletonBox className="h-5 w-full rounded" />
+                <SkeletonBox className="h-5 w-4/5 rounded" />
+              </div>
+            ) : (
+              <p className="mt-6 max-w-lg text-base leading-relaxed text-muted-600">
+                {subtitle || DEFAULT_WORK_PROCESS_SUBTITLE}
+              </p>
+            )}
           </div>
         </div>
-        <div
-          role="tablist"
-          aria-label="Work process steps"
-          className="flex flex-nowrap gap-3 overflow-x-auto pb-1"
-        >
-          {resolvedSteps.map((item, i) => {
-            const isSelected = i === safeIndex;
-            return (
-              <button
-                key={item.id || `${item.title}-${i}`}
-                type="button"
-                ref={(el) => {
-                  tabs.current[i] = el;
-                }}
-                role="tab"
-                id={`${id}-tab-${i}`}
-                aria-controls={`${id}-panel`}
-                aria-selected={isSelected}
-                tabIndex={isSelected ? 0 : -1}
-                onClick={() => select(i)}
-                onKeyDown={(event) => {
-                  let next: number | undefined;
-                  if (event.key === 'ArrowRight' || event.key === 'ArrowDown')
-                    next = (i + 1) % resolvedSteps.length;
-                  if (event.key === 'ArrowLeft' || event.key === 'ArrowUp')
-                    next = (i + resolvedSteps.length - 1) % resolvedSteps.length;
-                  if (event.key === 'Home') next = 0;
-                  if (event.key === 'End') next = resolvedSteps.length - 1;
-                  if (next !== undefined) {
-                    event.preventDefault();
-                    select(next, true);
-                  }
-                }}
-                className={`min-h-12 shrink-0 whitespace-nowrap rounded-full border px-6 py-3 text-left focus-visible:outline-brand ${
-                  isSelected
-                    ? 'border-brand bg-brand text-white underline decoration-2 underline-offset-4 forced-colors:outline forced-colors:outline-2'
-                    : 'border-muted-400 text-muted-600 hover:border-ink hover:text-ink'
-                }`}
-              >
-                <span className="text-lg font-medium tracking-tight sm:text-xl">
-                  {item.title}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        <div
-          role="tabpanel"
-          tabIndex={0}
-          id={`${id}-panel`}
-          aria-labelledby={`${id}-tab-${safeIndex}`}
-          className="mt-8 bg-white p-6 sm:p-10"
-        >
-          <h3 className="text-3xl font-medium tracking-tight">{step.title}</h3>
-          <p className="mt-5 max-w-[65ch] text-lg leading-relaxed">{step.description}</p>
-        </div>
-        <div className="mt-6 flex items-center justify-end gap-4">
-          <div className="flex gap-3">
-            <button
-              type="button"
-              aria-label="Previous process step"
-              onClick={() => select(safeIndex - 1)}
-              disabled={safeIndex === 0}
-              className="icon-button"
+        {isLoading ? (
+          <WorkProcessSkeleton />
+        ) : (
+          <>
+            <div
+              role="tablist"
+              aria-label="Work process steps"
+              className="flex flex-nowrap gap-3 overflow-x-auto pb-1"
             >
-              <ArrowLeftIcon className="size-4" />
-            </button>
-            <button
-              type="button"
-              aria-label="Next process step"
-              onClick={() => select(safeIndex + 1)}
-              disabled={safeIndex === resolvedSteps.length - 1}
-              className="icon-button"
+              {resolvedSteps.map((item, i) => {
+                const isSelected = i === safeIndex;
+                return (
+                  <button
+                    key={item.id || `${item.title}-${i}`}
+                    type="button"
+                    ref={(el) => {
+                      tabs.current[i] = el;
+                    }}
+                    role="tab"
+                    id={`${id}-tab-${i}`}
+                    aria-controls={`${id}-panel`}
+                    aria-selected={isSelected}
+                    tabIndex={isSelected ? 0 : -1}
+                    onClick={() => select(i)}
+                    onKeyDown={(event) => {
+                      let next: number | undefined;
+                      if (event.key === 'ArrowRight' || event.key === 'ArrowDown')
+                        next = (i + 1) % resolvedSteps.length;
+                      if (event.key === 'ArrowLeft' || event.key === 'ArrowUp')
+                        next = (i + resolvedSteps.length - 1) % resolvedSteps.length;
+                      if (event.key === 'Home') next = 0;
+                      if (event.key === 'End') next = resolvedSteps.length - 1;
+                      if (next !== undefined) {
+                        event.preventDefault();
+                        select(next, true);
+                      }
+                    }}
+                    className={`min-h-12 shrink-0 whitespace-nowrap rounded-full border px-6 py-3 text-left focus-visible:outline-brand ${
+                      isSelected
+                        ? 'border-brand bg-brand text-white underline decoration-2 underline-offset-4 forced-colors:outline forced-colors:outline-2'
+                        : 'border-muted-400 text-muted-600 hover:border-ink hover:text-ink'
+                    }`}
+                  >
+                    <span className="text-lg font-medium tracking-tight sm:text-xl">
+                      {item.title}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <div
+              role="tabpanel"
+              tabIndex={0}
+              id={`${id}-panel`}
+              aria-labelledby={`${id}-tab-${safeIndex}`}
+              className="mt-8 bg-white p-6 sm:p-10"
             >
-              <ArrowRightIcon className="size-4" />
-            </button>
-          </div>
-        </div>
+              <h3 className="text-3xl font-medium tracking-tight">{step.title}</h3>
+              <p className="mt-5 max-w-[65ch] text-lg leading-relaxed">{step.description}</p>
+            </div>
+            <div className="mt-6 flex items-center justify-end gap-4">
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  aria-label="Previous process step"
+                  onClick={() => select(safeIndex - 1)}
+                  disabled={safeIndex === 0}
+                  className="icon-button"
+                >
+                  <ArrowLeftIcon className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Next process step"
+                  onClick={() => select(safeIndex + 1)}
+                  disabled={safeIndex === resolvedSteps.length - 1}
+                  className="icon-button"
+                >
+                  <ArrowRightIcon className="size-4" />
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </section>
   );

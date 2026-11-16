@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Project } from '../types/portfolio';
 import { ArrowRightIcon, LockIcon } from './Icons';
 import { ImagePlaceholder } from './ImagePlaceholder';
+import { ProgressiveImageFrame } from './Skeleton';
 
 interface ProjectCardProps {
   project: Project;
@@ -15,6 +16,7 @@ export function ProjectCard({
   aspectRatio = 'aspect-video',
 }: ProjectCardProps) {
   const [imgError, setImgError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
   const href = `/portfolio/${project.id || project.slug}`;
   const showImage = Boolean(project.imageURL) && !project.isPasswordProtected && !imgError;
 
@@ -39,9 +41,7 @@ export function ProjectCard({
       >
         <div className="relative">
           {showImage ? (
-            <div
-              className={`relative w-full overflow-hidden bg-[#e7e7e9] outline outline-1 -outline-offset-1 outline-black/10 ${aspectRatio}`}
-            >
+            <ProgressiveImageFrame aspectRatio={aspectRatio} loaded={imgLoaded}>
               <img
                 src={project.imageURL}
                 alt={project.title}
@@ -49,10 +49,14 @@ export function ProjectCard({
                 height={450}
                 loading="lazy"
                 decoding="async"
-                onError={() => setImgError(true)}
-                className="h-full w-full object-cover"
+                onLoad={() => setImgLoaded(true)}
+                onError={() => {
+                  setImgLoaded(true);
+                  setImgError(true);
+                }}
+                className="relative z-[1] h-full w-full object-cover"
               />
-            </div>
+            </ProgressiveImageFrame>
           ) : (
             <ImagePlaceholder
               label={project.isPasswordProtected ? 'Password protected case study' : project.title}

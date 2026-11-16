@@ -6,6 +6,7 @@ import { ArrowLeftIcon, ExternalLinkIcon } from '../components/Icons';
 import ImageLightboxModal, { type LightboxImageItem } from '../components/ImageLightboxModal';
 import { ImagePlaceholder } from '../components/ImagePlaceholder';
 import { LoadingScreen } from '../components/LoadingScreen';
+import { BlogDetailSkeleton, ProgressiveImageFrame } from '../components/Skeleton';
 import { BLOG_POSTS, mapCMSBlogToPost } from '../data/portfolioData';
 import type { BlogPost } from '../types/portfolio';
 import { formatPublicDescription } from '../utils/contentMigration';
@@ -22,6 +23,7 @@ export default function BlogDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imgError, setImgError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
 
   const [lightboxImages, setLightboxImages] = useState<LightboxImageItem[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -32,6 +34,7 @@ export default function BlogDetail() {
   useEffect(() => {
     let active = true;
     setImgError(false);
+    setImgLoaded(false);
 
     async function fetchBlogPost() {
       if (!id) {
@@ -117,10 +120,11 @@ export default function BlogDetail() {
   return (
     <div ref={rootRef} className="min-h-screen bg-white text-ink">
       <LoadingScreen isLoading={loading} label="Loading article..." />
-      <main className="page-shell py-12 sm:py-20">
-        {loading ? (
-          <div className="py-24 text-center" />
-        ) : error || !post ? (
+      {loading ? (
+        <BlogDetailSkeleton />
+      ) : (
+        <main className="page-shell py-12 sm:py-20">
+          {error || !post ? (
           <div className="py-24 text-center">
             <h1 className="text-3xl font-medium tracking-tight">Article Not Found</h1>
             <p className="mt-4 text-base text-muted-600">
@@ -193,21 +197,25 @@ export default function BlogDetail() {
             </div>
 
             {post.imageURL && !imgError ? (
-              <div className="aspect-[16/9] overflow-hidden bg-[#e7e7e9] outline outline-1 -outline-offset-1 outline-black/10">
+              <ProgressiveImageFrame aspectRatio="aspect-[16/9]" loaded={imgLoaded}>
                 <img
                   src={post.imageURL}
                   alt={post.title}
                   fetchPriority="high"
                   decoding="async"
-                  onError={() => setImgError(true)}
-                  className="h-full w-full cursor-zoom-in object-cover"
+                  onLoad={() => setImgLoaded(true)}
+                  onError={() => {
+                    setImgLoaded(true);
+                    setImgError(true);
+                  }}
+                  className="relative z-[1] h-full w-full cursor-zoom-in object-cover"
                   onClick={() => {
                     setLightboxImages([{ src: post.imageURL as string, alt: post.title }]);
                     setLightboxIndex(0);
                     setLightboxOpen(true);
                   }}
                 />
-              </div>
+              </ProgressiveImageFrame>
             ) : (
               <ImagePlaceholder
                 label="Featured article photo"
@@ -278,8 +286,9 @@ export default function BlogDetail() {
               Read all articles
             </Link>
           </article>
-        )}
-      </main>
+          )}
+        </main>
+      )}
 
       {lightboxOpen && (
         <ImageLightboxModal

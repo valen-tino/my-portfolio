@@ -4,6 +4,7 @@ import { CMSStorage } from '../cms/apiStorage';
 import { BlogCard } from '../components/BlogCard';
 import { Footer } from '../components/Footer';
 import { CloseIcon, SearchIcon } from '../components/Icons';
+import { BlogCardSkeletonGrid, FilterBarSkeleton } from '../components/Skeleton';
 import { BLOG_POSTS, mapCMSBlogToPost } from '../data/portfolioData';
 import type { BlogPost } from '../types/portfolio';
 import { useGSAPPageEntrance } from '../utils/gsapAnimations';
@@ -12,7 +13,8 @@ import { navigateWithTransition } from '../utils/viewTransitions';
 export default function BlogPage() {
   const navigate = useNavigate();
   const rootRef = useRef<HTMLDivElement>(null);
-  const [posts, setPosts] = useState<BlogPost[]>(BLOG_POSTS);
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState('All');
   const [year, setYear] = useState('All');
   const [tag, setTag] = useState('All');
@@ -31,7 +33,13 @@ export default function BlogPage() {
           .map(mapCMSBlogToPost);
         setPosts(published);
       } catch {
-        // Fallback to static BLOG_POSTS when backend is unreachable
+        if (active) {
+          setPosts(BLOG_POSTS);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
       }
     }
     loadBlogs();
@@ -88,7 +96,10 @@ export default function BlogPage() {
           </p>
         </div>
 
-        <search aria-label="Filter articles" className="mb-10 block bg-paper p-5 sm:p-7">
+        {loading ? (
+          <FilterBarSkeleton />
+        ) : (
+          <search aria-label="Filter articles" className="mb-10 block bg-paper p-5 sm:p-7">
           <div role="group" aria-label="Filter by category" className="flex flex-wrap gap-3">
             {categories.map((item) => (
               <button
@@ -184,19 +195,24 @@ export default function BlogPage() {
             </div>
           </div>
         </search>
+        )}
 
-        <div className="mb-8 flex items-center justify-between gap-4">
-          <p role="status" className="text-xs tabular-nums text-muted-600">
-            {results.length} {results.length === 1 ? 'article' : 'articles'}
-          </p>
-          {activeFilters && (
-            <button type="button" className="text-link" onClick={reset}>
-              Clear filters
-            </button>
-          )}
-        </div>
+        {!loading && (
+          <div className="mb-8 flex items-center justify-between gap-4">
+            <p role="status" className="text-xs tabular-nums text-muted-600">
+              {results.length} {results.length === 1 ? 'article' : 'articles'}
+            </p>
+            {activeFilters && (
+              <button type="button" className="text-link" onClick={reset}>
+                Clear filters
+              </button>
+            )}
+          </div>
+        )}
 
-        {results.length ? (
+        {loading ? (
+          <BlogCardSkeletonGrid count={6} />
+        ) : results.length ? (
           <div className="grid gap-x-7 gap-y-14 md:grid-cols-2 xl:grid-cols-3">
             {results.map((post) => (
               <BlogCard

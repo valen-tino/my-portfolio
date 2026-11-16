@@ -3,6 +3,7 @@ import type { BlogPost } from '../types/portfolio';
 import { formatFullDate, toISODateAttribute } from '../utils/dateFormat';
 import { ArrowRightIcon } from './Icons';
 import { ImagePlaceholder } from './ImagePlaceholder';
+import { ProgressiveImageFrame } from './Skeleton';
 
 interface BlogCardProps {
   post: BlogPost;
@@ -12,6 +13,7 @@ interface BlogCardProps {
 
 export function BlogCard({ post, onSelectPost, aspectRatio = 'aspect-[16/10]' }: BlogCardProps) {
   const [imgError, setImgError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
   const href = `/blogs/${post.slug || post.id}`;
   const showImage = Boolean(post.imageURL) && !imgError;
 
@@ -36,9 +38,7 @@ export function BlogCard({ post, onSelectPost, aspectRatio = 'aspect-[16/10]' }:
       >
         <div className="relative">
           {showImage ? (
-            <div
-              className={`relative w-full overflow-hidden bg-[#e7e7e9] outline outline-1 -outline-offset-1 outline-black/10 ${aspectRatio}`}
-            >
+            <ProgressiveImageFrame aspectRatio={aspectRatio} loaded={imgLoaded}>
               <img
                 src={post.imageURL}
                 alt={post.title}
@@ -46,10 +46,14 @@ export function BlogCard({ post, onSelectPost, aspectRatio = 'aspect-[16/10]' }:
                 height={500}
                 loading="lazy"
                 decoding="async"
-                onError={() => setImgError(true)}
-                className="h-full w-full object-cover"
+                onLoad={() => setImgLoaded(true)}
+                onError={() => {
+                  setImgLoaded(true);
+                  setImgError(true);
+                }}
+                className="relative z-[1] h-full w-full object-cover"
               />
-            </div>
+            </ProgressiveImageFrame>
           ) : (
             <ImagePlaceholder label={post.title} aspectRatio={aspectRatio} />
           )}

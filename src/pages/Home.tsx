@@ -11,6 +11,13 @@ import { ArrowRightIcon, DownloadIcon } from '../components/Icons';
 import { ImagePlaceholder } from '../components/ImagePlaceholder';
 import PasswordProtectionModal from '../components/PasswordProtectionModal';
 import { ProjectCard } from '../components/ProjectCard';
+import {
+  AboutSectionSkeleton,
+  BlogCardSkeletonGrid,
+  ProgressiveImageFrame,
+  ProjectCardSkeletonGrid,
+  SkeletonBox,
+} from '../components/Skeleton';
 import { WorkProcessSection } from '../components/WorkProcessSection';
 import {
   BLOG_POSTS,
@@ -55,18 +62,27 @@ export default function Home({ onOpenCVModal }: HomeProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const greeting = getGreetingText();
 
-  const [projects, setProjects] = useState<Project[]>(PROJECTS);
-  const [blogs, setBlogs] = useState<BlogPost[]>(BLOG_POSTS);
-  const [experiences, setExperiences] = useState<Experience[]>(() => sortByLatestEndDate(EXPERIENCES));
-  const [educationList, setEducationList] = useState<Education[]>(() =>
-    sortByLatestEndDate(EDUCATION_LIST),
-  );
-  const [techTools, setTechTools] = useState<TechToolView[]>(TECH_TOOLS);
-  const [workProcessSteps, setWorkProcessSteps] = useState<WorkProcessStep[]>(WORK_PROCESS_STEPS);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [blogs, setBlogs] = useState<BlogPost[]>([]);
+  const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [educationList, setEducationList] = useState<Education[]>([]);
+  const [techTools, setTechTools] = useState<TechToolView[]>([]);
+  const [workProcessSteps, setWorkProcessSteps] = useState<WorkProcessStep[]>([]);
   const [cmsRoles, setCmsRoles] = useState<Role[]>([]);
-  const [socialLinks, setSocialLinks] = useState<SocialLink[]>(SOCIAL_LINKS);
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
   const [aboutData, setAboutData] = useState<AboutData | null>(null);
   const [portraitError, setPortraitError] = useState(false);
+  const [portraitLoaded, setPortraitLoaded] = useState(false);
+  const [loadingState, setLoadingState] = useState({
+    projects: true,
+    blogs: true,
+    about: true,
+    tools: true,
+    education: true,
+    experiences: true,
+    workProcess: true,
+    socialLinks: true,
+  });
 
   const [selectedRole, setSelectedRole] = useState('All');
   const [protectedProject, setProtectedProject] = useState<Project | null>(null);
@@ -120,9 +136,9 @@ export default function Home({ onOpenCVModal }: HomeProps) {
         const published = portfoliosRes.value
           .filter((item) => item.isPublished !== false)
           .map(mapPortfolioItemToProject);
-        if (published.length > 0) {
-          setProjects(published);
-        }
+        setProjects(published.length > 0 ? published : PROJECTS);
+      } else {
+        setProjects(PROJECTS);
       }
 
       if (blogsRes.status === 'fulfilled' && Array.isArray(blogsRes.value)) {
@@ -130,6 +146,8 @@ export default function Home({ onOpenCVModal }: HomeProps) {
           .filter((item) => item.isPublished !== false)
           .map(mapCMSBlogToPost);
         setBlogs(publishedBlogs);
+      } else {
+        setBlogs(BLOG_POSTS);
       }
 
       if (aboutRes.status === 'fulfilled' && aboutRes.value) {
@@ -138,6 +156,8 @@ export default function Home({ onOpenCVModal }: HomeProps) {
 
       if (toolsRes.status === 'fulfilled' && Array.isArray(toolsRes.value) && toolsRes.value.length > 0) {
         setTechTools(toolsRes.value.map(mapCMSTechToolToView));
+      } else {
+        setTechTools(TECH_TOOLS);
       }
 
       if (
@@ -146,6 +166,8 @@ export default function Home({ onOpenCVModal }: HomeProps) {
         educationRes.value.length > 0
       ) {
         setEducationList(sortByLatestEndDate(educationRes.value.map(mapCMSEducationToView)));
+      } else {
+        setEducationList(sortByLatestEndDate(EDUCATION_LIST));
       }
 
       if (
@@ -155,6 +177,8 @@ export default function Home({ onOpenCVModal }: HomeProps) {
         experiencesRes.value.data.length > 0
       ) {
         setExperiences(sortByLatestEndDate(experiencesRes.value.data.map(mapCMSExperienceToView)));
+      } else {
+        setExperiences(sortByLatestEndDate(EXPERIENCES));
       }
 
       if (
@@ -163,6 +187,8 @@ export default function Home({ onOpenCVModal }: HomeProps) {
         workProcessRes.value.length > 0
       ) {
         setWorkProcessSteps(workProcessRes.value.map(mapCMSWorkProcessToView));
+      } else {
+        setWorkProcessSteps(WORK_PROCESS_STEPS);
       }
 
       if (rolesRes.status === 'fulfilled' && Array.isArray(rolesRes.value)) {
@@ -179,7 +205,20 @@ export default function Home({ onOpenCVModal }: HomeProps) {
             .filter((item) => item.isPublished !== false)
             .map(mapCMSSocialLinkToView)
         );
+      } else {
+        setSocialLinks(SOCIAL_LINKS);
       }
+
+      setLoadingState({
+        projects: false,
+        blogs: false,
+        about: false,
+        tools: false,
+        education: false,
+        experiences: false,
+        workProcess: false,
+        socialLinks: false,
+      });
     }
 
     loadCMSContent();
@@ -298,18 +337,37 @@ export default function Home({ onOpenCVModal }: HomeProps) {
     <div ref={rootRef} className="min-h-screen bg-white text-ink">
       <section id="home" aria-labelledby="home-heading" className="bg-paper">
         <div className="page-shell flex flex-col items-center pb-12 pt-16 text-center sm:pb-16 sm:pt-24 lg:pt-28">
-          <h1 id="home-heading" data-gsap="hero-item" className="hero-type mx-auto max-w-[28ch]">
-            <span className="block">
-              {greeting} 👋, I’m {displayName}.
-            </span>
-            <span className="mt-3 block text-brand">{heroHeadline}</span>
-          </h1>
-          <p
-            data-gsap="hero-item"
-            className="mt-7 max-w-[46ch] text-base leading-relaxed text-muted-600 sm:text-lg"
-          >
-            {heroSubheadline}
-          </p>
+          {loadingState.about ? (
+            <div
+              aria-busy="true"
+              aria-label="Loading hero introduction"
+              data-testid="hero-copy-skeleton"
+              className="flex w-full flex-col items-center"
+            >
+              <h1 id="home-heading" className="sr-only">
+                Loading portfolio
+              </h1>
+              <SkeletonBox className="h-11 w-full max-w-xl rounded sm:h-14" />
+              <SkeletonBox className="mt-3 h-11 w-4/5 max-w-2xl rounded sm:h-14" />
+              <SkeletonBox className="mt-7 h-5 w-full max-w-md rounded" />
+              <SkeletonBox className="mt-2 h-5 w-72 rounded" />
+            </div>
+          ) : (
+            <>
+              <h1 id="home-heading" data-gsap="hero-item" className="hero-type mx-auto max-w-[28ch]">
+                <span className="block">
+                  {greeting} 👋, I’m {displayName}.
+                </span>
+                <span className="mt-3 block text-brand">{heroHeadline}</span>
+              </h1>
+              <p
+                data-gsap="hero-item"
+                className="mt-7 max-w-[46ch] text-base leading-relaxed text-muted-600 sm:text-lg"
+              >
+                {heroSubheadline}
+              </p>
+            </>
+          )}
           <div data-gsap="hero-item" className="mt-8 flex flex-wrap justify-center gap-3">
             <a href="#selected-work" className="flat-button flat-button-blue">
               View projects <ArrowRightIcon className="size-4" />
@@ -319,7 +377,7 @@ export default function Home({ onOpenCVModal }: HomeProps) {
             </a>
           </div>
         </div>
-        <HeroProjectStrip projects={projects} />
+        <HeroProjectStrip projects={projects} isLoading={loadingState.projects} />
       </section>
 
       <section
@@ -334,13 +392,17 @@ export default function Home({ onOpenCVModal }: HomeProps) {
               <h2 id="work-heading" className="section-title">
                 Selected <span className="text-brand">projects</span>
               </h2>
-              <Link className="text-link" to="/portfolio">
-                View all work{' '}
-                <span className="tabular-nums text-muted-600">({projects.length})</span>
-                <ArrowRightIcon className="size-4" />
-              </Link>
+              {loadingState.projects ? (
+                <SkeletonBox className="h-11 w-36 rounded-full" />
+              ) : (
+                <Link className="text-link" to="/portfolio">
+                  View all work{' '}
+                  <span className="tabular-nums text-muted-600">({projects.length})</span>
+                  <ArrowRightIcon className="size-4" />
+                </Link>
+              )}
             </div>
-            {roleFilters.length > 2 && (
+            {!loadingState.projects && roleFilters.length > 2 && (
               <div
                 role="group"
                 aria-label="Filter selected projects by role"
@@ -366,20 +428,29 @@ export default function Home({ onOpenCVModal }: HomeProps) {
               </div>
             )}
           </div>
-          <EditorialCarousel label="selected work">
-            {filteredProjects.slice(0, 6).map((project) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                onSelectProject={handleSelectProject}
-                aspectRatio="aspect-video"
-              />
-            ))}
-          </EditorialCarousel>
+          {loadingState.projects ? (
+            <ProjectCardSkeletonGrid count={3} carouselMode />
+          ) : (
+            <EditorialCarousel label="selected work">
+              {filteredProjects.slice(0, 6).map((project) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  onSelectProject={handleSelectProject}
+                  aspectRatio="aspect-video"
+                />
+              ))}
+            </EditorialCarousel>
+          )}
         </div>
       </section>
 
-      <WorkProcessSection steps={workProcessSteps} subtitle={aboutData?.workProcessSubtitle} />
+      <WorkProcessSection
+        steps={workProcessSteps}
+        subtitle={aboutData?.workProcessSubtitle}
+        isLoading={loadingState.workProcess}
+        subtitleLoading={loadingState.about}
+      />
 
       <section
         id="about"
@@ -391,103 +462,124 @@ export default function Home({ onOpenCVModal }: HomeProps) {
           <h2 id="about-heading" className="section-title mb-10">
             About <span className="text-brand">me</span>
           </h2>
-          <div className="grid gap-10 lg:grid-cols-[2fr_1fr]">
-            <div>
-              {aboutData?.description ? (
-                <div
-                  className="wysiwyg-content max-w-[65ch] text-base leading-[1.75] text-muted-600"
-                  dangerouslySetInnerHTML={{
-                    __html: formatPublicDescription(aboutData.description),
-                  }}
-                />
-              ) : (
-                <p className="max-w-[65ch] text-base leading-[1.75] text-muted-600">
-                  {PERSONAL_INFO.aboutBio}
-                </p>
-              )}
-              <div className="mt-6 flex flex-wrap items-center gap-4">
-                <button type="button" onClick={handleOpenCV} className="text-link">
-                  View my résumé <ArrowRightIcon className="size-4" />
-                </button>
-                {aboutData?.cvURL && (
-                  <a
-                    href={aboutData.cvURL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flat-button flat-button-outline"
-                  >
-                    Download CV <DownloadIcon className="size-4" />
-                  </a>
-                )}
-              </div>
-              <div className="mt-12 grid grid-cols-3 gap-4 border-t border-muted-300 pt-6">
-                {[
-                  [
-                    aboutData?.yearsExperience?.trim() || '4+',
-                    aboutData?.yearsExperienceLabel?.trim() || 'Years of experience',
-                  ],
-                  [
-                    String(projects.length).padStart(2, '0'),
-                    aboutData?.selectedProjectsLabel?.trim() || 'Selected projects',
-                  ],
-                  [
-                    aboutData?.degreesCount?.trim() || '02',
-                    aboutData?.degreesLabel?.trim() || 'Bachelor’s degrees',
-                  ],
-                ].map(([value, label]) => (
-                  <div key={label}>
-                    <p className="text-4xl font-medium tracking-[-0.05em] text-brand sm:text-5xl">
-                      {value}
-                    </p>
-                    <p className="mt-2 text-xs leading-relaxed text-muted-600">{label}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div>
-              <div className="max-w-xs">
-                {resolvedPortraitUrl && !portraitError ? (
-                  <div className="aspect-[4/5] overflow-hidden bg-[#e7e7e9] outline outline-1 -outline-offset-1 outline-black/10">
-                    <img
-                      src={resolvedPortraitUrl}
-                      alt={`Portrait of ${fullName}`}
-                      width={400}
-                      height={500}
-                      loading="lazy"
-                      decoding="async"
-                      onError={() => setPortraitError(true)}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
+          {loadingState.about ? (
+            <AboutSectionSkeleton />
+          ) : (
+            <div className="grid gap-10 lg:grid-cols-[2fr_1fr]">
+              <div>
+                {aboutData?.description ? (
+                  <div
+                    className="wysiwyg-content max-w-[65ch] text-base leading-[1.75] text-muted-600"
+                    dangerouslySetInnerHTML={{
+                      __html: formatPublicDescription(aboutData.description),
+                    }}
+                  />
                 ) : (
-                  <ImagePlaceholder label={`Portrait of ${displayName}`} aspectRatio="aspect-[4/5]" />
+                  <p className="max-w-[65ch] text-base leading-[1.75] text-muted-600">
+                    {PERSONAL_INFO.aboutBio}
+                  </p>
                 )}
+                <div className="mt-6 flex flex-wrap items-center gap-4">
+                  <button type="button" onClick={handleOpenCV} className="text-link">
+                    View my résumé <ArrowRightIcon className="size-4" />
+                  </button>
+                  {aboutData?.cvURL && (
+                    <a
+                      href={aboutData.cvURL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flat-button flat-button-outline"
+                    >
+                      Download CV <DownloadIcon className="size-4" />
+                    </a>
+                  )}
+                </div>
+                <div className="mt-12 grid grid-cols-3 gap-4 border-t border-muted-300 pt-6">
+                  {[
+                    [
+                      aboutData?.yearsExperience?.trim() || '4+',
+                      aboutData?.yearsExperienceLabel?.trim() || 'Years of experience',
+                    ],
+                    [
+                      String(projects.length).padStart(2, '0'),
+                      aboutData?.selectedProjectsLabel?.trim() || 'Selected projects',
+                    ],
+                    [
+                      aboutData?.degreesCount?.trim() || '02',
+                      aboutData?.degreesLabel?.trim() || 'Bachelor’s degrees',
+                    ],
+                  ].map(([value, label]) => (
+                    <div key={label}>
+                      <p className="text-4xl font-medium tracking-[-0.05em] text-brand sm:text-5xl">
+                        {value}
+                      </p>
+                      <p className="mt-2 text-xs leading-relaxed text-muted-600">{label}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <p className="mt-3 text-xs text-muted-600">
-                {displayName} / {locationLabel}
-              </p>
+              <div>
+                <div className="max-w-xs">
+                  {resolvedPortraitUrl && !portraitError ? (
+                    <ProgressiveImageFrame aspectRatio="aspect-[4/5]" loaded={portraitLoaded}>
+                      <img
+                        src={resolvedPortraitUrl}
+                        alt={`Portrait of ${fullName}`}
+                        width={400}
+                        height={500}
+                        loading="lazy"
+                        decoding="async"
+                        onLoad={() => setPortraitLoaded(true)}
+                        onError={() => {
+                          setPortraitLoaded(true);
+                          setPortraitError(true);
+                        }}
+                        className="relative z-[1] h-full w-full object-cover"
+                      />
+                    </ProgressiveImageFrame>
+                  ) : (
+                    <ImagePlaceholder label={`Portrait of ${displayName}`} aspectRatio="aspect-[4/5]" />
+                  )}
+                </div>
+                <p className="mt-3 text-xs text-muted-600">
+                  {displayName} / {locationLabel}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
           <div id="tools" className="mt-16 space-y-6 border-t border-muted-300 pt-8">
             <h3 className="text-xl font-medium">Tools I use</h3>
-            <ul className="flex flex-wrap gap-x-6 gap-y-4 text-sm font-medium">
-              {techTools.map((tool) => (
-                <li key={tool.id || tool.name} className="inline-flex items-center gap-2">
-                  {tool.imageURL && (
-                    <img
-                      src={tool.imageURL}
-                      alt=""
-                      width={18}
-                      height={18}
-                      loading="lazy"
-                      decoding="async"
-                      className="size-[18px] object-contain"
-                    />
-                  )}
-                  <span>{tool.name}</span>
-                </li>
-              ))}
-            </ul>
+            {loadingState.tools ? (
+              <div aria-busy="true" aria-label="Loading tools" data-testid="tools-skeleton" className="flex flex-wrap gap-3">
+                {[88, 72, 96, 80, 108, 84, 76, 92].map((w, idx) => (
+                  <div
+                    key={idx}
+                    aria-hidden="true"
+                    style={{ width: `${w}px` }}
+                    className="h-6 animate-pulse rounded bg-[#e7e7e9] motion-reduce:animate-none"
+                  />
+                ))}
+              </div>
+            ) : (
+              <ul className="flex flex-wrap gap-x-6 gap-y-4 text-sm font-medium">
+                {techTools.map((tool) => (
+                  <li key={tool.id || tool.name} className="inline-flex items-center gap-2">
+                    {tool.imageURL && (
+                      <img
+                        src={tool.imageURL}
+                        alt=""
+                        width={18}
+                        height={18}
+                        loading="lazy"
+                        decoding="async"
+                        className="size-[18px] object-contain"
+                      />
+                    )}
+                    <span>{tool.name}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </section>
@@ -496,12 +588,15 @@ export default function Home({ onOpenCVModal }: HomeProps) {
         experiences={experiences}
         educationList={educationList}
         activeHash={location.hash}
+        isLoadingExperiences={loadingState.experiences}
+        isLoadingEducation={loadingState.education}
       />
 
-      {blogs.length > 0 && (
+      {(loadingState.blogs || blogs.length > 0) && (
         <section
           id="journal"
           aria-labelledby="journal-heading"
+          aria-busy={loadingState.blogs || undefined}
           data-gsap="reveal-section"
           className="py-20 sm:py-28"
         >
@@ -511,16 +606,24 @@ export default function Home({ onOpenCVModal }: HomeProps) {
                 <h2 id="journal-heading" className="section-title">
                   My <span className="text-brand">journal</span>
                 </h2>
-                <Link to="/blogs" className="text-link">
-                  Read the journal <ArrowRightIcon className="size-4" />
-                </Link>
+                {loadingState.blogs ? (
+                  <SkeletonBox className="h-11 w-40 rounded-full" />
+                ) : (
+                  <Link to="/blogs" className="text-link">
+                    Read the journal <ArrowRightIcon className="size-4" />
+                  </Link>
+                )}
               </div>
             </div>
-            <EditorialCarousel label="journal">
-              {blogs.slice(0, 6).map((post) => (
-                <BlogCard key={post.id} post={post} onSelectPost={handleSelectBlog} />
-              ))}
-            </EditorialCarousel>
+            {loadingState.blogs ? (
+              <BlogCardSkeletonGrid count={3} />
+            ) : (
+              <EditorialCarousel label="journal">
+                {blogs.slice(0, 6).map((post) => (
+                  <BlogCard key={post.id} post={post} onSelectPost={handleSelectBlog} />
+                ))}
+              </EditorialCarousel>
+            )}
           </div>
         </section>
       )}
@@ -534,32 +637,64 @@ export default function Home({ onOpenCVModal }: HomeProps) {
         <div className="page-shell">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-20">
             <div>
-              <h2 id="contact-heading" className="section-title max-w-[15ch]">
-                {aboutData?.contactHeading?.trim() || 'Tell me about your project'}
-              </h2>
-              <p className="mt-8 max-w-md text-base leading-relaxed">
-                {aboutData?.contactSubtext?.trim() ||
-                  'Send me your project details or ask a question. I will reply by email.'}
-              </p>
-              <a href={`mailto:${contactEmailAddress}`} className="text-link mt-7 break-all">
-                {contactEmailAddress} <ArrowRightIcon className="size-4 shrink-0" />
-              </a>
-              <div className="mt-10 flex flex-wrap gap-x-8 gap-y-3">
-                {socialLinks
-                  .filter((link) => link.icon !== 'mail')
-                  .map((link) => (
-                    <a
-                      key={link.id || link.name}
-                      href={link.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex min-h-11 items-center gap-3 text-sm underline underline-offset-4"
-                    >
-                      {link.name}
-                      <ArrowRightIcon className="size-3" />
-                    </a>
+              {loadingState.about ? (
+                <div aria-busy="true" aria-label="Loading contact details" data-testid="contact-skeleton" className="space-y-6">
+                  <h2 id="contact-heading" className="sr-only">
+                    Contact
+                  </h2>
+                  <div aria-hidden="true" className="space-y-3">
+                    <div className="h-10 w-4/5 max-w-md animate-pulse rounded bg-white/20 motion-reduce:animate-none sm:h-12" />
+                    <div className="h-10 w-3/5 max-w-sm animate-pulse rounded bg-white/20 motion-reduce:animate-none sm:h-12" />
+                  </div>
+                  <div aria-hidden="true" className="space-y-2 pt-2">
+                    <div className="h-4 w-full max-w-md animate-pulse rounded bg-white/20 motion-reduce:animate-none" />
+                    <div className="h-4 w-2/3 max-w-xs animate-pulse rounded bg-white/20 motion-reduce:animate-none" />
+                  </div>
+                  <div aria-hidden="true" className="h-11 w-60 animate-pulse rounded-full bg-white/20 motion-reduce:animate-none" />
+                </div>
+              ) : (
+                <>
+                  <h2 id="contact-heading" className="section-title max-w-[15ch]">
+                    {aboutData?.contactHeading?.trim() || 'Tell me about your project'}
+                  </h2>
+                  <p className="mt-8 max-w-md text-base leading-relaxed">
+                    {aboutData?.contactSubtext?.trim() ||
+                      'Send me your project details or ask a question. I will reply by email.'}
+                  </p>
+                  <a href={`mailto:${contactEmailAddress}`} className="text-link mt-7 break-all">
+                    {contactEmailAddress} <ArrowRightIcon className="size-4 shrink-0" />
+                  </a>
+                </>
+              )}
+              {loadingState.socialLinks ? (
+                <div aria-busy="true" aria-label="Loading social links" data-testid="social-links-skeleton" className="mt-10 flex flex-wrap gap-3">
+                  {[84, 96, 88].map((w, idx) => (
+                    <div
+                      key={idx}
+                      aria-hidden="true"
+                      style={{ width: `${w}px` }}
+                      className="h-10 animate-pulse rounded bg-white/20 motion-reduce:animate-none"
+                    />
                   ))}
-              </div>
+                </div>
+              ) : (
+                <div className="mt-10 flex flex-wrap gap-x-8 gap-y-3">
+                  {socialLinks
+                    .filter((link) => link.icon !== 'mail')
+                    .map((link) => (
+                      <a
+                        key={link.id || link.name}
+                        href={link.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex min-h-11 items-center gap-3 text-sm underline underline-offset-4"
+                      >
+                        {link.name}
+                        <ArrowRightIcon className="size-3" />
+                      </a>
+                    ))}
+                </div>
+              )}
             </div>
             <form onSubmit={handleContactSubmit} aria-labelledby="contact-heading" className="space-y-6">
               <div>
@@ -633,7 +768,11 @@ export default function Home({ onOpenCVModal }: HomeProps) {
         </div>
       </section>
 
-      <Footer aboutData={aboutData} socialLinks={socialLinks} />
+      <Footer
+        aboutData={aboutData}
+        socialLinks={socialLinks}
+        isLoading={loadingState.about || loadingState.socialLinks}
+      />
 
       <PasswordProtectionModal
         isOpen={Boolean(protectedProject)}

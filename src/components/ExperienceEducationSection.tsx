@@ -3,11 +3,14 @@ import type { Education, Experience } from '../types/portfolio';
 import { formatPublicDescription } from '../utils/contentMigration';
 import { sortByLatestEndDate } from '../utils/dateFormat';
 import { ArrowRightIcon } from './Icons';
+import { TimelineListSkeleton } from './Skeleton';
 
 interface ExperienceEducationSectionProps {
   experiences: Experience[];
   educationList: Education[];
   activeHash?: string;
+  isLoadingExperiences?: boolean;
+  isLoadingEducation?: boolean;
 }
 
 type TimelineTab = 'experiences' | 'education';
@@ -16,6 +19,8 @@ export function ExperienceEducationSection({
   experiences,
   educationList,
   activeHash,
+  isLoadingExperiences = false,
+  isLoadingEducation = false,
 }: ExperienceEducationSectionProps) {
   const [activeTab, setActiveTab] = useState<TimelineTab>(() =>
     activeHash === '#education' ? 'education' : 'experiences',
@@ -132,7 +137,9 @@ export function ExperienceEducationSection({
               }`}
             >
               <span>Experiences</span>
-              <span className="text-xs tabular-nums opacity-85">{sortedExperiences.length}</span>
+              <span className="text-xs tabular-nums opacity-85">
+                {isLoadingExperiences ? '—' : sortedExperiences.length}
+              </span>
             </button>
 
             <button
@@ -152,7 +159,9 @@ export function ExperienceEducationSection({
               }`}
             >
               <span>Education</span>
-              <span className="text-xs tabular-nums opacity-85">{sortedEducation.length}</span>
+              <span className="text-xs tabular-nums opacity-85">
+                {isLoadingEducation ? '—' : sortedEducation.length}
+              </span>
             </button>
           </div>
         </div>
@@ -165,9 +174,12 @@ export function ExperienceEducationSection({
             aria-labelledby={expTabId}
             tabIndex={activeTab === 'experiences' ? 0 : undefined}
           >
-            <div className="pt-2">
-              <h3 className="sr-only">Experiences</h3>
-              {sortedExperiences.map((exp) => (
+            {isLoadingExperiences ? (
+              <TimelineListSkeleton />
+            ) : (
+              <div className="pt-2">
+                <h3 className="sr-only">Experiences</h3>
+                {sortedExperiences.map((exp) => (
                 <article key={exp.id} className="border-t border-muted-300 py-6">
                   <div className="flex flex-wrap justify-between gap-3">
                     <div className="flex items-start gap-3.5">
@@ -203,7 +215,8 @@ export function ExperienceEducationSection({
                   />
                 </article>
               ))}
-            </div>
+              </div>
+            )}
           </div>
 
           <div
@@ -213,9 +226,12 @@ export function ExperienceEducationSection({
             aria-labelledby={eduTabId}
             tabIndex={activeTab === 'education' ? 0 : undefined}
           >
-            <div className="pt-2">
-              <h3 className="sr-only">Education</h3>
-              {sortedEducation.map((edu) => (
+            {isLoadingEducation ? (
+              <TimelineListSkeleton />
+            ) : (
+              <div className="pt-2">
+                <h3 className="sr-only">Education</h3>
+                {sortedEducation.map((edu) => (
                 <article key={edu.id} className="border-t border-muted-300 py-6">
                   <p className="text-xs tabular-nums text-muted-600">{edu.period}</p>
                   <h4 className="mt-2 text-xl font-medium tracking-tight">{edu.degree}</h4>
@@ -258,7 +274,8 @@ export function ExperienceEducationSection({
                     ))}
                 </article>
               ))}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

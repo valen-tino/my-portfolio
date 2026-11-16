@@ -3,6 +3,7 @@ import { EDUCATION_LIST, EXPERIENCES, PERSONAL_INFO } from '../data/portfolioDat
 import type { Education, Experience } from '../types/portfolio';
 import { sortByLatestEndDate } from '../utils/dateFormat';
 import { CloseIcon, DownloadIcon } from './Icons';
+import { CVModalSkeleton, SkeletonBox } from './Skeleton';
 
 interface CVModalProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ interface CVModalProps {
   fullName?: string;
   resumeSummary?: string;
   email?: string;
+  isLoading?: boolean;
 }
 
 export function CVModal({
@@ -24,6 +26,7 @@ export function CVModal({
   fullName,
   resumeSummary,
   email,
+  isLoading = false,
 }: CVModalProps) {
   const ref = useRef<HTMLDialogElement>(null);
 
@@ -85,9 +88,13 @@ export function CVModal({
     >
       <div className="flex items-start justify-between gap-5">
         <div>
-          <h2 id="resume-heading" className="mt-3 text-3xl font-medium tracking-tight">
-            {fullName?.trim() || PERSONAL_INFO.fullName}
-          </h2>
+          {isLoading ? (
+            <SkeletonBox className="mt-3 h-9 w-64 rounded" />
+          ) : (
+            <h2 id="resume-heading" className="mt-3 text-3xl font-medium tracking-tight">
+              {fullName?.trim() || PERSONAL_INFO.fullName}
+            </h2>
+          )}
         </div>
         <button
           type="button"
@@ -99,48 +106,54 @@ export function CVModal({
           <CloseIcon className="size-5" />
         </button>
       </div>
-      <p className="mt-6 text-sm leading-relaxed text-muted-600">
-        {resumeSummary?.trim() ||
-          'Bali-based web developer and UI/UX designer. React, TypeScript, WordPress, and Figma.'}
-      </p>
-      <h3 className="mb-4 mt-8 text-lg font-medium">Experience</h3>
-      {sortedExperiences.map((exp) => (
-        <div key={exp.id} className="border-t border-muted-300 py-4">
-          <p className="text-sm font-medium">
-            {exp.role} / {exp.company}
-          </p>
-          <p className="mt-1 text-xs text-muted-600">{exp.period}</p>
-        </div>
-      ))}
-      <h3 className="mb-4 mt-6 text-lg font-medium">Education</h3>
-      {sortedEducation.map((edu) => (
-        <div key={edu.id} className="border-t border-muted-300 py-4">
-          <p className="text-sm font-medium">{edu.degree}</p>
-          <p className="mt-1 text-xs text-muted-600">
-            {edu.institution} / {edu.period}
-          </p>
-        </div>
-      ))}
-      {hasDownloadableCV ? (
-        <a
-          href={cvURL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flat-button flat-button-blue mt-6"
-        >
-          Download full résumé <DownloadIcon className="size-4" />
-        </a>
+      {isLoading ? (
+        <CVModalSkeleton />
       ) : (
         <>
-          <a
-            href={`mailto:${resolvedEmail}?subject=Full%20résumé%20request`}
-            className="flat-button flat-button-blue mt-6"
-          >
-            Request full résumé <DownloadIcon className="size-4" />
-          </a>
-          <p className="mt-3 text-xs text-muted-600">
-            Opens your email app. No résumé PDF is currently attached to this portfolio.
+          <p className="mt-6 text-sm leading-relaxed text-muted-600">
+            {resumeSummary?.trim() ||
+              'Bali-based web developer and UI/UX designer. React, TypeScript, WordPress, and Figma.'}
           </p>
+          <h3 className="mb-4 mt-8 text-lg font-medium">Experience</h3>
+          {sortedExperiences.map((exp) => (
+            <div key={exp.id} className="border-t border-muted-300 py-4">
+              <p className="text-sm font-medium">
+                {exp.role} / {exp.company}
+              </p>
+              <p className="mt-1 text-xs text-muted-600">{exp.period}</p>
+            </div>
+          ))}
+          <h3 className="mb-4 mt-6 text-lg font-medium">Education</h3>
+          {sortedEducation.map((edu) => (
+            <div key={edu.id} className="border-t border-muted-300 py-4">
+              <p className="text-sm font-medium">{edu.degree}</p>
+              <p className="mt-1 text-xs text-muted-600">
+                {edu.institution} / {edu.period}
+              </p>
+            </div>
+          ))}
+          {hasDownloadableCV ? (
+            <a
+              href={cvURL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flat-button flat-button-blue mt-6"
+            >
+              Download full résumé <DownloadIcon className="size-4" />
+            </a>
+          ) : (
+            <>
+              <a
+                href={`mailto:${resolvedEmail}?subject=Full%20résumé%20request`}
+                className="flat-button flat-button-blue mt-6"
+              >
+                Request full résumé <DownloadIcon className="size-4" />
+              </a>
+              <p className="mt-3 text-xs text-muted-600">
+                Opens your email app. No résumé PDF is currently attached to this portfolio.
+              </p>
+            </>
+          )}
         </>
       )}
     </dialog>

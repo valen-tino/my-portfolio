@@ -38,7 +38,8 @@ This document provides a comprehensive, centralized record of all architecture i
 31. [Full Frontend CMS Connectivity, Social Links CRUD, Extended Site Copy & Brand-Blue Loading Screen](#31-full-frontend-cms-connectivity-social-links-crud-extended-site-copy--brand-blue-loading-screen)
 32. [Database Connectivity Hardening, Vite API Proxy & iPhone Top/Bottom Browser Bar Fix](#32-database-connectivity-hardening-vite-api-proxy--iphone-topbottom-browser-bar-fix)
 33. [Database Migration to LayerBase (DocumentDB 1.0.0) & CMS-Wide Error States](#33-database-migration-to-layerbase-documentdb-100--cms-wide-error-states)
-34. [Files Created, Modified, or Removed](#34-files-created-modified-or-removed)
+34. [Database Loading Skeletons, Hidden Scrollbars & Vite Route/Vendor Code-Splitting](#34-database-loading-skeletons-hidden-scrollbars--vite-routevendor-code-splitting)
+35. [Files Created, Modified, or Removed](#35-files-created-modified-or-removed)
 
 ---
 
@@ -646,9 +647,34 @@ This document provides a comprehensive, centralized record of all architecture i
 
 ---
 
-## 34. Files Created, Modified, or Removed
+## 34. Database Loading Skeletons, Hidden Scrollbars & Vite Route/Vendor Code-Splitting
+
+- **Layout-Matched Database Skeletons & Progressive Image Shimmer (`src/components/Skeleton.tsx`)**:
+  - Created `src/components/Skeleton.tsx` containing reduced-motion-safe (`animate-pulse motion-reduce:animate-none`) skeleton primitives and section loaders: `SkeletonBox`, `ProgressiveImageFrame`, `HeroStripSkeleton`, `ProjectCardSkeletonGrid`, `BlogCardSkeletonGrid`, `PortfolioTableSkeleton`, `FilterBarSkeleton`, `WorkProcessSkeleton`, `AboutSectionSkeleton`, `TimelineListSkeleton`, `PortfolioDetailSkeleton`, `BlogDetailSkeleton`, `FooterSkeleton`, and `CVModalSkeleton`.
+  - Replaced synchronous static initial fallback rendering (`PROJECTS`, `BLOG_POSTS`, `EXPERIENCES`, `EDUCATION_LIST`, `TECH_TOOLS`, `WORK_PROCESS_STEPS`, `SOCIAL_LINKS`, `PERSONAL_INFO`) while fetching live database records across `App.tsx`, `Home.tsx` (per-section `loadingState`), `PortfolioPage.tsx`, `BlogPage.tsx`, `HeroProjectStrip.tsx`, `WorkProcessSection.tsx`, `ExperienceEducationSection.tsx`, `CVModal.tsx`, and `Footer.tsx`. Static datasets remain strictly as offline/rejected recovery fallbacks.
+  - Kept the brand-blue `<LoadingScreen />` overlay in `App.tsx`, `PortfolioDetail.tsx`, and `BlogDetail.tsx`, swapping empty loading containers underneath `PortfolioDetail` / `BlogDetail` with `<PortfolioDetailSkeleton />` and `<BlogDetailSkeleton />`.
+  - Added `ProgressiveImageFrame` image-load shimmer behind remote images in `ProjectCard.tsx`, `BlogCard.tsx`, `HeroProjectStrip.tsx`, `PortfolioDetail.tsx`, `BlogDetail.tsx`, and `Home.tsx` portrait, and added `isLoading` dependencies in `HeroProjectStrip.tsx` so `IntersectionObserver`, `ResizeObserver`, and toggletip listeners re-bind cleanly after skeletons resolve.
+- **Global Hidden Scrollbars (`src/index.css`, `src/App.css`)**:
+  - Applied standard `scrollbar-width: none` across `html`, `body`, and nested elements in `src/index.css`, paired with an `@supports not (scrollbar-width: none)` `::-webkit-scrollbar` fallback (`display: none; width: 0; height: 0`) so mouse-wheel, trackpad, touch swipe, and keyboard scrolling work normally without visible scrollbars.
+  - Updated mobile `.portfolio-gallery` in `src/App.css` from `scrollbar-width: thin` to `scrollbar-width: none`.
+- **Vite Route & Vendor Code-Splitting (`src/App.tsx`, `vite.config.ts`)**:
+  - Kept `Home.tsx` eager in the entry chunk and converted public subpages (`PortfolioPage`, `PortfolioDetail`, `BlogPage`, `BlogDetail`, `DesignSystemPage`) plus all 13 CMS admin pages to `React.lazy(() => import(...))` inside `<Suspense fallback={<RouteSuspenseFallback isCMSRoute={isCMSRoute} />}>`.
+  - Added `build.rollupOptions.output.manualChunks` (`resolveManualChunk(id)`) in `vite.config.ts` isolating `vendor-react`, `vendor-prosemirror`, `vendor-tiptap`, `vendor-gsap`, and `vendor-utils`, keeping the default `500` kB chunk warning limit untouched.
+  - Reduced the main entry chunk `dist/assets/index-*.js` from `1,845.17 kB` (`466.02 kB` gzip) down to `233.96 kB` (`42.85 kB` gzip) with every generated JS chunk strictly under `500` kB (`vendor-react` `434.49 kB`, `vendor-prosemirror` `219.77 kB`, `vendor-tiptap` `175.53 kB`, `vendor-gsap` `114.55 kB`, `vendor-utils` `109.73 kB`) and **zero** Vite chunk warnings.
+- **Test & Build Verification**:
+  - Created `tests/SkeletonLoading.test.tsx` (6 tests covering pending-promise skeleton rendering on `Home`, `PortfolioPage`, `BlogPage`, `PortfolioDetail`, `BlogDetail`, and `CVModal`, offline fallback on rejection, and hidden scrollbar CSS rules) and updated `tests/HomeRedesign.test.tsx` to await async `Home` hydration.
+  - Verified full Vitest suite passes (**28 test files, 134 tests**) and `npm run build` (`tsc && vite build`) compiles cleanly with zero errors or chunk size warnings.
+
+---
+
+## 35. Files Created, Modified, or Removed
 
 | File | Status | Description |
+| :--- | :--- | :--- |
+| `src/components/Skeleton.tsx`, `tests/SkeletonLoading.test.tsx` | Created | Reusable `aria-busy`/`aria-hidden` skeleton components, `ProgressiveImageFrame` media shimmer, and 6 Vitest tests for database skeleton states and hidden scrollbar rules (`28 test files, 134 tests`). |
+| `src/App.tsx`, `vite.config.ts` | Modified | Added `React.lazy` + `<Suspense>` route/CMS splitting, `resolveManualChunk` (`vendor-react`, `vendor-prosemirror`, `vendor-tiptap`, `vendor-gsap`, `vendor-utils`) eliminating >500 kB chunk warnings, and `CVModal` skeleton gating. |
+| `src/pages/Home.tsx`, `PortfolioPage.tsx`, `BlogPage.tsx`, `PortfolioDetail.tsx`, `BlogDetail.tsx` | Modified | Replaced static initial data with loading skeletons (`Skeleton.tsx`) while fetching live database assets and added image-load shimmer while preserving `<LoadingScreen />`. |
+| `src/components/ProjectCard.tsx`, `BlogCard.tsx`, `HeroProjectStrip.tsx`, `WorkProcessSection.tsx`, `ExperienceEducationSection.tsx`, `CVModal.tsx`, `Footer.tsx`, `src/index.css`, `src/App.css`, `tests/HomeRedesign.test.tsx` | Modified | Wired `isLoading` skeleton states, progressive image shimmer, `HeroProjectStrip` `isLoading` observer/tooltip re-binding, global `scrollbar-width: none` + WebKit fallback, and updated async Home test expectations. |
 | :--- | :--- | :--- |
 | `server/utils/errorHandler.js`, `src/cms/utils/errorUtils.ts`, `src/cms/components/CMSStatusBanner.tsx`, `tests/CMSErrorStates.test.tsx` | Created | Unified backend Mongoose/route error formatter (`handleRouteError`), frontend CMS error parser (`parseCMSError`), reusable `CMSStatusBanner`/`CMSFieldError` UI components, and error-state tests (`27 test files, 128 tests`). |
 | `server/models/Experience.js`, `server/routes/*.js` (`about`, `blog`, `contact`, `education`, `experiences`, `portfolio`, `roles`, `socialLinks`, `techTools`, `workProcess`) | Modified | Expanded `Experience` description limit to `20000` characters and standardized HTTP `400`/`500` structured `errors` + `fieldErrors` JSON responses across all CMS routes. |

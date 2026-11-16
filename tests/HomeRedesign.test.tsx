@@ -243,7 +243,7 @@ describe('Home (Redesigned)', () => {
     });
   });
 
-  it('renders valentinojehaut@gmail.com at contact, omits Upwork, and renders vibrant Footer without removed items', () => {
+  it('renders valentinojehaut@gmail.com at contact, omits Upwork, and renders vibrant Footer without removed items', async () => {
     window.scrollTo = vi.fn();
 
     render(
@@ -252,7 +252,7 @@ describe('Home (Redesigned)', () => {
       </MemoryRouter>
     );
 
-    const contactEmail = screen.getAllByRole('link', { name: /valentinojehaut@gmail\.com/i });
+    const contactEmail = await screen.findAllByRole('link', { name: /valentinojehaut@gmail\.com/i });
     expect(contactEmail.length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText(/tino\.jehaut@gmail\.com/i)).toBeNull();
     expect(screen.queryByRole('link', { name: /Upwork/i })).toBeNull();
