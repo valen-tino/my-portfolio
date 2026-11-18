@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import { fetchWithCMSCache, invalidateCMSCache } from '../utils/cmsCache';
 
 const PLACEHOLDER_DOMAINS = ['your-portfolio.vercel.app', 'your-preview-url.vercel.app'];
 const LOCALHOST_URL_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i;
@@ -720,9 +721,17 @@ class ApiService {
 
   // Experience methods
   async getExperiences(publishedOnly = false) {
-    const params = publishedOnly ? { published: 'true' } : {};
-    const response = await this.api.get('/experiences', { params });
-    return response.data;
+    const isCMSAdmin = typeof window !== 'undefined' && window.location.pathname.startsWith('/cms');
+    const key = `api:experiences:${publishedOnly ? 'pub' : 'all'}`;
+    return fetchWithCMSCache(
+      key,
+      async () => {
+        const params = publishedOnly ? { published: 'true' } : {};
+        const response = await this.api.get('/experiences', { params });
+        return response.data;
+      },
+      { forceRefresh: isCMSAdmin },
+    );
   }
 
   async getExperience(id: string) {
@@ -742,6 +751,8 @@ class ApiService {
     isPublished?: boolean;
   }) {
     const response = await this.api.post('/experiences', data);
+    invalidateCMSCache('api:experiences');
+    invalidateCMSCache('experiences');
     return response.data;
   }
 
@@ -757,11 +768,15 @@ class ApiService {
     isPublished?: boolean;
   }) {
     const response = await this.api.put(`/experiences/${id}`, data);
+    invalidateCMSCache('api:experiences');
+    invalidateCMSCache('experiences');
     return response.data;
   }
 
   async deleteExperience(id: string) {
     const response = await this.api.delete(`/experiences/${id}`);
+    invalidateCMSCache('api:experiences');
+    invalidateCMSCache('experiences');
     return response.data;
   }
 

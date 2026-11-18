@@ -9,9 +9,9 @@ import { LoadingScreen } from '../components/LoadingScreen';
 import { BlogDetailSkeleton, ProgressiveImageFrame } from '../components/Skeleton';
 import { BLOG_POSTS, mapCMSBlogToPost } from '../data/portfolioData';
 import type { BlogPost } from '../types/portfolio';
-import { formatPublicDescription } from '../utils/contentMigration';
+import { buildCloudinarySrcSet, formatPublicDescription } from '../utils/contentMigration';
 import { formatFullDate, toISODateAttribute } from '../utils/dateFormat';
-import { useGSAPPageEntrance } from '../utils/gsapAnimations';
+import { animateImageReveal, useGSAPPageEntrance } from '../utils/gsapAnimations';
 import { navigateWithTransition } from '../utils/viewTransitions';
 
 export default function BlogDetail() {
@@ -19,8 +19,16 @@ export default function BlogDetail() {
   const navigate = useNavigate();
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const [post, setPost] = useState<BlogPost | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedRawBlog =
+    id && typeof CMSStorage.peekCachedBlogById === 'function'
+      ? CMSStorage.peekCachedBlogById(id)
+      : null;
+  const hasCachedBlog = Boolean(cachedRawBlog && cachedRawBlog.content);
+
+  const [post, setPost] = useState<BlogPost | null>(() =>
+    hasCachedBlog && cachedRawBlog ? mapCMSBlogToPost(cachedRawBlog) : null,
+  );
+  const [loading, setLoading] = useState(!hasCachedBlog);
   const [error, setError] = useState<string | null>(null);
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -200,10 +208,17 @@ export default function BlogDetail() {
               <ProgressiveImageFrame aspectRatio="aspect-[16/9]" loaded={imgLoaded}>
                 <img
                   src={post.imageURL}
+                  srcSet={buildCloudinarySrcSet(post.imageURL, [640, 1280, 1920])}
+                  sizes="(max-width: 768px) 100vw, 768px"
                   alt={post.title}
+                  width={1280}
+                  height={720}
                   fetchPriority="high"
                   decoding="async"
-                  onLoad={() => setImgLoaded(true)}
+                  onLoad={(event) => {
+                    setImgLoaded(true);
+                    animateImageReveal(event.currentTarget);
+                  }}
                   onError={() => {
                     setImgLoaded(true);
                     setImgError(true);

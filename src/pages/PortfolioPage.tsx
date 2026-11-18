@@ -15,7 +15,7 @@ import {
 } from '../components/Skeleton';
 import { PROJECTS, mapPortfolioItemToProject } from '../data/portfolioData';
 import type { Project } from '../types/portfolio';
-import { useGSAPPageEntrance } from '../utils/gsapAnimations';
+import { animateElementTransition, useGSAPPageEntrance } from '../utils/gsapAnimations';
 import { navigateWithTransition } from '../utils/viewTransitions';
 
 type PortfolioViewMode = 'grid' | 'table';
@@ -24,13 +24,30 @@ export default function PortfolioPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const rootRef = useRef<HTMLDivElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const didMountFilterRef = useRef(false);
   const techDropdownRef = useRef<HTMLDivElement>(null);
   const gridToggleRef = useRef<HTMLButtonElement>(null);
   const tableToggleRef = useRef<HTMLButtonElement>(null);
 
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [cmsRoles, setCmsRoles] = useState<Role[]>([]);
+  const cachedPortfolios =
+    typeof CMSStorage.peekCachedPortfolios === 'function'
+      ? CMSStorage.peekCachedPortfolios(true)
+      : null;
+  const cachedRoles =
+    typeof CMSStorage.peekCachedRoles === 'function'
+      ? CMSStorage.peekCachedRoles()
+      : null;
+
+  const [projects, setProjects] = useState<Project[]>(() =>
+    cachedPortfolios
+      ? cachedPortfolios
+          .filter((item) => item.isPublished !== false)
+          .map(mapPortfolioItemToProject)
+      : [],
+  );
+  const [loading, setLoading] = useState(!cachedPortfolios);
+  const [cmsRoles, setCmsRoles] = useState<Role[]>(() => cachedRoles ?? []);
   const [role, setRole] = useState('All');
   const [year, setYear] = useState('All');
   const [selectedTechs, setSelectedTechs] = useState<string[]>([]);
@@ -42,7 +59,7 @@ export default function PortfolioPage() {
 
   const viewMode: PortfolioViewMode = searchParams.get('view') === 'table' ? 'table' : 'grid';
 
-  useGSAPPageEntrance(rootRef, [projects.length]);
+  useGSAPPageEntrance(rootRef, [projects.length, loading, viewMode]);
 
   useEffect(() => {
     let active = true;
@@ -111,6 +128,19 @@ export default function PortfolioPage() {
     mediaQuery.addEventListener('change', handleBreakpointChange);
     return () => mediaQuery.removeEventListener('change', handleBreakpointChange);
   }, [mobileFilterOpen]);
+
+  useEffect(() => {
+    if (!didMountFilterRef.current) {
+      didMountFilterRef.current = true;
+      return;
+    }
+    if (loading) return;
+    animateElementTransition(resultsRef.current, {
+      y: 10,
+      duration: 0.25,
+      staggerSelector: viewMode === 'grid' ? 'article' : undefined,
+    });
+  }, [role, year, selectedTechs, viewMode, loading]);
 
   const setViewMode = (nextMode: PortfolioViewMode) => {
     const next = new URLSearchParams(searchParams);
@@ -341,6 +371,7 @@ export default function PortfolioPage() {
           </div>
         </div>
 
+        <div ref={resultsRef}>
         {loading ? (
           viewMode === 'table' ? (
             <PortfolioTableSkeleton />
@@ -377,6 +408,7 @@ export default function PortfolioPage() {
             </button>
           </div>
         )}
+        </div>
       </main>
 
       <Footer />

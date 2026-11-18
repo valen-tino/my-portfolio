@@ -47,9 +47,13 @@ import type {
   TechToolView,
   WorkProcessStep,
 } from '../types/portfolio';
-import { formatPublicDescription } from '../utils/contentMigration';
+import { buildCloudinarySrcSet, formatPublicDescription } from '../utils/contentMigration';
 import { sortByLatestEndDate } from '../utils/dateFormat';
-import { useGSAPPageEntrance } from '../utils/gsapAnimations';
+import {
+  animateElementTransition,
+  animateImageReveal,
+  useGSAPPageEntrance,
+} from '../utils/gsapAnimations';
 import { navigateWithTransition } from '../utils/viewTransitions';
 
 interface HomeProps {
@@ -60,28 +64,87 @@ export default function Home({ onOpenCVModal }: HomeProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const rootRef = useRef<HTMLDivElement>(null);
+  const workCarouselRef = useRef<HTMLDivElement>(null);
+  const didMountRoleRef = useRef(false);
   const greeting = getGreetingText();
 
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [blogs, setBlogs] = useState<BlogPost[]>([]);
-  const [experiences, setExperiences] = useState<Experience[]>([]);
-  const [educationList, setEducationList] = useState<Education[]>([]);
-  const [techTools, setTechTools] = useState<TechToolView[]>([]);
-  const [workProcessSteps, setWorkProcessSteps] = useState<WorkProcessStep[]>([]);
-  const [cmsRoles, setCmsRoles] = useState<Role[]>([]);
-  const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
-  const [aboutData, setAboutData] = useState<AboutData | null>(null);
+  const cachedPortfolios =
+    typeof CMSStorage.peekCachedPortfolios === 'function'
+      ? CMSStorage.peekCachedPortfolios(true)
+      : null;
+  const cachedBlogs =
+    typeof CMSStorage.peekCachedBlogs === 'function' ? CMSStorage.peekCachedBlogs(true) : null;
+  const cachedAbout =
+    typeof CMSStorage.peekCachedAbout === 'function' ? CMSStorage.peekCachedAbout() : null;
+  const cachedTools =
+    typeof CMSStorage.peekCachedTechTools === 'function'
+      ? CMSStorage.peekCachedTechTools(true)
+      : null;
+  const cachedEducation =
+    typeof CMSStorage.peekCachedEducation === 'function' ? CMSStorage.peekCachedEducation() : null;
+  const cachedExperiences =
+    typeof CMSStorage.peekCachedExperiences === 'function'
+      ? CMSStorage.peekCachedExperiences(true)
+      : null;
+  const cachedWorkProcesses =
+    typeof CMSStorage.peekCachedWorkProcesses === 'function'
+      ? CMSStorage.peekCachedWorkProcesses(true)
+      : null;
+  const cachedRoles =
+    typeof CMSStorage.peekCachedRoles === 'function' ? CMSStorage.peekCachedRoles() : null;
+  const cachedSocialLinks =
+    typeof CMSStorage.peekCachedSocialLinks === 'function'
+      ? CMSStorage.peekCachedSocialLinks(true)
+      : null;
+
+  const [projects, setProjects] = useState<Project[]>(() => {
+    if (!cachedPortfolios) return [];
+    const published = cachedPortfolios
+      .filter((item) => item.isPublished !== false)
+      .map(mapPortfolioItemToProject);
+    return published.length > 0 ? published : PROJECTS;
+  });
+  const [blogs, setBlogs] = useState<BlogPost[]>(() =>
+    cachedBlogs
+      ? cachedBlogs.filter((item) => item.isPublished !== false).map(mapCMSBlogToPost)
+      : [],
+  );
+  const [experiences, setExperiences] = useState<Experience[]>(() =>
+    cachedExperiences && cachedExperiences.length > 0
+      ? sortByLatestEndDate(cachedExperiences.map(mapCMSExperienceToView))
+      : [],
+  );
+  const [educationList, setEducationList] = useState<Education[]>(() =>
+    cachedEducation && cachedEducation.length > 0
+      ? sortByLatestEndDate(cachedEducation.map(mapCMSEducationToView))
+      : [],
+  );
+  const [techTools, setTechTools] = useState<TechToolView[]>(() =>
+    cachedTools && cachedTools.length > 0 ? cachedTools.map(mapCMSTechToolToView) : [],
+  );
+  const [workProcessSteps, setWorkProcessSteps] = useState<WorkProcessStep[]>(() =>
+    cachedWorkProcesses && cachedWorkProcesses.length > 0
+      ? cachedWorkProcesses.map(mapCMSWorkProcessToView)
+      : [],
+  );
+  const [cmsRoles, setCmsRoles] = useState<Role[]>(() => cachedRoles ?? []);
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>(() =>
+    cachedSocialLinks && cachedSocialLinks.length > 0
+      ? cachedSocialLinks.filter((item) => item.isPublished !== false).map(mapCMSSocialLinkToView)
+      : [],
+  );
+  const [aboutData, setAboutData] = useState<AboutData | null>(cachedAbout);
   const [portraitError, setPortraitError] = useState(false);
   const [portraitLoaded, setPortraitLoaded] = useState(false);
   const [loadingState, setLoadingState] = useState({
-    projects: true,
-    blogs: true,
-    about: true,
-    tools: true,
-    education: true,
-    experiences: true,
-    workProcess: true,
-    socialLinks: true,
+    projects: !cachedPortfolios,
+    blogs: !cachedBlogs,
+    about: !cachedAbout,
+    tools: !cachedTools,
+    education: !cachedEducation,
+    experiences: !cachedExperiences,
+    workProcess: !cachedWorkProcesses,
+    socialLinks: !cachedSocialLinks,
   });
 
   const [selectedRole, setSelectedRole] = useState('All');
@@ -96,7 +159,13 @@ export default function Home({ onOpenCVModal }: HomeProps) {
   const [isSubmittingContact, setIsSubmittingContact] = useState(false);
   const [contactStatus, setContactStatus] = useState('');
 
-  useGSAPPageEntrance(rootRef, [projects.length, blogs.length]);
+  useGSAPPageEntrance(rootRef, [
+    projects.length,
+    blogs.length,
+    loadingState.about,
+    loadingState.projects,
+    loadingState.tools,
+  ]);
 
   useEffect(() => {
     let active = true;
@@ -249,6 +318,19 @@ export default function Home({ onOpenCVModal }: HomeProps) {
     if (selectedRole === 'All') return projects;
     return projects.filter((p) => p.roles.includes(selectedRole));
   }, [projects, selectedRole]);
+
+  useEffect(() => {
+    if (!didMountRoleRef.current) {
+      didMountRoleRef.current = true;
+      return;
+    }
+    if (loadingState.projects) return;
+    animateElementTransition(workCarouselRef.current, {
+      y: 8,
+      duration: 0.25,
+      staggerSelector: 'article',
+    });
+  }, [selectedRole, loadingState.projects]);
 
   const handleSelectProject = (project: Project) => {
     if (project.isPasswordProtected) {
@@ -431,16 +513,18 @@ export default function Home({ onOpenCVModal }: HomeProps) {
           {loadingState.projects ? (
             <ProjectCardSkeletonGrid count={3} carouselMode />
           ) : (
-            <EditorialCarousel label="selected work">
-              {filteredProjects.slice(0, 6).map((project) => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  onSelectProject={handleSelectProject}
-                  aspectRatio="aspect-video"
-                />
-              ))}
-            </EditorialCarousel>
+            <div ref={workCarouselRef}>
+              <EditorialCarousel label="selected work">
+                {filteredProjects.slice(0, 6).map((project) => (
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    onSelectProject={handleSelectProject}
+                    aspectRatio="aspect-video"
+                  />
+                ))}
+              </EditorialCarousel>
+            </div>
           )}
         </div>
       </section>
@@ -510,7 +594,10 @@ export default function Home({ onOpenCVModal }: HomeProps) {
                     ],
                   ].map(([value, label]) => (
                     <div key={label}>
-                      <p className="text-4xl font-medium tracking-[-0.05em] text-brand sm:text-5xl">
+                      <p
+                        data-gsap="stat-value"
+                        className="text-4xl font-medium tracking-[-0.05em] text-brand sm:text-5xl"
+                      >
                         {value}
                       </p>
                       <p className="mt-2 text-xs leading-relaxed text-muted-600">{label}</p>
@@ -524,12 +611,17 @@ export default function Home({ onOpenCVModal }: HomeProps) {
                     <ProgressiveImageFrame aspectRatio="aspect-[4/5]" loaded={portraitLoaded}>
                       <img
                         src={resolvedPortraitUrl}
+                        srcSet={buildCloudinarySrcSet(resolvedPortraitUrl, [400, 800])}
+                        sizes="(max-width: 1024px) 320px, 320px"
                         alt={`Portrait of ${fullName}`}
                         width={400}
                         height={500}
                         loading="lazy"
                         decoding="async"
-                        onLoad={() => setPortraitLoaded(true)}
+                        onLoad={(event) => {
+                          setPortraitLoaded(true);
+                          animateImageReveal(event.currentTarget);
+                        }}
                         onError={() => {
                           setPortraitLoaded(true);
                           setPortraitError(true);
@@ -563,10 +655,16 @@ export default function Home({ onOpenCVModal }: HomeProps) {
             ) : (
               <ul className="flex flex-wrap gap-x-6 gap-y-4 text-sm font-medium">
                 {techTools.map((tool) => (
-                  <li key={tool.id || tool.name} className="inline-flex items-center gap-2">
+                  <li
+                    key={tool.id || tool.name}
+                    data-gsap="reveal-item"
+                    className="inline-flex items-center gap-2"
+                  >
                     {tool.imageURL && (
                       <img
                         src={tool.imageURL}
+                        srcSet={buildCloudinarySrcSet(tool.imageURL, [48, 96])}
+                        sizes="18px"
                         alt=""
                         width={18}
                         height={18}

@@ -3,6 +3,13 @@ const About = require('../models/About');
 const { authMiddleware } = require('../middleware/auth');
 const { deleteImage } = require('../config/cloudinary');
 const { handleRouteError } = require('../utils/errorHandler');
+const {
+  getCachedResponse,
+  setCachedResponse,
+  invalidateServerCache,
+  setPublicCacheHeaders,
+  execLean,
+} = require('../utils/responseCache');
 const router = express.Router();
 
 // @route   GET /api/about
@@ -10,7 +17,18 @@ const router = express.Router();
 // @access  Public
 router.get('/', async (req, res) => {
   try {
-    let about = await About.findOne();
+    const isAuth = Boolean(req.headers && req.headers.authorization);
+    const cacheKey = 'about:main';
+
+    setPublicCacheHeaders(res, 60, 300, 600, req);
+    if (!isAuth) {
+      const cached = getCachedResponse(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+    }
+
+    let about = await execLean(About.findOne());
     
     // If no about data exists, create default
     if (!about) {
@@ -23,10 +41,15 @@ router.get('/', async (req, res) => {
       await about.save();
     }
 
-    res.json({
+    const payload = {
       success: true,
       data: about
-    });
+    };
+    if (!isAuth) {
+      setCachedResponse(cacheKey, payload);
+    }
+
+    res.json(payload);
   } catch (error) {
     console.error('Get about error:', error);
     return handleRouteError(res, error, 'Server error while fetching about data');
@@ -125,6 +148,8 @@ router.put('/', authMiddleware, async (req, res) => {
       });
       await about.save();
     }
+
+    invalidateServerCache('about:');
 
     res.json({
       success: true,

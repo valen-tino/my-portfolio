@@ -3,6 +3,13 @@ const SocialLink = require('../models/SocialLink');
 const { authMiddleware } = require('../middleware/auth');
 const DEFAULT_SOCIAL_LINKS = require('../data/defaultSocialLinks');
 const { handleRouteError } = require('../utils/errorHandler');
+const {
+  getCachedResponse,
+  setCachedResponse,
+  invalidateServerCache,
+  setPublicCacheHeaders,
+  execLean,
+} = require('../utils/responseCache');
 
 const router = express.Router();
 
@@ -11,13 +18,29 @@ const router = express.Router();
 // @access  Public
 router.get('/', async (req, res) => {
   try {
-    const query = req.query.published === 'true' ? { isPublished: { $ne: false } } : {};
-    const links = await SocialLink.find(query).sort({ order: 1, createdAt: 1 });
-    res.json({
+    const publishedOnly = req.query.published === 'true';
+    const isAuth = Boolean(req.headers && req.headers.authorization);
+    const cacheKey = `socialLinks:list:${publishedOnly ? 'pub' : 'all'}`;
+
+    setPublicCacheHeaders(res, 60, 300, 600, req);
+    if (!isAuth) {
+      const cached = getCachedResponse(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+    }
+
+    const query = publishedOnly ? { isPublished: { $ne: false } } : {};
+    const links = await execLean(SocialLink.find(query).sort({ order: 1, createdAt: 1 }));
+    const payload = {
       success: true,
       data: links,
       count: links.length,
-    });
+    };
+    if (!isAuth) {
+      setCachedResponse(cacheKey, payload);
+    }
+    res.json(payload);
   } catch (error) {
     console.error('Get social links error:', error);
     return handleRouteError(res, error, 'Failed to fetch social links');
@@ -48,6 +71,7 @@ router.post('/seed', authMiddleware, async (req, res) => {
     }
 
     const inserted = await SocialLink.insertMany(DEFAULT_SOCIAL_LINKS);
+    invalidateServerCache('socialLinks:');
     res.status(201).json({
       success: true,
       seeded: true,
@@ -66,17 +90,32 @@ router.post('/seed', authMiddleware, async (req, res) => {
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
-    const link = await SocialLink.findById(req.params.id);
+    const isAuth = Boolean(req.headers && req.headers.authorization);
+    const cacheKey = `socialLinks:item:${req.params.id}`;
+
+    setPublicCacheHeaders(res, 60, 300, 600, req);
+    if (!isAuth) {
+      const cached = getCachedResponse(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+    }
+
+    const link = await execLean(SocialLink.findById(req.params.id));
     if (!link) {
       return res.status(404).json({
         success: false,
         message: 'Social link not found',
       });
     }
-    res.json({
+    const payload = {
       success: true,
       data: link,
-    });
+    };
+    if (!isAuth) {
+      setCachedResponse(cacheKey, payload);
+    }
+    res.json(payload);
   } catch (error) {
     console.error('Get social link error:', error);
     return handleRouteError(res, error, 'Failed to fetch social link');
@@ -125,6 +164,7 @@ router.post('/', authMiddleware, async (req, res) => {
     });
 
     await link.save();
+    invalidateServerCache('socialLinks:');
 
     res.status(201).json({
       success: true,
@@ -193,6 +233,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
 
     await link.save();
+    invalidateServerCache('socialLinks:');
 
     res.json({
       success: true,
@@ -217,6 +258,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
         message: 'Social link not found',
       });
     }
+    invalidateServerCache('socialLinks:');
 
     res.json({
       success: true,

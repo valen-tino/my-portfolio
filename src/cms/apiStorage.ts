@@ -1,4 +1,9 @@
 import apiService from '../services/api';
+import { fetchWithCMSCache, invalidateCMSCache, peekCMSCache } from '../utils/cmsCache';
+
+function isCMSAdminPath(): boolean {
+  return typeof window !== 'undefined' && window.location.pathname.startsWith('/cms');
+}
 
 export interface AboutData {
   _id?: string;
@@ -172,14 +177,96 @@ export interface CMSData {
 }
 
 export class CMSStorage {
+  // Synchronous cache readers for instant route hydration on repeat visits
+  static peekCachedAbout(): AboutData | null {
+    return peekCMSCache<AboutData>('about')?.data ?? null;
+  }
+
+  static peekCachedRoles(): Role[] | null {
+    return peekCMSCache<Role[]>('roles')?.data ?? null;
+  }
+
+  static peekCachedTechTools(publishedOnly = true): TechTool[] | null {
+    const key = `techTools:${publishedOnly ? 'pub' : 'all'}`;
+    return peekCMSCache<TechTool[]>(key)?.data ?? null;
+  }
+
+  static peekCachedEducation(): EducationItem[] | null {
+    return peekCMSCache<EducationItem[]>('education')?.data ?? null;
+  }
+
+  static peekCachedPortfolios(publishedOnly = true): PortfolioItem[] | null {
+    const key = `portfolios:${publishedOnly ? 'pub' : 'all'}`;
+    return peekCMSCache<PortfolioItem[]>(key)?.data ?? null;
+  }
+
+  static peekCachedPortfolioById(id: string): PortfolioItem | null {
+    const direct = peekCMSCache<PortfolioItem>(`portfolio:${id}`)?.data;
+    if (direct) return direct;
+    const list =
+      this.peekCachedPortfolios(true) ?? this.peekCachedPortfolios(false);
+    if (!list) return null;
+    return (
+      list.find((item) => (String(item.id) === id || item._id === id) && item.isPublished !== false) ??
+      null
+    );
+  }
+
+  static peekCachedExperiences(publishedOnly = true): Experience[] | null {
+    const key = `experiences:${publishedOnly ? 'pub' : 'all'}`;
+    const direct = peekCMSCache<Experience[]>(key)?.data;
+    if (direct) return direct;
+    const apiKey = `api:experiences:${publishedOnly ? 'pub' : 'all'}`;
+    const apiCached = peekCMSCache<{ success?: boolean; data?: any[] }>(apiKey)?.data;
+    if (apiCached?.success && Array.isArray(apiCached.data)) {
+      return apiCached.data.map((item: any) => this.mapExperienceData(item));
+    }
+    return null;
+  }
+
+  static peekCachedBlogs(publishedOnly = true): BlogItem[] | null {
+    const key = `blogs:${publishedOnly ? 'pub' : 'all'}:::`;
+    return peekCMSCache<BlogItem[]>(key)?.data ?? null;
+  }
+
+  static peekCachedBlogById(id: string): BlogItem | null {
+    const direct = peekCMSCache<BlogItem>(`blog:${id}`)?.data;
+    if (direct) return direct;
+    const list = this.peekCachedBlogs(true) ?? this.peekCachedBlogs(false);
+    if (!list) return null;
+    return (
+      list.find(
+        (item) =>
+          (String(item.id) === id || item._id === id || item.slug === id) &&
+          item.isPublished !== false,
+      ) ?? null
+    );
+  }
+
+  static peekCachedWorkProcesses(publishedOnly = true): CMSWorkProcessStep[] | null {
+    const key = `workProcess:${publishedOnly ? 'pub' : 'all'}`;
+    return peekCMSCache<CMSWorkProcessStep[]>(key)?.data ?? null;
+  }
+
+  static peekCachedSocialLinks(publishedOnly = true): CMSSocialLink[] | null {
+    const key = `socialLinks:${publishedOnly ? 'pub' : 'all'}`;
+    return peekCMSCache<CMSSocialLink[]>(key)?.data ?? null;
+  }
+
   // About methods
   static async getAbout(): Promise<AboutData> {
     try {
-      const response = await apiService.getAbout();
-      if (response.success) {
-        return response.data;
-      }
-      throw new Error('Failed to fetch about data');
+      return await fetchWithCMSCache(
+        'about',
+        async () => {
+          const response = await apiService.getAbout();
+          if (response.success) {
+            return response.data;
+          }
+          throw new Error('Failed to fetch about data');
+        },
+        { forceRefresh: isCMSAdminPath() },
+      );
     } catch (error) {
       console.error('Error fetching about data:', error);
       throw error;
@@ -189,11 +276,17 @@ export class CMSStorage {
   // Role methods
   static async getRoles(): Promise<Role[]> {
     try {
-      const response = await apiService.getRoles();
-      if (response.success) {
-        return response.data.map((item: any) => this.mapRoleData(item));
-      }
-      throw new Error('Failed to fetch roles');
+      return await fetchWithCMSCache(
+        'roles',
+        async () => {
+          const response = await apiService.getRoles();
+          if (response.success) {
+            return response.data.map((item: any) => this.mapRoleData(item));
+          }
+          throw new Error('Failed to fetch roles');
+        },
+        { forceRefresh: isCMSAdminPath() },
+      );
     } catch (error) {
       console.error('Error fetching roles:', error);
       throw error;
@@ -204,6 +297,7 @@ export class CMSStorage {
     try {
       const response = await apiService.createRole(role);
       if (response.success) {
+        invalidateCMSCache('roles');
         return this.mapRoleData(response.data);
       }
       throw new Error(response.message || 'Failed to create role');
@@ -218,6 +312,7 @@ export class CMSStorage {
       const idString = typeof id === 'string' ? id : id.toString();
       const response = await apiService.updateRole(idString, role);
       if (response.success) {
+        invalidateCMSCache('roles');
         return this.mapRoleData(response.data);
       }
       throw new Error(response.message || 'Failed to update role');
@@ -234,6 +329,7 @@ export class CMSStorage {
       if (!response.success) {
         throw new Error(response.message || 'Failed to delete role');
       }
+      invalidateCMSCache('roles');
     } catch (error) {
       console.error('Error deleting role:', error);
       throw error;
@@ -246,6 +342,7 @@ export class CMSStorage {
       if (!response.success) {
         throw new Error(response.message || 'Failed to update about data');
       }
+      invalidateCMSCache('about');
     } catch (error) {
       console.error('Error updating about data:', error);
       throw error;
@@ -255,11 +352,18 @@ export class CMSStorage {
   // Tech Tools methods
   static async getTechTools(publishedOnly = false): Promise<TechTool[]> {
     try {
-      const response = await apiService.getTechTools(publishedOnly);
-      if (response.success) {
-        return response.data.map((item: any) => this.mapTechToolData(item));
-      }
-      throw new Error('Failed to fetch tech tools');
+      const key = `techTools:${publishedOnly ? 'pub' : 'all'}`;
+      return await fetchWithCMSCache(
+        key,
+        async () => {
+          const response = await apiService.getTechTools(publishedOnly);
+          if (response.success) {
+            return response.data.map((item: any) => this.mapTechToolData(item));
+          }
+          throw new Error('Failed to fetch tech tools');
+        },
+        { forceRefresh: isCMSAdminPath() },
+      );
     } catch (error) {
       console.error('Error fetching tech tools:', error);
       throw error;
@@ -276,6 +380,7 @@ export class CMSStorage {
     try {
       const response = await apiService.createTechTool(techTool);
       if (response.success) {
+        invalidateCMSCache('techTools');
         return this.mapTechToolData(response.data);
       }
       throw new Error(response.message || 'Failed to create tech tool');
@@ -290,6 +395,7 @@ export class CMSStorage {
       const idString = typeof id === 'string' ? id : id.toString();
       const response = await apiService.updateTechTool(idString, techTool);
       if (response.success) {
+        invalidateCMSCache('techTools');
         return this.mapTechToolData(response.data);
       }
       throw new Error(response.message || 'Failed to update tech tool');
@@ -306,6 +412,7 @@ export class CMSStorage {
       if (!response.success) {
         throw new Error(response.message || 'Failed to delete tech tool');
       }
+      invalidateCMSCache('techTools');
     } catch (error) {
       console.error('Error deleting tech tool:', error);
       throw error;
@@ -315,6 +422,7 @@ export class CMSStorage {
   static async syncSkillsFromPortfolios(): Promise<{ success: boolean; message: string; data: any }> {
     try {
       const response = await apiService.syncSkillsFromPortfolios();
+      invalidateCMSCache('techTools');
       return response;
     } catch (error) {
       console.error('Error syncing skills from portfolios:', error);
@@ -325,11 +433,17 @@ export class CMSStorage {
   // Education methods
   static async getEducation(): Promise<EducationItem[]> {
     try {
-      const response = await apiService.getEducation();
-      if (response.success) {
-        return response.data.map((item: any) => this.mapEducationData(item));
-      }
-      throw new Error('Failed to fetch education data');
+      return await fetchWithCMSCache(
+        'education',
+        async () => {
+          const response = await apiService.getEducation();
+          if (response.success) {
+            return response.data.map((item: any) => this.mapEducationData(item));
+          }
+          throw new Error('Failed to fetch education data');
+        },
+        { forceRefresh: isCMSAdminPath() },
+      );
     } catch (error) {
       console.error('Error fetching education data:', error);
       throw error;
@@ -345,6 +459,7 @@ export class CMSStorage {
     try {
       const response = await apiService.createEducation(education);
       if (response.success) {
+        invalidateCMSCache('education');
         return this.mapEducationData(response.data);
       }
       throw new Error(response.message || 'Failed to create education item');
@@ -359,6 +474,7 @@ export class CMSStorage {
       const idString = typeof id === 'string' ? id : id.toString();
       const response = await apiService.updateEducation(idString, education);
       if (response.success) {
+        invalidateCMSCache('education');
         return this.mapEducationData(response.data);
       }
       throw new Error(response.message || 'Failed to update education item');
@@ -375,6 +491,7 @@ export class CMSStorage {
       if (!response.success) {
         throw new Error(response.message || 'Failed to delete education item');
       }
+      invalidateCMSCache('education');
     } catch (error) {
       console.error('Error deleting education item:', error);
       throw error;
@@ -384,13 +501,43 @@ export class CMSStorage {
   // Portfolio methods
   static async getPortfolios(publishedOnly = false): Promise<PortfolioItem[]> {
     try {
-      const response = await apiService.getPortfolios(publishedOnly);
-      if (response.success) {
-        return response.data.map((item: any) => this.mapPortfolioData(item));
-      }
-      throw new Error('Failed to fetch portfolio data');
+      const key = `portfolios:${publishedOnly ? 'pub' : 'all'}`;
+      return await fetchWithCMSCache(
+        key,
+        async () => {
+          const response = await apiService.getPortfolios(publishedOnly);
+          if (response.success) {
+            return response.data.map((item: any) => this.mapPortfolioData(item));
+          }
+          throw new Error('Failed to fetch portfolio data');
+        },
+        { forceRefresh: isCMSAdminPath() },
+      );
     } catch (error) {
       console.error('Error fetching portfolio data:', error);
+      throw error;
+    }
+  }
+
+  static async getPortfolio(id: string): Promise<PortfolioItem> {
+    try {
+      const cached = !isCMSAdminPath() ? this.peekCachedPortfolioById(id) : null;
+      if (cached) {
+        return cached;
+      }
+      return await fetchWithCMSCache(
+        `portfolio:${id}`,
+        async () => {
+          const response = await apiService.getPortfolio(id);
+          if (response.success) {
+            return this.mapPortfolioData(response.data);
+          }
+          throw new Error(response.message || 'Failed to fetch portfolio item');
+        },
+        { forceRefresh: isCMSAdminPath() },
+      );
+    } catch (error) {
+      console.error('Error fetching portfolio item:', error);
       throw error;
     }
   }
@@ -415,6 +562,8 @@ export class CMSStorage {
         relatedEducation: eduId
       });
       if (response.success) {
+        invalidateCMSCache('portfolio');
+        invalidateCMSCache('techTools');
         return this.mapPortfolioData(response.data);
       }
       throw new Error(response.message || 'Failed to create portfolio item');
@@ -440,6 +589,8 @@ export class CMSStorage {
         ...(eduId !== undefined ? { relatedEducation: eduId } : {})
       });
       if (response.success) {
+        invalidateCMSCache('portfolio');
+        invalidateCMSCache('techTools');
         return this.mapPortfolioData(response.data);
       }
       throw new Error(response.message || 'Failed to update portfolio item');
@@ -456,6 +607,7 @@ export class CMSStorage {
       if (!response.success) {
         throw new Error(response.message || 'Failed to delete portfolio item');
       }
+      invalidateCMSCache('portfolio');
     } catch (error) {
       console.error('Error deleting portfolio item:', error);
       throw error;
@@ -750,13 +902,20 @@ export class CMSStorage {
   }
 
   // Experience methods
-  static async getExperiences(): Promise<Experience[]> {
+  static async getExperiences(publishedOnly = false): Promise<Experience[]> {
     try {
-      const response = await apiService.getExperiences();
-      if (response.success) {
-        return response.data.map((item: any) => this.mapExperienceData(item));
-      }
-      throw new Error('Failed to fetch experiences');
+      const key = `experiences:${publishedOnly ? 'pub' : 'all'}`;
+      return await fetchWithCMSCache(
+        key,
+        async () => {
+          const response = await apiService.getExperiences(publishedOnly);
+          if (response.success) {
+            return response.data.map((item: any) => this.mapExperienceData(item));
+          }
+          throw new Error('Failed to fetch experiences');
+        },
+        { forceRefresh: isCMSAdminPath() },
+      );
     } catch (error) {
       console.error('Error fetching experiences:', error);
       throw error;
@@ -772,6 +931,8 @@ export class CMSStorage {
       };
       const response = await apiService.createExperience(experienceWithDuration);
       if (response.success) {
+        invalidateCMSCache('experiences');
+        invalidateCMSCache('api:experiences');
         return this.mapExperienceData(response.data);
       }
       throw new Error(response.message || 'Failed to create experience');
@@ -786,6 +947,8 @@ export class CMSStorage {
       const idString = typeof id === 'string' ? id : id.toString();
       const response = await apiService.updateExperience(idString, experience);
       if (response.success) {
+        invalidateCMSCache('experiences');
+        invalidateCMSCache('api:experiences');
         return this.mapExperienceData(response.data);
       }
       throw new Error(response.message || 'Failed to update experience');
@@ -802,6 +965,8 @@ export class CMSStorage {
       if (!response.success) {
         throw new Error(response.message || 'Failed to delete experience');
       }
+      invalidateCMSCache('experiences');
+      invalidateCMSCache('api:experiences');
     } catch (error) {
       console.error('Error deleting experience:', error);
       throw error;
@@ -824,14 +989,21 @@ export class CMSStorage {
   // Blog methods
   static async getBlogs(publishedOnly = false, params?: { category?: string; tag?: string; search?: string }): Promise<BlogItem[]> {
     try {
-      const response = await apiService.getBlogs({
-        published: publishedOnly,
-        ...params
-      });
-      if (response.success) {
-        return response.data.map((item: any) => this.mapBlogData(item));
-      }
-      throw new Error('Failed to fetch blogs');
+      const key = `blogs:${publishedOnly ? 'pub' : 'all'}:${params?.category || ''}:${params?.tag || ''}:${params?.search || ''}`;
+      return await fetchWithCMSCache(
+        key,
+        async () => {
+          const response = await apiService.getBlogs({
+            published: publishedOnly,
+            ...params
+          });
+          if (response.success) {
+            return response.data.map((item: any) => this.mapBlogData(item));
+          }
+          throw new Error('Failed to fetch blogs');
+        },
+        { forceRefresh: isCMSAdminPath() },
+      );
     } catch (error) {
       console.error('Error fetching blogs:', error);
       throw error;
@@ -840,11 +1012,23 @@ export class CMSStorage {
 
   static async getBlog(id: string): Promise<BlogItem> {
     try {
-      const response = await apiService.getBlog(id);
-      if (response.success) {
-        return this.mapBlogData(response.data);
+      if (!isCMSAdminPath()) {
+        const cached = this.peekCachedBlogById(id);
+        if (cached && cached.content) {
+          return cached;
+        }
       }
-      throw new Error(response.message || 'Failed to fetch blog post');
+      return await fetchWithCMSCache(
+        `blog:${id}`,
+        async () => {
+          const response = await apiService.getBlog(id);
+          if (response.success) {
+            return this.mapBlogData(response.data);
+          }
+          throw new Error(response.message || 'Failed to fetch blog post');
+        },
+        { forceRefresh: isCMSAdminPath() },
+      );
     } catch (error) {
       console.error('Error fetching blog post:', error);
       throw error;
@@ -855,6 +1039,7 @@ export class CMSStorage {
     try {
       const response = await apiService.createBlog(blog);
       if (response.success) {
+        invalidateCMSCache('blog');
         return this.mapBlogData(response.data);
       }
       throw new Error(response.message || 'Failed to create blog post');
@@ -869,6 +1054,7 @@ export class CMSStorage {
       const idString = typeof id === 'string' ? id : id.toString();
       const response = await apiService.updateBlog(idString, blog);
       if (response.success) {
+        invalidateCMSCache('blog');
         return this.mapBlogData(response.data);
       }
       throw new Error(response.message || 'Failed to update blog post');
@@ -885,6 +1071,7 @@ export class CMSStorage {
       if (!response.success) {
         throw new Error(response.message || 'Failed to delete blog post');
       }
+      invalidateCMSCache('blog');
     } catch (error) {
       console.error('Error deleting blog post:', error);
       throw error;
@@ -904,11 +1091,18 @@ export class CMSStorage {
   // Work process methods
   static async getWorkProcesses(publishedOnly = false): Promise<CMSWorkProcessStep[]> {
     try {
-      const response = await apiService.getWorkProcesses(publishedOnly);
-      if (response.success && Array.isArray(response.data)) {
-        return response.data.map((item: any) => this.mapWorkProcessData(item));
-      }
-      throw new Error('Failed to fetch work process steps');
+      const key = `workProcess:${publishedOnly ? 'pub' : 'all'}`;
+      return await fetchWithCMSCache(
+        key,
+        async () => {
+          const response = await apiService.getWorkProcesses(publishedOnly);
+          if (response.success && Array.isArray(response.data)) {
+            return response.data.map((item: any) => this.mapWorkProcessData(item));
+          }
+          throw new Error('Failed to fetch work process steps');
+        },
+        { forceRefresh: isCMSAdminPath() },
+      );
     } catch (error) {
       console.error('Error fetching work process steps:', error);
       throw error;
@@ -919,6 +1113,7 @@ export class CMSStorage {
     try {
       const response = await apiService.createWorkProcess(step);
       if (response.success) {
+        invalidateCMSCache('workProcess');
         return this.mapWorkProcessData(response.data);
       }
       throw new Error(response.message || 'Failed to create work process step');
@@ -936,6 +1131,7 @@ export class CMSStorage {
       const idString = typeof id === 'string' ? id : id.toString();
       const response = await apiService.updateWorkProcess(idString, step);
       if (response.success) {
+        invalidateCMSCache('workProcess');
         return this.mapWorkProcessData(response.data);
       }
       throw new Error(response.message || 'Failed to update work process step');
@@ -952,6 +1148,7 @@ export class CMSStorage {
       if (!response.success) {
         throw new Error(response.message || 'Failed to delete work process step');
       }
+      invalidateCMSCache('workProcess');
     } catch (error) {
       console.error('Error deleting work process step:', error);
       throw error;
@@ -962,6 +1159,7 @@ export class CMSStorage {
     try {
       const response = await apiService.seedWorkProcesses(force);
       if (response.success && Array.isArray(response.data)) {
+        invalidateCMSCache('workProcess');
         return response.data.map((item: any) => this.mapWorkProcessData(item));
       }
       throw new Error(response.message || 'Failed to seed default work process steps');
@@ -974,11 +1172,18 @@ export class CMSStorage {
   // Social links methods
   static async getSocialLinks(publishedOnly = false): Promise<CMSSocialLink[]> {
     try {
-      const response = await apiService.getSocialLinks(publishedOnly);
-      if (response.success && Array.isArray(response.data)) {
-        return response.data.map((item: any) => this.mapSocialLinkData(item));
-      }
-      throw new Error('Failed to fetch social links');
+      const key = `socialLinks:${publishedOnly ? 'pub' : 'all'}`;
+      return await fetchWithCMSCache(
+        key,
+        async () => {
+          const response = await apiService.getSocialLinks(publishedOnly);
+          if (response.success && Array.isArray(response.data)) {
+            return response.data.map((item: any) => this.mapSocialLinkData(item));
+          }
+          throw new Error('Failed to fetch social links');
+        },
+        { forceRefresh: isCMSAdminPath() },
+      );
     } catch (error) {
       console.error('Error fetching social links:', error);
       throw error;
@@ -989,6 +1194,7 @@ export class CMSStorage {
     try {
       const response = await apiService.createSocialLink(link);
       if (response.success) {
+        invalidateCMSCache('socialLinks');
         return this.mapSocialLinkData(response.data);
       }
       throw new Error(response.message || 'Failed to create social link');
@@ -1006,6 +1212,7 @@ export class CMSStorage {
       const idString = typeof id === 'string' ? id : id.toString();
       const response = await apiService.updateSocialLink(idString, link);
       if (response.success) {
+        invalidateCMSCache('socialLinks');
         return this.mapSocialLinkData(response.data);
       }
       throw new Error(response.message || 'Failed to update social link');
@@ -1022,6 +1229,7 @@ export class CMSStorage {
       if (!response.success) {
         throw new Error(response.message || 'Failed to delete social link');
       }
+      invalidateCMSCache('socialLinks');
     } catch (error) {
       console.error('Error deleting social link:', error);
       throw error;
@@ -1032,6 +1240,7 @@ export class CMSStorage {
     try {
       const response = await apiService.seedSocialLinks(force);
       if (response.success && Array.isArray(response.data)) {
+        invalidateCMSCache('socialLinks');
         return response.data.map((item: any) => this.mapSocialLinkData(item));
       }
       throw new Error(response.message || 'Failed to seed default social links');

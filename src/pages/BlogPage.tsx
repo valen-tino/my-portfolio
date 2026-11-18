@@ -7,20 +7,45 @@ import { CloseIcon, SearchIcon } from '../components/Icons';
 import { BlogCardSkeletonGrid, FilterBarSkeleton } from '../components/Skeleton';
 import { BLOG_POSTS, mapCMSBlogToPost } from '../data/portfolioData';
 import type { BlogPost } from '../types/portfolio';
-import { useGSAPPageEntrance } from '../utils/gsapAnimations';
+import { animateElementTransition, useGSAPPageEntrance } from '../utils/gsapAnimations';
 import { navigateWithTransition } from '../utils/viewTransitions';
 
 export default function BlogPage() {
   const navigate = useNavigate();
   const rootRef = useRef<HTMLDivElement>(null);
-  const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const didMountFilterRef = useRef(false);
+
+  const cachedBlogs =
+    typeof CMSStorage.peekCachedBlogs === 'function'
+      ? CMSStorage.peekCachedBlogs(true)
+      : null;
+
+  const [posts, setPosts] = useState<BlogPost[]>(() =>
+    cachedBlogs
+      ? cachedBlogs.filter((item) => item.isPublished !== false).map(mapCMSBlogToPost)
+      : [],
+  );
+  const [loading, setLoading] = useState(!cachedBlogs);
   const [category, setCategory] = useState('All');
   const [year, setYear] = useState('All');
   const [tag, setTag] = useState('All');
   const [query, setQuery] = useState('');
 
-  useGSAPPageEntrance(rootRef, [posts.length]);
+  useGSAPPageEntrance(rootRef, [posts.length, loading]);
+
+  useEffect(() => {
+    if (!didMountFilterRef.current) {
+      didMountFilterRef.current = true;
+      return;
+    }
+    if (loading) return;
+    animateElementTransition(resultsRef.current, {
+      y: 10,
+      duration: 0.25,
+      staggerSelector: 'article',
+    });
+  }, [category, year, tag, loading]);
 
   useEffect(() => {
     let active = true;
@@ -210,6 +235,7 @@ export default function BlogPage() {
           </div>
         )}
 
+        <div ref={resultsRef}>
         {loading ? (
           <BlogCardSkeletonGrid count={6} />
         ) : results.length ? (
@@ -237,6 +263,7 @@ export default function BlogPage() {
             </button>
           </div>
         )}
+        </div>
       </main>
 
       <Footer />

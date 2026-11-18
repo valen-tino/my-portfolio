@@ -4,6 +4,13 @@ const Blog = require('../models/Blog');
 const { authMiddleware } = require('../middleware/auth');
 const { deleteImage } = require('../config/cloudinary');
 const { handleRouteError } = require('../utils/errorHandler');
+const {
+  getCachedResponse,
+  setCachedResponse,
+  invalidateServerCache,
+  setPublicCacheHeaders,
+  execLean,
+} = require('../utils/responseCache');
 const router = express.Router();
 
 // @route   GET /api/blog
@@ -12,6 +19,17 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const { published, category, tag, search } = req.query;
+    const isAuth = Boolean(req.headers && req.headers.authorization);
+    const cacheKey = `blog:list:${published || 'all'}:${category || 'all'}:${tag || ''}:${search || ''}`;
+
+    setPublicCacheHeaders(res, 60, 300, 600, req);
+    if (!isAuth) {
+      const cached = getCachedResponse(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+    }
+
     const filter = {};
 
     if (published === 'true') {
@@ -34,12 +52,16 @@ router.get('/', async (req, res) => {
       ];
     }
 
-    const blogs = await Blog.find(filter).sort({ isPinned: -1, date: -1, createdAt: -1 });
-
-    res.json({
+    const blogs = await execLean(Blog.find(filter).sort({ isPinned: -1, date: -1, createdAt: -1 }));
+    const payload = {
       success: true,
       data: blogs
-    });
+    };
+    if (!isAuth) {
+      setCachedResponse(cacheKey, payload);
+    }
+
+    res.json(payload);
   } catch (error) {
     console.error('Get blogs error:', error);
     return handleRouteError(res, error, 'Server error while fetching blogs');
@@ -52,12 +74,23 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const param = req.params.id;
+    const isAuth = Boolean(req.headers && req.headers.authorization);
+    const cacheKey = `blog:item:${param}`;
+
+    setPublicCacheHeaders(res, 60, 300, 600, req);
+    if (!isAuth) {
+      const cached = getCachedResponse(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+    }
+
     const isObjectId = mongoose.Types.ObjectId.isValid(param);
     const filter = isObjectId
       ? { $or: [{ _id: param }, { slug: param }] }
       : { slug: param };
 
-    const blog = await Blog.findOne(filter);
+    const blog = await execLean(Blog.findOne(filter));
     if (!blog) {
       return res.status(404).json({
         success: false,
@@ -65,10 +98,14 @@ router.get('/:id', async (req, res) => {
       });
     }
 
-    res.json({
+    const payload = {
       success: true,
       data: blog
-    });
+    };
+    if (!isAuth) {
+      setCachedResponse(cacheKey, payload);
+    }
+    res.json(payload);
   } catch (error) {
     console.error('Error fetching blog post:', error);
     return handleRouteError(res, error, 'Server error while fetching blog post');
@@ -126,6 +163,7 @@ router.post('/', authMiddleware, async (req, res) => {
     });
 
     await blog.save();
+    invalidateServerCache('blog:');
 
     res.status(201).json({
       success: true,
@@ -201,6 +239,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (author !== undefined) blog.author = author;
 
     await blog.save();
+    invalidateServerCache('blog:');
 
     res.json({
       success: true,
@@ -241,6 +280,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     }
 
     await Blog.deleteOne({ _id: blog._id });
+    invalidateServerCache('blog:');
 
     res.json({
       success: true,

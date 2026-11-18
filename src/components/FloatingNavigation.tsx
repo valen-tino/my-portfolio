@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { PageView } from '../types/portfolio';
+import { animateElementTransition } from '../utils/gsapAnimations';
 import { navigateWithTransition } from '../utils/viewTransitions';
 import { CloseIcon, DownloadIcon, MenuIcon } from './Icons';
 
@@ -29,6 +30,7 @@ export function FloatingNavigation({
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const more = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
   const location = useLocation();
   const navigate = useNavigate();
@@ -99,6 +101,12 @@ export function FloatingNavigation({
       compact: true,
     },
   ];
+
+  useEffect(() => {
+    if (open) {
+      animateElementTransition(panelRef.current, { y: 8, duration: 0.2 });
+    }
+  }, [open]);
 
   useEffect(() => {
     setOpen(false);
@@ -225,6 +233,7 @@ export function FloatingNavigation({
       </nav>
       {/* Remains mounted while the résumé dialog is open, preserving its return-focus target. */}
       <div
+        ref={panelRef}
         id={panelId}
         hidden={!open}
         className="absolute bottom-[calc(100%+0.75rem)] right-0 max-h-[max(3rem,min(65dvh,calc(100dvh-7rem-var(--dock-keyboard-offset,0px))))] w-64 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-3xl border border-muted-300 bg-white p-3 min-[900px]:hidden"

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { BlogPost } from '../types/portfolio';
+import { buildCloudinarySrcSet } from '../utils/contentMigration';
 import { formatFullDate, toISODateAttribute } from '../utils/dateFormat';
+import { animateImageReveal } from '../utils/gsapAnimations';
 import { ArrowRightIcon } from './Icons';
 import { ImagePlaceholder } from './ImagePlaceholder';
 import { ProgressiveImageFrame } from './Skeleton';
@@ -41,12 +43,17 @@ export function BlogCard({ post, onSelectPost, aspectRatio = 'aspect-[16/10]' }:
             <ProgressiveImageFrame aspectRatio={aspectRatio} loaded={imgLoaded}>
               <img
                 src={post.imageURL}
+                srcSet={buildCloudinarySrcSet(post.imageURL, [400, 800, 1200])}
+                sizes="(max-width: 768px) 92vw, (max-width: 1280px) 46vw, 31vw"
                 alt={post.title}
                 width={800}
                 height={500}
                 loading="lazy"
                 decoding="async"
-                onLoad={() => setImgLoaded(true)}
+                onLoad={(event) => {
+                  setImgLoaded(true);
+                  animateImageReveal(event.currentTarget);
+                }}
                 onError={() => {
                   setImgLoaded(true);
                   setImgError(true);

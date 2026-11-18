@@ -68,11 +68,35 @@ function getPageTitle(pathname: string): string {
 function App() {
   const location = useLocation();
   const isCMSRoute = location.pathname.startsWith('/cms');
+
+  const cachedAbout =
+    !isCMSRoute && typeof CMSStorage.peekCachedAbout === 'function'
+      ? CMSStorage.peekCachedAbout()
+      : null;
+  const cachedEduRaw =
+    !isCMSRoute && typeof CMSStorage.peekCachedEducation === 'function'
+      ? CMSStorage.peekCachedEducation()
+      : null;
+  const cachedExpRaw =
+    !isCMSRoute && typeof CMSStorage.peekCachedExperiences === 'function'
+      ? CMSStorage.peekCachedExperiences(true)
+      : null;
+
+  const hasWarmCVContext = Boolean(cachedAbout && cachedEduRaw && cachedExpRaw);
+
   const [cvModalOpen, setCvModalOpen] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(!isCMSRoute);
-  const [aboutData, setAboutData] = useState<AboutData | null>(null);
-  const [experiences, setExperiences] = useState<Experience[]>([]);
-  const [educationList, setEducationList] = useState<Education[]>([]);
+  const [initialLoading, setInitialLoading] = useState(!isCMSRoute && !hasWarmCVContext);
+  const [aboutData, setAboutData] = useState<AboutData | null>(cachedAbout);
+  const [experiences, setExperiences] = useState<Experience[]>(() =>
+    cachedExpRaw && cachedExpRaw.length > 0
+      ? sortByLatestEndDate(cachedExpRaw.map(mapCMSExperienceToView))
+      : [],
+  );
+  const [educationList, setEducationList] = useState<Education[]>(() =>
+    cachedEduRaw && cachedEduRaw.length > 0
+      ? sortByLatestEndDate(cachedEduRaw.map(mapCMSEducationToView))
+      : [],
+  );
 
   useEffect(() => {
     document.title = getPageTitle(location.pathname);

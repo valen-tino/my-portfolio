@@ -186,9 +186,10 @@ my-portfolio/
 │   │   └── polyfills.d.ts
 │   │
 │   ├── utils/                 # Shared frontend helpers
-│   │   ├── contentMigration.ts # Markdown-to-HTML case study migration & formatPublicDescription
+│   │   ├── cmsCache.ts         # Two-tier client SWR cache (memory + localStorage) & request deduplication
+│   │   ├── contentMigration.ts # Markdown/HTML migration, formatPublicDescription & Cloudinary image/video optimizers
 │   │   ├── dateFormat.ts       # Timezone-safe ISO date formatting & sortByLatestEndDate
-│   │   ├── gsapAnimations.ts   # Reduced-motion-safe GSAP + ScrollTrigger hooks
+│   │   ├── gsapAnimations.ts   # Hydration-safe GSAP ScrollTrigger & tactile micro-interaction hooks
 │   │   ├── tooltipPolyfills.ts # Conditional @oddbird/popover-polyfill & interestfor loader
 │   │   ├── viewTransitions.ts  # document.startViewTransition wrapper with focus restoration
 │   │   └── aiHelpers.ts        # AI prompt/response helpers
@@ -213,7 +214,7 @@ my-portfolio/
 │   ├── data/                  # Default seed datasets (defaultWorkProcessSteps.js, defaultSocialLinks.js)
 │   ├── models/                # Mongoose schemas (User, Portfolio, Blog, Experience, WorkProcess, SocialLink, Education, TechTool, Role, Contact, About)
 │   ├── routes/                # API routes (auth, about, portfolio, blog, experiences, workProcess, socialLinks, education, techTools, roles, contact, upload, ai)
-│   ├── utils/                 # errorHandler.js, skillMigration.js
+│   ├── utils/                 # errorHandler.js, responseCache.js, skillMigration.js
 │   ├── scripts/               # initDatabase.js, migrateMarkdownToWYSIWYG.js, syncExistingPortfolioSkills.js
 │   ├── services/              # aiService.js
 │   ├── middleware/            # auth.js
@@ -224,7 +225,7 @@ my-portfolio/
 │   ├── [...path].js           # Catch-all Vercel route handler
 │   ├── index.js / test.js / diag.js / diag2.js
 │
-├── tests/                     # Automated Vitest test suites (28 files, 134 tests)
+├── tests/                     # Automated Vitest test suites (29 files, 141 tests)
 ├── .gitignore
 ├── package.json
 ├── tailwind.config.cjs
@@ -242,7 +243,8 @@ my-portfolio/
 #### Navigation, Loading Screen, Skeletons, Transitions & Résumé Modal
 - **Brand-Blue Loading Screen & Structural Skeletons (`LoadingScreen`, `Skeleton.tsx`)**: Full-screen overlay using the brand blue background (`bg-brand` / `#2563eb`), centered `/favicon.ico`, and smooth `ease-in-out` opacity transition (`transition-opacity duration-500 ease-in-out motion-reduce:duration-150`, toggling `opacity-100` to `opacity-0 pointer-events-none`) that unmounts from the DOM once fade-out completes (`onTransitionEnd` + `550ms` fallback), working together with `<meta name="theme-color" content="#f8f8fa" />` (`index.html`) so iPhone (iOS Safari) top and bottom browser bars stay light (`#f8f8fa`). While LayerBase (DocumentDB 1.0.0) data fetches run on initial load or navigation (`App.tsx`, `Home.tsx`, `PortfolioPage.tsx`, `BlogPage.tsx`, `PortfolioDetail.tsx`, `BlogDetail.tsx`, `CVModal.tsx`, `Footer.tsx`, and home sections), layout-matched skeletons and `ProgressiveImageFrame` media shimmers render temporarily instead of flashing upfront static datasets, reserving static fallbacks for failed/offline recovery.
 - **Hidden Scrollbars (`src/index.css`, `src/App.css`)**: Standard `scrollbar-width: none` applied across `html`, `body`, nested scrollable regions, and mobile `.portfolio-gallery` strips with an `@supports not (scrollbar-width: none)` `::-webkit-scrollbar` fallback to hide scrollbar chrome without impairing touch, wheel, or keyboard scrolling.
-- **Route & Vendor Code-Splitting (`src/App.tsx`, `vite.config.ts`)**: `Home.tsx` stays eager while public subpages and all 13 CMS routes load dynamically via `React.lazy` + `<Suspense>`, paired with Rollup `manualChunks` (`vendor-react`, `vendor-prosemirror`, `vendor-tiptap`, `vendor-gsap`, `vendor-utils`) keeping entry bundle size at `233.96 kB` (`42.85 kB` gzip) with zero `> 500 kB` warnings.
+- **Route & Vendor Code-Splitting (`src/App.tsx`, `vite.config.ts`)**: `Home.tsx` stays eager while public subpages and all 13 CMS routes load dynamically via `React.lazy` + `<Suspense>`, paired with Rollup `manualChunks` (`vendor-react`, `vendor-prosemirror`, `vendor-tiptap`, `vendor-gsap`, `vendor-utils`) keeping entry bundle size lean with zero `> 500 kB` warnings.
+- **LayerBase SWR Caching & Cloudinary Asset Delivery (`src/utils/cmsCache.ts`, `server/utils/responseCache.js`, `src/utils/contentMigration.ts`)**: Client two-tier SWR caching (memory + `localStorage`, `5m` fresh / `24h` stale window) with in-flight request deduplication and synchronous `CMSStorage.peekCached*` route hydration eliminates redundant queries across `App.tsx`, `Home.tsx`, `Footer.tsx`, and archive/detail navigations, while automatically invalidating on CMS mutations and bypassing cache on `/cms/*`. Backend routes apply `60s` per-instance caching, `execLean()` Mongoose queries, and `Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=600` headers alongside deferred startup skill sync (`server/index.js`). Images use Cloudinary `srcSet` (`f_auto,q_auto,c_limit,w_*`), `preconnect` to `https://res.cloudinary.com`, and `fetchPriority="high"` / `loading="lazy"` priority controls in `HeroProjectStrip.tsx`.
 - **Floating Pill Navigation (`FloatingNavigation`)**: Persistent bottom dock (`Home`, `Selected Work`, `Work`, `Journal`, `About`, `Contact`, mobile `More` drawer, and primary brand-blue `.dock-item-primary` `Résumé` action button with white text & `DownloadIcon`).
 - **Native View Transitions (`viewTransitions.ts`)**: Combines `@view-transition { navigation: auto; }` CSS keyframes with `document.startViewTransition()` on route changes and focus handoff to destination `<h1>`/`<main>`.
 - **Interactive Résumé Dialog (`CVModal`)**: Native `<dialog closedby="any">` summarizing CMS `name`, `location`, `email`, `resumeSummary`, experience, and the full `educationList` sorted latest-end-date-first (`sortByLatestEndDate`) plus direct PDF download (`aboutData.cvURL`).
@@ -250,7 +252,7 @@ my-portfolio/
 #### Hero Section & All-Project Preview Strip
 - Dynamic time-of-day greeting (`getGreetingText`: `Good Morning` / `Good Afternoon` / `Good Evening`) paired with Plus Jakarta Sans display typography, CMS-driven Hero copy (`heroHeadline`, `heroSubheadline` from `About`), and configurable email/location links.
 - **All-Project Marquee Carousel (`HeroProjectStrip`)**: Displays **all** published `16:9` (`aspect-video`) project visuals without clickable links, titles, or overlay arrows; supports touch swipe, pointer-drag panning, arrow step buttons, Play/Pause icon toggle button, and an accessible `popover="hint"` `"i"` toggletip (`tooltipPolyfills.ts`).
-- GSAP entrance and scroll-triggered section animations (`gsapAnimations.ts`), disabled automatically when `prefers-reduced-motion: reduce`.
+- **GSAP Choreography & Micro-Interactions (`gsapAnimations.ts`)**: Hydration-safe entrance reveals (`dataset.gsapAnimated` + `ScrollTrigger.refresh()`), `#tools` item staggers, ScrollTrigger metric count-ups, tactile pill button press & directional SVG arrow glides, coordinated card media zoom + CTA lift, step/tab/filter transitions (`WorkProcessSection`, `ExperienceEducationSection`, `PortfolioPage`, `BlogPage`), smooth vertical `PortfolioTable` preview gliding, mobile dock drawer entrance, and compositor `scaleX` reading progress (`ScrollProgressBar`), all disabled cleanly when `prefers-reduced-motion: reduce`.
 
 #### About Me, Work Process & Design System
 - Personal profile image, rich WYSIWYG biography (`formatPublicDescription`), CMS-driven About stat cards (`yearsExperience`, `yearsExperienceLabel`, `selectedProjectsLabel`, `degreesCount`, `degreesLabel`), published Tech Tools list, and curated `/design-system` reference page (`DesignSystemPage`) featuring inspirations led by Daniella Marynova (`hellodani.co`) and Marijana Pavlinić (`marijanapav.com`) ahead of Pentagram, Studio Lenzing, and It’s Nice That.
@@ -1380,7 +1382,7 @@ const handleAIGenerate = async () => {
 
 ### Automated Testing (Vitest & Testing Library)
 
-Run the full automated suite (currently **28 test files, 134 tests**) and production TypeScript + Vite build:
+Run the full automated suite (currently **29 test files, 141 tests**) and production TypeScript + Vite build:
 
 ```bash
 npm test -- --run
@@ -1389,7 +1391,7 @@ npm run build
 
 Automated coverage spans:
 - Public pages & navigation (`App.test.tsx`, `HomeRedesign.test.tsx`, `FloatingNavigation.test.tsx`, `PortfolioPage.test.tsx`, `PortfolioDetail.test.tsx`, `BlogPage.test.tsx`, `blog.test.tsx`)
-- Interactive widgets & dialogs (`LoadingScreen.test.tsx`, `SkeletonLoading.test.tsx`, `CVModal.test.tsx`, `WorkProcessSection.test.tsx`, `EditorialCarousel.test.tsx`, `portfoliocard.test.tsx`)
+- Interactive widgets & dialogs (`LoadingScreen.test.tsx`, `SkeletonLoading.test.tsx`, `performanceAndGSAP.test.tsx`, `CVModal.test.tsx`, `WorkProcessSection.test.tsx`, `EditorialCarousel.test.tsx`, `portfoliocard.test.tsx`)
 - Formatting, CMS CRUD, error states, serverless routing & AI safety (`dateFormat.test.ts`, `publicFormatting.test.tsx`, `CMSErrorStates.test.tsx`, `PortfolioManagement.test.tsx`, `BlogManagement.test.tsx`, `WorkProcessManagement.test.tsx`, `SocialLinksManagement.test.tsx`, `AboutManagement.test.tsx`, `WYSIWYGEditor.test.tsx`, `techToolAutoSync.test.tsx`, `serverlessBlog.test.ts`, `serverlessWorkProcess.test.ts`, `serverlessSocialLinks.test.ts`, `aiHelpers.test.ts`)
 
 ---
@@ -1468,25 +1470,18 @@ if (process.env.NODE_ENV === 'development') {
 
 ### Performance Optimization
 
-#### 1. Image Optimization
-- Use Cloudinary transformations
-- Implement lazy loading
-- Set appropriate image sizes
+#### 1. Image & Video Optimization
+- Responsive Cloudinary `srcSet` (`optimizeCloudinaryImageUrl` / `buildCloudinarySrcSet` injecting `f_auto,q_auto,c_limit,w_*`) and `enhanceRichHtmlMedia` (`loading="lazy" decoding="async"` on inline HTML images)
+- `preconnect` to `https://res.cloudinary.com` (`index.html`), `fetchPriority="high"` on the first primary `HeroProjectStrip` slide, and `loading="lazy"` + `fetchPriority="low"` on off-screen and cloned marquee slides
+- Explicit integer `width` and `height` dimensions on image and video elements (`PortfolioDetail.tsx`) to prevent layout shifts
 
-#### 2. Database Optimization
-- Add indexes for frequently queried fields
-- Use MongoDB aggregation pipeline
-- Implement caching strategy
+#### 2. Database & API Optimization
+- Server-side `60s` in-memory response caching (`server/utils/responseCache.js`), `execLean()` Mongoose queries, and HTTP `Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=600` headers for public reads (auto-invalidated on CMS writes)
+- Deferred startup skill migration via `setImmediate` (`server/index.js`) so initial LayerBase reads never block server boot
 
-#### 3. Frontend Optimization
-- Code splitting with React.lazy
-- Memoize expensive computations
-- Optimize re-renders
-
-#### 4. API Optimization
-- Implement pagination
-- Use field selection in queries
-- Add response caching
+#### 3. Frontend Caching & Rendering Optimization
+- Two-tier client SWR cache (`src/utils/cmsCache.ts`) with `5m` fresh / `24h` stale windows, in-flight request deduplication, synchronous `CMSStorage.peekCached*` route hydration, and `/cms/*` cache bypass
+- Route & vendor code splitting (`React.lazy`, Rollup `manualChunks`), compositor-only GSAP motion (`transform`, `opacity`, `scaleX`), and layout-matched skeletons (`Skeleton.tsx`)
 
 ---
 
@@ -1572,5 +1567,5 @@ For questions, issues, or feature requests:
 
 ---
 
-*Last Updated: November 16, 2026*
+*Last Updated: November 18, 2026*
 *Version: 2.0.0*

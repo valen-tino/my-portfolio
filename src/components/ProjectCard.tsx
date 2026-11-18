@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import type { Project } from '../types/portfolio';
+import { buildCloudinarySrcSet } from '../utils/contentMigration';
+import { animateImageReveal } from '../utils/gsapAnimations';
 import { ArrowRightIcon, LockIcon } from './Icons';
 import { ImagePlaceholder } from './ImagePlaceholder';
 import { ProgressiveImageFrame } from './Skeleton';
@@ -44,12 +46,17 @@ export function ProjectCard({
             <ProgressiveImageFrame aspectRatio={aspectRatio} loaded={imgLoaded}>
               <img
                 src={project.imageURL}
+                srcSet={buildCloudinarySrcSet(project.imageURL, [400, 800, 1200])}
+                sizes="(max-width: 768px) 92vw, (max-width: 1280px) 46vw, 31vw"
                 alt={project.title}
                 width={800}
                 height={450}
                 loading="lazy"
                 decoding="async"
-                onLoad={() => setImgLoaded(true)}
+                onLoad={(event) => {
+                  setImgLoaded(true);
+                  animateImageReveal(event.currentTarget);
+                }}
                 onError={() => {
                   setImgLoaded(true);
                   setImgError(true);

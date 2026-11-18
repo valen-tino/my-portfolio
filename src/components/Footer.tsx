@@ -103,13 +103,31 @@ interface FooterProps {
 }
 
 export function Footer({ aboutData, socialLinks, isLoading = false }: FooterProps = {}) {
-  const [baliTime, setBaliTime] = useState<string>(() => getBaliTimeString());
-  const [fetchedAbout, setFetchedAbout] = useState<AboutData | null>(null);
-  const [fetchedLinks, setFetchedLinks] = useState<SocialLink[] | null>(null);
-
   const shouldFetchAbout = aboutData === undefined;
   const shouldFetchLinks = socialLinks === undefined;
-  const [hydrating, setHydrating] = useState<boolean>(shouldFetchAbout || shouldFetchLinks);
+
+  const initialCachedAbout =
+    shouldFetchAbout && typeof CMSStorage.peekCachedAbout === 'function'
+      ? CMSStorage.peekCachedAbout()
+      : null;
+  const initialCachedLinksRaw =
+    shouldFetchLinks && typeof CMSStorage.peekCachedSocialLinks === 'function'
+      ? CMSStorage.peekCachedSocialLinks(true)
+      : null;
+  const initialCachedLinks =
+    initialCachedLinksRaw && initialCachedLinksRaw.length > 0
+      ? initialCachedLinksRaw
+          .filter((item) => item.isPublished !== false)
+          .map(mapCMSSocialLinkToView)
+      : null;
+
+  const [baliTime, setBaliTime] = useState<string>(() => getBaliTimeString());
+  const [fetchedAbout, setFetchedAbout] = useState<AboutData | null>(initialCachedAbout);
+  const [fetchedLinks, setFetchedLinks] = useState<SocialLink[] | null>(initialCachedLinks);
+
+  const [hydrating, setHydrating] = useState<boolean>(
+    (shouldFetchAbout && !initialCachedAbout) || (shouldFetchLinks && !initialCachedLinks),
+  );
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -293,6 +311,7 @@ export function Footer({ aboutData, socialLinks, isLoading = false }: FooterProp
           </div>
           <button
             type="button"
+            data-gsap-arrow="up"
             onClick={handleBackToTop}
             aria-label="Back to top"
             className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/25 px-4 py-2 text-xs font-medium text-white transition-colors hover:border-mint hover:text-mint focus-visible:outline-white"

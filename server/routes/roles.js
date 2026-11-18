@@ -3,15 +3,37 @@ const router = express.Router();
 const Role = require('../models/Role');
 const { authMiddleware } = require('../middleware/auth');
 const { handleRouteError } = require('../utils/errorHandler');
+const {
+  getCachedResponse,
+  setCachedResponse,
+  invalidateServerCache,
+  setPublicCacheHeaders,
+  execLean,
+} = require('../utils/responseCache');
 
 // Get all roles (public)
 router.get('/', async (req, res) => {
   try {
-    const roles = await Role.find().sort({ order: 1, title: 1 });
-    res.json({
+    const isAuth = Boolean(req.headers && req.headers.authorization);
+    const cacheKey = 'roles:list';
+
+    setPublicCacheHeaders(res, 60, 300, 600, req);
+    if (!isAuth) {
+      const cached = getCachedResponse(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+    }
+
+    const roles = await execLean(Role.find().sort({ order: 1, title: 1 }));
+    const payload = {
       success: true,
       data: roles
-    });
+    };
+    if (!isAuth) {
+      setCachedResponse(cacheKey, payload);
+    }
+    res.json(payload);
   } catch (error) {
     console.error('Get roles error:', error);
     return handleRouteError(res, error, 'Failed to fetch roles');
@@ -21,17 +43,32 @@ router.get('/', async (req, res) => {
 // Get single role (public)
 router.get('/:id', async (req, res) => {
   try {
-    const role = await Role.findById(req.params.id);
+    const isAuth = Boolean(req.headers && req.headers.authorization);
+    const cacheKey = `roles:item:${req.params.id}`;
+
+    setPublicCacheHeaders(res, 60, 300, 600, req);
+    if (!isAuth) {
+      const cached = getCachedResponse(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+    }
+
+    const role = await execLean(Role.findById(req.params.id));
     if (!role) {
       return res.status(404).json({
         success: false,
         message: 'Role not found'
       });
     }
-    res.json({
+    const payload = {
       success: true,
       data: role
-    });
+    };
+    if (!isAuth) {
+      setCachedResponse(cacheKey, payload);
+    }
+    res.json(payload);
   } catch (error) {
     console.error('Get role error:', error);
     return handleRouteError(res, error, 'Failed to fetch role');
@@ -71,6 +108,7 @@ router.post('/', authMiddleware, async (req, res) => {
     });
 
     await role.save();
+    invalidateServerCache('roles:');
 
     res.status(201).json({
       success: true,
@@ -119,6 +157,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (order !== undefined) role.order = order;
 
     await role.save();
+    invalidateServerCache('roles:');
 
     res.json({
       success: true,
@@ -143,6 +182,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     }
 
     await Role.findByIdAndDelete(req.params.id);
+    invalidateServerCache('roles:');
 
     res.json({
       success: true,

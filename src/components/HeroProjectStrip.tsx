@@ -9,6 +9,8 @@ import {
 } from 'react';
 import { PROJECTS } from '../data/portfolioData';
 import type { Project } from '../types/portfolio';
+import { buildCloudinarySrcSet } from '../utils/contentMigration';
+import { animateImageReveal } from '../utils/gsapAnimations';
 import { ensureTooltipSupport } from '../utils/tooltipPolyfills';
 import { ArrowLeftIcon, ArrowRightIcon, InfoIcon, PauseIcon, PlayIcon } from './Icons';
 import { ImagePlaceholder } from './ImagePlaceholder';
@@ -19,7 +21,13 @@ interface HeroProjectStripProps {
   isLoading?: boolean;
 }
 
-function PreviewVisual({ project }: { project: Project }) {
+interface PreviewVisualProps {
+  project: Project;
+  priority?: 'high' | 'low';
+  lazy?: boolean;
+}
+
+function PreviewVisual({ project, priority, lazy = false }: PreviewVisualProps) {
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
 
@@ -28,12 +36,19 @@ function PreviewVisual({ project }: { project: Project }) {
       <ProgressiveImageFrame aspectRatio="aspect-video" loaded={imgLoaded}>
         <img
           src={project.imageURL}
+          srcSet={buildCloudinarySrcSet(project.imageURL, [400, 640, 960])}
+          sizes="(max-width: 640px) 60vw, 400px"
           alt={project.title}
           width={640}
           height={360}
+          loading={lazy ? 'lazy' : undefined}
+          fetchPriority={priority}
           decoding="async"
           draggable={false}
-          onLoad={() => setImgLoaded(true)}
+          onLoad={(event) => {
+            setImgLoaded(true);
+            animateImageReveal(event.currentTarget);
+          }}
           onError={() => {
             setImgLoaded(true);
             setImgError(true);
@@ -238,12 +253,22 @@ export function HeroProjectStrip({
     setDragging(false);
   };
 
-  const renderSlides = () =>
-    projects.map((project) => (
-      <div key={project.id} className="hero-preview">
-        <PreviewVisual project={project} />
-      </div>
-    ));
+  const renderSlides = (isDuplicateGroup = false) =>
+    projects.map((project, index) => {
+      const lazy = isDuplicateGroup || index >= 3;
+      const priority: 'high' | 'low' | undefined = isDuplicateGroup
+        ? 'low'
+        : index === 0
+          ? 'high'
+          : index >= 3
+            ? 'low'
+            : undefined;
+      return (
+        <div key={project.id} className="hero-preview">
+          <PreviewVisual project={project} priority={priority} lazy={lazy} />
+        </div>
+      );
+    });
 
   if (isLoading) {
     return <HeroStripSkeleton />;
@@ -360,7 +385,7 @@ export function HeroProjectStrip({
         >
           {!staticMode && (
             <div key="before" aria-hidden="true" inert className="flex shrink-0 gap-6 pr-6">
-              {renderSlides()}
+              {renderSlides(true)}
             </div>
           )}
           <div
@@ -368,11 +393,11 @@ export function HeroProjectStrip({
             ref={group}
             className={`flex shrink-0 gap-6 pr-6 ${staticMode ? 'pl-6' : ''}`}
           >
-            {renderSlides()}
+            {renderSlides(false)}
           </div>
           {!staticMode && (
             <div key="after" aria-hidden="true" inert className="flex shrink-0 gap-6 pr-6">
-              {renderSlides()}
+              {renderSlides(true)}
             </div>
           )}
         </div>

@@ -1,5 +1,7 @@
-import { useId, useRef, useState, type FocusEvent, type MouseEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FocusEvent, type MouseEvent } from 'react';
+import gsap from 'gsap';
 import type { Project } from '../types/portfolio';
+import { animateFloatingPreviewY, shouldSkipGSAPMotion } from '../utils/gsapAnimations';
 import { LockIcon } from './Icons';
 import { ImagePlaceholder } from './ImagePlaceholder';
 
@@ -34,12 +36,36 @@ export function PortfolioTable({ projects, onSelectProject }: PortfolioTableProp
   const captionId = useId();
   const stageRef = useRef<HTMLDivElement>(null);
   const tbodyRef = useRef<HTMLTableSectionElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const wasActiveRef = useRef(false);
 
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [previewTop, setPreviewTop] = useState(0);
   const [failedImageIds, setFailedImageIds] = useState<Record<string, boolean>>({});
 
   const activeProject = activeIndex !== null ? projects[activeIndex] ?? null : null;
+
+  useEffect(() => {
+    const el = previewRef.current;
+    if (!activeProject || !el) {
+      wasActiveRef.current = false;
+      return;
+    }
+    if (shouldSkipGSAPMotion()) {
+      wasActiveRef.current = true;
+      return;
+    }
+    if (!wasActiveRef.current) {
+      wasActiveRef.current = true;
+      gsap.fromTo(
+        el,
+        { y: previewTop, opacity: 0, scale: 0.98 },
+        { y: previewTop, opacity: 1, scale: 1, duration: 0.2, ease: 'power2.out', overwrite: 'auto' },
+      );
+    } else {
+      animateFloatingPreviewY(el, previewTop);
+    }
+  }, [activeProject, previewTop]);
 
   const activatePreview = (index: number, rowEl: HTMLTableRowElement | null) => {
     setActiveIndex(index);
@@ -163,9 +189,12 @@ export function PortfolioTable({ projects, onSelectProject }: PortfolioTableProp
 
       {activeProject && (
         <div
+          ref={previewRef}
           data-testid="portfolio-table-preview"
           aria-hidden="true"
-          style={{ transform: `translate3d(0, ${previewTop}px, 0)` }}
+          style={
+            shouldSkipGSAPMotion() ? { transform: `translate3d(0, ${previewTop}px, 0)` } : undefined
+          }
           className="portfolio-table-preview pointer-events-none absolute right-6 top-0 z-20 w-72 overflow-hidden border border-muted-300 bg-white shadow-xl lg:right-10 lg:w-80"
         >
           {showPreviewImage ? (

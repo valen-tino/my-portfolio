@@ -2,6 +2,13 @@ const express = require('express');
 const { authMiddleware } = require('../middleware/auth');
 const Experience = require('../models/Experience');
 const { handleRouteError } = require('../utils/errorHandler');
+const {
+  getCachedResponse,
+  setCachedResponse,
+  invalidateServerCache,
+  setPublicCacheHeaders,
+  execLean,
+} = require('../utils/responseCache');
 
 const router = express.Router();
 
@@ -12,14 +19,28 @@ router.get('/', async (req, res) => {
   try {
     const { published } = req.query;
     const publishedOnly = published === 'true';
+    const isAuth = Boolean(req.headers && req.headers.authorization);
+    const cacheKey = `experiences:list:${publishedOnly ? 'pub' : 'all'}`;
+
+    setPublicCacheHeaders(res, 60, 300, 600, req);
+    if (!isAuth) {
+      const cached = getCachedResponse(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+    }
     
-    const experiences = await Experience.getOrderedExperiences(publishedOnly);
+    const experiences = await execLean(Experience.getOrderedExperiences(publishedOnly));
     
-    res.json({
+    const payload = {
       success: true,
       message: `Retrieved ${experiences.length} experiences`,
       data: experiences
-    });
+    };
+    if (!isAuth) {
+      setCachedResponse(cacheKey, payload);
+    }
+    res.json(payload);
   } catch (error) {
     console.error('Error fetching experiences:', error);
     return handleRouteError(res, error, 'Server error while fetching experiences');
@@ -31,7 +52,18 @@ router.get('/', async (req, res) => {
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
-    const experience = await Experience.findById(req.params.id);
+    const isAuth = Boolean(req.headers && req.headers.authorization);
+    const cacheKey = `experiences:item:${req.params.id}`;
+
+    setPublicCacheHeaders(res, 60, 300, 600, req);
+    if (!isAuth) {
+      const cached = getCachedResponse(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+    }
+
+    const experience = await execLean(Experience.findById(req.params.id));
     
     if (!experience) {
       return res.status(404).json({
@@ -40,11 +72,15 @@ router.get('/:id', async (req, res) => {
       });
     }
     
-    res.json({
+    const payload = {
       success: true,
       message: 'Experience retrieved successfully',
       data: experience
-    });
+    };
+    if (!isAuth) {
+      setCachedResponse(cacheKey, payload);
+    }
+    res.json(payload);
   } catch (error) {
     console.error('Error fetching experience:', error);
     return handleRouteError(res, error, 'Server error while fetching experience');
@@ -101,6 +137,7 @@ router.post('/', authMiddleware, async (req, res) => {
     });
 
     const savedExperience = await experience.save();
+    invalidateServerCache('experiences:');
 
     res.status(201).json({
       success: true,
@@ -155,6 +192,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (isPublished !== undefined) experience.isPublished = isPublished;
 
     const updatedExperience = await experience.save();
+    invalidateServerCache('experiences:');
 
     res.json({
       success: true,
@@ -182,6 +220,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     }
 
     await Experience.findByIdAndDelete(req.params.id);
+    invalidateServerCache('experiences:');
 
     res.json({
       success: true,

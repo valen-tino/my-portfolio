@@ -126,16 +126,19 @@ app.use(async (req, res, next) => {
 });
 
 connectToDatabase()
-.then(async () => {
+.then(() => {
   console.log('✅ Connected to MongoDB');
-  try {
-    const syncResult = await syncAllPortfolioSkills();
-    if (syncResult && syncResult.createdCount > 0) {
-      console.log(`🛠️ Auto-migrated ${syncResult.createdCount} new skills from existing portfolios to TechTool.`);
-    }
-  } catch (syncErr) {
-    console.warn('Portfolio skills startup sync warning:', syncErr?.message || syncErr);
-  }
+  setImmediate(() => {
+    syncAllPortfolioSkills()
+      .then((syncResult) => {
+        if (syncResult && syncResult.createdCount > 0) {
+          console.log(`🛠️ Auto-migrated ${syncResult.createdCount} new skills from existing portfolios to TechTool.`);
+        }
+      })
+      .catch((syncErr) => {
+        console.warn('Portfolio skills startup sync warning:', syncErr?.message || syncErr);
+      });
+  });
 })
 .catch((err) => console.error('❌ MongoDB connection error:', err));
 

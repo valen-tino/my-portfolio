@@ -227,7 +227,7 @@ my-portfolio/
 │   ├── types/                    # portfolio.ts interfaces & polyfills.d.ts ambient declarations
 │   ├── others/greeting.tsx       # Time-of-day dynamic greeting helper (getGreetingText)
 │   ├── services/                 # api.ts (Axios REST client) & ai.ts (server-proxied AI client)
-│   └── utils/                    # contentMigration.ts, dateFormat.ts, gsapAnimations.ts, tooltipPolyfills.ts, viewTransitions.ts, aiHelpers.ts
+│   └── utils/                    # cmsCache.ts, contentMigration.ts, dateFormat.ts, gsapAnimations.ts, tooltipPolyfills.ts, viewTransitions.ts, aiHelpers.ts
 │
 ├── server/                       # Express backend
 │   ├── config/                   # Configuration (Cloudinary, Database)
@@ -235,7 +235,7 @@ my-portfolio/
 │   ├── middleware/               # Auth middlewares
 │   ├── models/                   # Mongoose schemas (Portfolio, Blog, Experience, WorkProcess, SocialLink, Education, TechTool, Role, Contact, About, User)
 │   ├── routes/                   # Express route handlers (about, ai, auth, blog, contact, education, experiences, portfolio, roles, socialLinks, techTools, upload, workProcess)
-│   ├── utils/                    # Utility modules (errorHandler.js, skillMigration.js)
+│   ├── utils/                    # Utility modules (errorHandler.js, responseCache.js, skillMigration.js)
 │   ├── scripts/                  # Seed & maintenance scripts (initDatabase.js, migrateMarkdownToWYSIWYG.js, syncExistingPortfolioSkills.js)
 │   ├── services/                 # Server services (aiService.js)
 │   └── index.js                  # Server entry point (port 5001)
@@ -244,7 +244,7 @@ my-portfolio/
 │   ├── [...path].js              # Catch-all serverless handler
 │   └── serverless.js             # Express app serverless wrapper
 │
-├── tests/                        # Automated Vitest suite (28 test files, 134 tests)
+├── tests/                        # Automated Vitest suite (29 test files, 141 tests)
 ├── tailwind.config.cjs           # Tailwind & DaisyUI theme tokens
 ├── vercel.json                   # Vercel deployment configuration
 └── package.json                  # Project dependencies & scripts
@@ -576,8 +576,9 @@ All media uploads go through Cloudinary via custom Multer storage engine:
 - **CMS Light Theme Lock & Staged Portrait Upload**: `tailwind.config.cjs` (`themes: ['light --default']`), `index.html`, `src/index.css`, and explicit Tailwind surfaces keep CMS contrast clean under OS dark mode; `AboutManagement` pairs direct Cloudinary / 10MB `/api/upload/profile` fallback with full-box drag-and-drop and staged previews until `Save Changes`
 - **Full Frontend CMS Connectivity, Social Links CRUD & Brand-Blue Loading Screen**: `/api/social-links` + `/cms/social-links` (nested under `About Me ▾`), 17 extended `About` copy/identity fields, Experience company logo rendering (`exp.logoURL`), custom role ordering (`CMSStorage.getRoles()`), full education rendering in `CVModal`, 9-collection `Dashboard` stats, independent `Footer` CMS hydration, and `<LoadingScreen />` (`bg-brand` + centered `/favicon.ico` + `ease-in-out` fade that unmounts after transition completion alongside `<meta name="theme-color" content="#f8f8fa" />` in `index.html` to keep iOS Safari top/bottom bars light) integrated in `App.tsx`, `PortfolioDetail.tsx`, and `BlogDetail.tsx`
 - **LayerBase (DocumentDB 1.0.0) & CMS-Wide Error States**: Production database migrated from MongoDB Atlas to **LayerBase (using DocumentDB 1.0.0)** via `MONGODB_URI`; `server/models/Experience.js` expanded (`title`/`companyName` `200`, `duration` `100`, `description` `20000` chars) for rich TipTap HTML payloads; unified backend `handleRouteError` (`server/utils/errorHandler.js`) returns structured HTTP `400` `{ success: false, message, errors, fieldErrors }` responses across all 10 CMS routes; frontend `parseCMSError` (`src/cms/utils/errorUtils.ts`), `CMSStatusBanner`, and `CMSFieldError` (`src/cms/components/CMSStatusBanner.tsx`) power consistent error banners and field-level validation across all 10 CRUD modules, `Dashboard.tsx` (`Retry` banner on partial/total failures), `Login.tsx`, and `auth.ts` (`AuthService.loginWithDetails`)
-- **Database Skeletons, Hidden Scrollbars & Bundle Optimization**: Replaced upfront static initial states with layout-matched skeleton loaders (`src/components/Skeleton.tsx`) and image shimmers while fetching live database assets (keeping static data strictly as offline/rejected recovery fallback); preserved `<LoadingScreen />` alongside structural detail skeletons underneath `PortfolioDetail` and `BlogDetail`; applied global `scrollbar-width: none` with `@supports not (scrollbar-width: none)` WebKit fallbacks (`src/index.css`, `src/App.css`); and split public subpages plus all 13 CMS routes using `React.lazy` + `<Suspense>` (`src/App.tsx`) alongside Rollup `manualChunks` (`vite.config.ts`) reducing the entry bundle from `1,845.17 kB` to `233.96 kB` (`42.85 kB` gzip) with zero `> 500 kB` chunk warnings
-- **Automated Test Verification**: `npm test -- --run` runs **28 test suites (134 tests)** cleanly under Vitest + JSDOM, and `npm run build` validates TypeScript and Vite production bundling (`5173` frontend / `5001` backend)
+- **Database Skeletons, Hidden Scrollbars & Bundle Optimization**: Replaced upfront static initial states with layout-matched skeleton loaders (`src/components/Skeleton.tsx`) and image shimmers while fetching live database assets (keeping static data strictly as offline/rejected recovery fallback); preserved `<LoadingScreen />` alongside structural detail skeletons underneath `PortfolioDetail` and `BlogDetail`; applied global `scrollbar-width: none` with `@supports not (scrollbar-width: none)` WebKit fallbacks (`src/index.css`, `src/App.css`); and split public subpages plus all 13 CMS routes using `React.lazy` + `<Suspense>` (`src/App.tsx`) alongside Rollup `manualChunks` (`vite.config.ts`) reducing the entry bundle from `1,845.17 kB` to under `250 kB` with zero `> 500 kB` chunk warnings
+- **GSAP Micro-Interactions, LayerBase SWR Caching & Cloudinary Asset Optimization**: Upgraded `src/utils/gsapAnimations.ts` (`dataset.gsapAnimated` hydration safety, `#tools` child staggers, `#about` ScrollTrigger metric count-ups, tactile pill buttons & directional SVG arrow glides, card image zoom + CTA choreography, step/tab/filter transitions across `WorkProcessSection`, `ExperienceEducationSection`, `Home`, `PortfolioPage`, and `BlogPage`, smooth `PortfolioTable` preview glide, mobile dock entrance, image-load settles, and compositor `scaleX` `ScrollProgressBar`); implemented client two-tier SWR caching (`src/utils/cmsCache.ts`, `5m` fresh / `24h` stale, request deduplication, `CMSStorage.peekCached*` instant hydration, `/cms` admin bypass, mutation invalidation); added `60s` server response caching, `execLean()`, and `Cache-Control` SWR headers (`server/utils/responseCache.js`) with deferred startup skill sync (`server/index.js`); and added responsive Cloudinary `srcSet` (`src/utils/contentMigration.ts`), Cloudinary `preconnect` (`index.html`), and `HeroProjectStrip` primary/cloned slide fetch-priority controls
+- **Automated Test Verification**: `npm test -- --run` runs **29 test suites (141 tests)** cleanly under Vitest + JSDOM, and `npm run build` validates TypeScript and Vite production bundling (`5173` frontend / `5001` backend)
 
 > For full changelog history across every iteration, see [CHANGES_SUMMARY.md](file:///Users/valentinojehaut/Documents/GitHub/my-portfolio/CHANGES_SUMMARY.md).
 
@@ -627,5 +628,5 @@ If API requests abort or fail with `NS_BINDING_ABORTED`:
 
 ---
 
-*Mono-Documentation consolidated and updated on November 16, 2026.*
+*Mono-Documentation consolidated and updated on November 18, 2026.*
 

@@ -4,6 +4,13 @@ const { authMiddleware } = require('../middleware/auth');
 const { deleteImage } = require('../config/cloudinary');
 const { syncAllPortfolioSkills } = require('../utils/skillMigration');
 const { handleRouteError } = require('../utils/errorHandler');
+const {
+  getCachedResponse,
+  setCachedResponse,
+  invalidateServerCache,
+  setPublicCacheHeaders,
+  execLean,
+} = require('../utils/responseCache');
 const router = express.Router();
 
 // @route   POST /api/tech-tools/sync-from-portfolios
@@ -12,6 +19,7 @@ const router = express.Router();
 router.post('/sync-from-portfolios', authMiddleware, async (req, res) => {
   try {
     const result = await syncAllPortfolioSkills();
+    invalidateServerCache('techTools:');
     res.json({
       success: true,
       message: `Scanned ${result.totalSkillsFound} skills from portfolios. Added ${result.createdCount} new draft tools.`,
@@ -28,12 +36,28 @@ router.post('/sync-from-portfolios', authMiddleware, async (req, res) => {
 // @access  Public
 router.get('/', async (req, res) => {
   try {
-    const filter = req.query.published === 'true' ? { isPublished: { $ne: false } } : {};
-    const techTools = await TechTool.find(filter).sort({ order: 1, createdAt: 1 });
-    res.json({
+    const publishedOnly = req.query.published === 'true';
+    const isAuth = Boolean(req.headers && req.headers.authorization);
+    const cacheKey = `techTools:list:${publishedOnly ? 'pub' : 'all'}`;
+
+    setPublicCacheHeaders(res, 60, 300, 600, req);
+    if (!isAuth) {
+      const cached = getCachedResponse(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+    }
+
+    const filter = publishedOnly ? { isPublished: { $ne: false } } : {};
+    const techTools = await execLean(TechTool.find(filter).sort({ order: 1, createdAt: 1 }));
+    const payload = {
       success: true,
       data: techTools
-    });
+    };
+    if (!isAuth) {
+      setCachedResponse(cacheKey, payload);
+    }
+    res.json(payload);
   } catch (error) {
     console.error('Get tech tools error:', error);
     return handleRouteError(res, error, 'Server error while fetching tech tools');
@@ -69,6 +93,7 @@ router.post('/', authMiddleware, async (req, res) => {
     });
 
     await techTool.save();
+    invalidateServerCache('techTools:');
 
     res.status(201).json({
       success: true,
@@ -114,6 +139,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
 
     await techTool.save();
+    invalidateServerCache('techTools:');
 
     res.json({
       success: true,
@@ -149,6 +175,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     }
 
     await TechTool.findByIdAndDelete(req.params.id);
+    invalidateServerCache('techTools:');
 
     res.json({
       success: true,

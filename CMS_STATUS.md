@@ -124,6 +124,11 @@ Browser ──► API Service ──► Server Routes ──► AI Service ─�
 - **Hidden Scrollbars (`src/index.css`, `src/App.css`)**: Applied `scrollbar-width: none` with an `@supports not (scrollbar-width: none)` `::-webkit-scrollbar` fallback so visible scrollbars stay hidden while preserving touch/wheel/keyboard scrollability.
 - **Bundle & Route Splitting (`src/App.tsx`, `vite.config.ts`)**: Lazy-loaded public subpages and all 13 CMS pages via `React.lazy` + `<Suspense>` and isolated `vendor-react`, `vendor-prosemirror`, `vendor-tiptap`, `vendor-gsap`, and `vendor-utils` via Rollup `manualChunks`, cutting entry chunk size from `1,845.17 kB` to `233.96 kB` (`0` chunk warnings).
 
+#### 13. **GSAP Micro-Interactions, LayerBase SWR Caching & Cloudinary Asset Optimization** ✅
+- **GSAP Interactions & Micro-Interactions (`src/utils/gsapAnimations.ts`)**: Added hydration-safe reveal tracking (`dataset.gsapAnimated` + `ScrollTrigger.refresh()`), `#tools` item staggers, `#about` ScrollTrigger metric count-ups, tactile pill button press & arrow glides, card image zoom + CTA choreography (`ProjectCard`, `BlogCard`), step/tab transitions (`WorkProcessSection`, `ExperienceEducationSection`), filter/view staggers (`Home`, `PortfolioPage`, `BlogPage`), smooth vertical table thumbnail tracking (`PortfolioTable`), mobile dock panel entrance (`FloatingNavigation`), image-load settles, and compositor `scaleX` reading progress (`ScrollProgressBar`).
+- **LayerBase Caching & Deduplication (`src/utils/cmsCache.ts`, `server/utils/responseCache.js`)**: Added two-tier client SWR cache (memory + `localStorage` `5m` fresh / `24h` stale), in-flight Promise deduplication, synchronous `peekCached*` route hydration, automatic CMS mutation invalidation, `60s` server in-memory response caching, `execLean()` Mongoose queries, `Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=600` headers, and `setImmediate` startup skill sync deferral (`server/index.js`).
+- **Cloudinary Responsive Media & Marquee Priority (`src/utils/contentMigration.ts`, `HeroProjectStrip.tsx`, `index.html`)**: Added `optimizeCloudinaryImageUrl`, `buildCloudinarySrcSet` (`f_auto,q_auto,c_limit,w_*`), and `enhanceRichHtmlMedia` (`loading="lazy" decoding="async"`), `preconnect` to `https://res.cloudinary.com`, `fetchPriority="high"` on the first primary hero slide, `loading="lazy"` + `fetchPriority="low"` on off-screen and cloned marquee slides, and explicit video dimensions in `PortfolioDetail.tsx`.
+
 ## 📁 File Structure
 
 ```
@@ -149,12 +154,14 @@ my-portfolio/
 │   │   └── ai.ts         # AI service wrapper
 │   └── utils/
 │       ├── aiHelpers.ts        # AI utility functions
-│       └── contentMigration.ts # Markdown to semantic HTML converter
+│       ├── cmsCache.ts         # Client two-tier SWR cache & in-flight deduplication
+│       ├── contentMigration.ts # Markdown/HTML migration & Cloudinary image/video optimizers
+│       └── gsapAnimations.ts   # Hydration-safe GSAP ScrollTrigger & micro-interaction helpers
 ├── server/
 │   ├── data/             # Seed defaults (defaultWorkProcessSteps.js, defaultSocialLinks.js)
 │   ├── models/           # MongoDB-compatible schemas (Portfolio, Blog, Experience, WorkProcess, SocialLink, Education, TechTool, Role, Contact, About, User)
 │   ├── routes/           # API endpoints (portfolio, blogs, experiences, work-process, social-links, education, tech-tools, roles, about, contact, upload, ai, auth)
-│   ├── utils/            # Server utilities (errorHandler.js, skillMigration.js)
+│   ├── utils/            # Server utilities (errorHandler.js, responseCache.js, skillMigration.js)
 │   ├── services/         # Server-side services (aiService.js)
 │   ├── config/           # Cloudinary storage engine (cloudinary.js)
 │   ├── middleware/       # Authentication, etc.
@@ -228,6 +235,11 @@ AI Integration:
 
 ## ⚡ Performance Optimizations
 
+### **LayerBase & Asset Caching** ✅
+- **Client SWR & Deduplication (`src/utils/cmsCache.ts`)**: Deduplicates concurrent requests across `App.tsx`, `Home.tsx`, and `Footer.tsx`, caches public reads for `5m` fresh / `24h` stale in memory + `localStorage`, hydrates cached routes immediately, and bypasses cache on `/cms/*` routes.
+- **Server Cache & Edge Headers (`server/utils/responseCache.js`)**: `60s` per-instance cache + `execLean()` queries + `Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=600` on public reads, auto-invalidated on writes, plus deferred startup skill sync (`setImmediate`).
+- **Cloudinary & Resource Priority**: Responsive `srcSet` (`f_auto,q_auto,c_limit,w_*`), `preconnect` to `https://res.cloudinary.com`, `fetchPriority="high"` on first hero slide, and `loading="lazy"` + `fetchPriority="low"` on off-screen/cloned marquee slides.
+
 ### **Timeout Configurations** (Recently Updated)
 - **General API calls**: 2 minutes (120s)
 - **AI Rewriting**: 2 minutes (120s)
@@ -287,6 +299,7 @@ AI Integration:
 21. ✅ **Database Connectivity Hardening & Vite Proxy**: Added `resolveApiBaseUrl()` (`src/services/api.ts`) so production and non-localhost (iPhone/Vercel) builds never leak `localhost:5001` or placeholder URLs, configured Vite `host: true` + `/api` proxy (`vite.config.ts`), added in-flight `cachedPromise` connection pooling (`api/serverless.js`, `server/index.js`), `/api` prefix normalization, LAN/`*.vercel.app` CORS, and live `GET /api/health` database status reporting.
 22. ✅ **LayerBase (DocumentDB 1.0.0) Migration & CMS-Wide Error States**: Migrated database hosting from MongoDB Atlas to LayerBase (DocumentDB 1.0.0), raised `Experience` description limit to `20,000` characters (`server/models/Experience.js`), standardized backend validation/cast/duplicate responses via `handleRouteError` (`server/utils/errorHandler.js`), and rolled out `parseCMSError`, `CMSStatusBanner`, and `CMSFieldError` across all 10 CMS management pages, `Dashboard.tsx`, `Login.tsx`, and `auth.ts`.
 23. ✅ **Database Skeleton States, Hidden Scrollbars & Bundle Optimization**: Replaced upfront static fallbacks with `Skeleton.tsx` loading states and image shimmers across `Home`, archive/detail pages, `CVModal`, and `Footer`, hid scrollbars globally via `scrollbar-width: none` + WebKit fallback (`src/index.css`, `src/App.css`), and eliminated Vite's `> 500 kB` chunk warning via `React.lazy` route/CMS splitting (`src/App.tsx`) and Rollup `manualChunks` (`vite.config.ts`) — **28 test files, 134 tests passing** (`npm test -- --run`) and zero build warnings.
+24. ✅ **GSAP Micro-Interactions, LayerBase SWR Caching & Cloudinary Asset Optimization**: Upgraded `src/utils/gsapAnimations.ts` with hydration-safe section/item staggers, metric count-ups, tactile buttons, card zoom/CTA choreography, step/tab/filter transitions, smooth `PortfolioTable` preview gliding, and compositor `scaleX` progress; added two-tier client SWR caching (`src/utils/cmsCache.ts`), server-side caching + `execLean()` + `Cache-Control` SWR headers (`server/utils/responseCache.js`), deferred startup skill sync (`server/index.js`), Cloudinary `srcSet` optimization (`src/utils/contentMigration.ts`), and `HeroProjectStrip` slide priorities, verified with `tests/performanceAndGSAP.test.tsx` (**29 test files, 141 tests passing**, `npm run build` clean).
 
 ### **Future Enhancements**
 - [ ] Add AI model selection (chat vs reasoner)
@@ -323,6 +336,6 @@ AI Integration:
 
 ---
 
-**Last Updated**: November 16, 2026
+**Last Updated**: November 18, 2026
 **System Status**: 🟢 Fully Operational
 **AI Status**: 🟢 Active with Timeout Optimization

@@ -5,6 +5,13 @@ const TechTool = require('../models/TechTool');
 const { authMiddleware } = require('../middleware/auth');
 const { deleteImage } = require('../config/cloudinary');
 const { handleRouteError } = require('../utils/errorHandler');
+const {
+  getCachedResponse,
+  setCachedResponse,
+  invalidateServerCache,
+  setPublicCacheHeaders,
+  execLean,
+} = require('../utils/responseCache');
 const router = express.Router();
 
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -39,13 +46,27 @@ const syncUncatalogedSkills = async (techList) => {
 router.get('/', async (req, res) => {
   try {
     const { published } = req.query;
+    const isAuth = Boolean(req.headers && req.headers.authorization);
+    const cacheKey = `portfolio:list:${published === 'true' ? 'pub' : 'all'}`;
+
+    setPublicCacheHeaders(res, 60, 300, 600, req);
+    if (!isAuth) {
+      const cached = getCachedResponse(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+    }
+
     const filter = published === 'true' ? { isPublished: { $ne: false } } : {};
-    
-    const portfolios = await Portfolio.find(filter).sort({ order: 1, createdAt: -1 });
-    res.json({
+    const portfolios = await execLean(Portfolio.find(filter).sort({ order: 1, createdAt: -1 }));
+    const payload = {
       success: true,
       data: portfolios
-    });
+    };
+    if (!isAuth) {
+      setCachedResponse(cacheKey, payload);
+    }
+    res.json(payload);
   } catch (error) {
     console.error('Get portfolios error:', error);
     return handleRouteError(res, error, 'Server error while fetching portfolio data');
@@ -57,7 +78,18 @@ router.get('/', async (req, res) => {
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
-    const portfolio = await Portfolio.findById(req.params.id);
+    const isAuth = Boolean(req.headers && req.headers.authorization);
+    const cacheKey = `portfolio:item:${req.params.id}`;
+
+    setPublicCacheHeaders(res, 60, 300, 600, req);
+    if (!isAuth) {
+      const cached = getCachedResponse(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+    }
+
+    const portfolio = await execLean(Portfolio.findById(req.params.id));
     if (!portfolio) {
       return res.status(404).json({
         success: false,
@@ -65,10 +97,14 @@ router.get('/:id', async (req, res) => {
       });
     }
 
-    res.json({
+    const payload = {
       success: true,
       data: portfolio
-    });
+    };
+    if (!isAuth) {
+      setCachedResponse(cacheKey, payload);
+    }
+    res.json(payload);
   } catch (error) {
     console.error('Get portfolio error:', error);
     return handleRouteError(res, error, 'Server error while fetching portfolio item');
@@ -131,6 +167,8 @@ router.post('/', authMiddleware, async (req, res) => {
 
     await portfolio.save();
     await syncUncatalogedSkills(portfolio.tech);
+    invalidateServerCache('portfolio:');
+    invalidateServerCache('techTools:');
 
     res.status(201).json({
       success: true,
@@ -234,6 +272,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
     await portfolio.save();
     await syncUncatalogedSkills(portfolio.tech);
+    invalidateServerCache('portfolio:');
+    invalidateServerCache('techTools:');
 
     res.json({
       success: true,
@@ -278,6 +318,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     }
 
     await Portfolio.findByIdAndDelete(req.params.id);
+    invalidateServerCache('portfolio:');
 
     res.json({
       success: true,

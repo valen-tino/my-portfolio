@@ -39,7 +39,8 @@ This document provides a comprehensive, centralized record of all architecture i
 32. [Database Connectivity Hardening, Vite API Proxy & iPhone Top/Bottom Browser Bar Fix](#32-database-connectivity-hardening-vite-api-proxy--iphone-topbottom-browser-bar-fix)
 33. [Database Migration to LayerBase (DocumentDB 1.0.0) & CMS-Wide Error States](#33-database-migration-to-layerbase-documentdb-100--cms-wide-error-states)
 34. [Database Loading Skeletons, Hidden Scrollbars & Vite Route/Vendor Code-Splitting](#34-database-loading-skeletons-hidden-scrollbars--vite-routevendor-code-splitting)
-35. [Files Created, Modified, or Removed](#35-files-created-modified-or-removed)
+35. [GSAP Micro-Interactions, LayerBase SWR Caching & Cloudinary Asset Optimization](#35-gsap-micro-interactions-layerbase-swr-caching--cloudinary-asset-optimization)
+36. [Files Created, Modified, or Removed](#36-files-created-modified-or-removed)
 
 ---
 
@@ -667,10 +668,38 @@ This document provides a comprehensive, centralized record of all architecture i
 
 ---
 
-## 35. Files Created, Modified, or Removed
+## 35. GSAP Micro-Interactions, LayerBase SWR Caching & Cloudinary Asset Optimization
+
+- **Purposeful GSAP Choreography & Micro-Interactions (`src/utils/gsapAnimations.ts`)**:
+  - Upgraded `useGSAPPageEntrance` with `dataset.gsapAnimated` hydration tracking (set in `onStart`) and `ScrollTrigger.refresh()` so incremental LayerBase section hydration never resets or replays already-revealed hero/section elements.
+  - Added staggered section child reveals (`[data-gsap="reveal-item"]` on `#tools`), ScrollTrigger metric count-ups (`[data-gsap="stat-value"]` on `#about`), tactile pill button press & directional SVG arrow glides (`.flat-button`, `.text-link`, `.icon-button`, plus `data-gsap-arrow="up"` on `Footer` "Back to top"), and coordinated card hover/focus media zoom + CTA lift (`[data-gsap="card-interactive"]`).
+  - Added imperative helpers (`animateElementTransition`, `animateImageReveal`, `animateFloatingPreviewY`) powering smooth `0px`-frame image settle animations (`ProjectCard.tsx`, `BlogCard.tsx`, `HeroProjectStrip.tsx`, `BlogDetail.tsx`, `Home.tsx`), direction-aware step transitions in `WorkProcessSection.tsx`, staggered tab reveals in `ExperienceEducationSection.tsx`, filter/view transitions in `Home.tsx`, `PortfolioPage.tsx`, and `BlogPage.tsx`, mobile dock drawer entry in `FloatingNavigation.tsx`, smooth vertical thumbnail gliding in `PortfolioTable.tsx`, and compositor-only `transform: scaleX(...)` reading progress in `ScrollProgressBar.tsx`.
+  - Preserved strict `prefers-reduced-motion: reduce` and Vitest/JSDOM no-op guards (`shouldSkipGSAPMotion()`) so all elements remain immediately visible without layout shifts.
+- **Two-Tier Client SWR Cache & Request Deduplication (`src/utils/cmsCache.ts`, `src/cms/apiStorage.ts`, `src/services/api.ts`)**:
+  - Created `src/utils/cmsCache.ts` combining an in-memory `Map`, `localStorage` persistence (`portfolio_cms_cache_v1:` with `5m` fresh TTL and `24h` stale-while-revalidate window), in-flight Promise deduplication, and prefix-based invalidation (`setCMSCacheTestMode` keeps Vitest suites isolated unless explicitly enabled).
+  - Wired `CMSStorage` and `apiService.getExperiences` to share in-flight requests across `App.tsx`, `Home.tsx`, and `Footer.tsx`, expose synchronous `peekCached*` readers (`Home.tsx`, `PortfolioPage.tsx`, `PortfolioDetail.tsx`, `BlogPage.tsx`, `BlogDetail.tsx`, `App.tsx`, `Footer.tsx`) so cached route switches render without flashing skeletons or `LoadingScreen`, bypass cache on `/cms/*` admin routes, and invalidate affected keys on every CMS create/update/delete/seed mutation.
+- **Server-Side LayerBase Cache, `.lean()` Reads & `Cache-Control` Headers (`server/utils/responseCache.js`, `server/routes/*.js`, `server/index.js`)**:
+  - Created `server/utils/responseCache.js` providing `60s` per-instance in-memory caching (`getCachedResponse`/`setCachedResponse`, skipped for authenticated CMS requests and test runs unless enabled), automatic mutation invalidation (`invalidateServerCache`), `setPublicCacheHeaders` (`public, max-age=60, s-maxage=300, stale-while-revalidate=600` for public GETs; `private, no-cache` when `Authorization` is present), and safe `execLean()` wrappers across `portfolio.js`, `blog.js`, `about.js`, `experiences.js`, `education.js`, `techTools.js`, `roles.js`, `workProcess.js`, and `socialLinks.js`.
+  - Deferred `syncAllPortfolioSkills()` in `server/index.js` via `setImmediate` so startup skill migration never blocks initial LayerBase reads.
+- **Cloudinary Responsive Delivery & Hero Marquee Resource Priority (`src/utils/contentMigration.ts`, `src/components/HeroProjectStrip.tsx`, `index.html`, `PortfolioDetail.tsx`)**:
+  - Added `optimizeCloudinaryImageUrl`, `buildCloudinarySrcSet` (`f_auto,q_auto,c_limit,w_*`), and `enhanceRichHtmlMedia` (`loading="lazy" decoding="async"` on inline rich-text `<img>` tags and `preload="metadata"` on `<video>`), plus `<link rel="preconnect" href="https://res.cloudinary.com" crossorigin />` in `index.html`.
+  - Applied `fetchPriority="high"` to the first primary hero slide in `HeroProjectStrip.tsx`, demoted off-screen (`index >= 3`) and cloned marquee slides (`before`/`after`) with `loading="lazy"` and `fetchPriority="low"`, and added explicit `width={1280}` / `height={720}` attributes on the `PortfolioDetail` `<video>` player.
+- **Test & Build Verification**:
+  - Created `tests/performanceAndGSAP.test.tsx` (7 tests covering SWR cache deduplication & persistence, background revalidation & prefix invalidation, Cloudinary URL/srcSet helpers, `HeroProjectStrip` fetch priorities, `responseCache` `execLean`/headers/caching, GSAP guards, and `CMSStorage` cache invalidation).
+  - Verified full Vitest suite passes (**29 test files, 141 tests**) and `npm run build` (`tsc && vite build`) compiles cleanly with zero errors.
+
+---
+
+## 36. Files Created, Modified, or Removed
 
 | File | Status | Description |
 | :--- | :--- | :--- |
+| `src/utils/cmsCache.ts`, `server/utils/responseCache.js`, `tests/performanceAndGSAP.test.tsx` | Created | Client two-tier SWR cache + in-flight deduplication (`cmsCache.ts`), server in-memory cache / `execLean` / `Cache-Control` helpers (`responseCache.js`), and 7 Vitest tests (`29 test files, 141 tests`). |
+| `src/utils/gsapAnimations.ts`, `src/utils/contentMigration.ts`, `index.html` | Modified | Upgraded hydration-safe GSAP choreography, card/button/tab/table/stat micro-interactions, Cloudinary responsive `srcSet` & rich-HTML media lazy attributes, and Cloudinary `preconnect` hint. |
+| `src/cms/apiStorage.ts`, `src/services/api.ts`, `src/App.tsx`, `src/pages/Home.tsx`, `PortfolioPage.tsx`, `PortfolioDetail.tsx`, `BlogPage.tsx`, `BlogDetail.tsx` | Modified | Wired SWR caching, `peekCached*` instant route hydration, mutation cache invalidation, `/cms` admin cache bypass, responsive Cloudinary `srcSet` attributes, and GSAP filter/reveal hooks. |
+| `src/components/HeroProjectStrip.tsx`, `ProjectCard.tsx`, `BlogCard.tsx`, `WorkProcessSection.tsx`, `ExperienceEducationSection.tsx`, `PortfolioTable.tsx`, `FloatingNavigation.tsx`, `ScrollProgressBar.tsx`, `Footer.tsx` | Modified | Added hero slide `fetchPriority` / lazy-loading discipline, GSAP image reveals, direction-aware step/tab transitions, smooth table preview glide, mobile dock entrance, compositor `scaleX` progress bar, and footer cache hydration. |
+| `server/index.js`, `server/routes/*.js` (`about`, `blog`, `education`, `experiences`, `portfolio`, `roles`, `socialLinks`, `techTools`, `workProcess`) | Modified | Wired server-side LayerBase response cache, `execLean()`, `Cache-Control` SWR headers, mutation cache invalidation, and `setImmediate` deferred startup skill sync. |
+| `CHANGES_SUMMARY.md`, `PORTFOLIO_DOCUMENTATION.md`, `DOCUMENTATION_MONO.md`, `CMS_STATUS.md` | Modified | Documented GSAP micro-interaction system, LayerBase SWR + server caching architecture, Cloudinary responsive asset delivery, updated file trees, and verified 29-suite / 141-test metrics. |
 | `src/components/Skeleton.tsx`, `tests/SkeletonLoading.test.tsx` | Created | Reusable `aria-busy`/`aria-hidden` skeleton components, `ProgressiveImageFrame` media shimmer, and 6 Vitest tests for database skeleton states and hidden scrollbar rules (`28 test files, 134 tests`). |
 | `src/App.tsx`, `vite.config.ts` | Modified | Added `React.lazy` + `<Suspense>` route/CMS splitting, `resolveManualChunk` (`vendor-react`, `vendor-prosemirror`, `vendor-tiptap`, `vendor-gsap`, `vendor-utils`) eliminating >500 kB chunk warnings, and `CVModal` skeleton gating. |
 | `src/pages/Home.tsx`, `PortfolioPage.tsx`, `BlogPage.tsx`, `PortfolioDetail.tsx`, `BlogDetail.tsx` | Modified | Replaced static initial data with loading skeletons (`Skeleton.tsx`) while fetching live database assets and added image-load shimmer while preserving `<LoadingScreen />`. |

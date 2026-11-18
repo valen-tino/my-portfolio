@@ -73,6 +73,35 @@ export function isMarkdownContent(content: string): boolean {
 }
 
 /**
+ * Enhances inline `<img>` and `<video>` tags in rich HTML with non-blocking loading and decoding attributes.
+ */
+export function enhanceRichHtmlMedia(html: string): string {
+  if (!html) return html;
+  if (!/<(img|video)\b/i.test(html)) return html;
+
+  let result = html.replace(/<img\b([^>]*)>/gi, (_match, attrs: string) => {
+    let nextAttrs = attrs;
+    if (!/\bloading\s*=/i.test(nextAttrs)) {
+      nextAttrs += ' loading="lazy"';
+    }
+    if (!/\bdecoding\s*=/i.test(nextAttrs)) {
+      nextAttrs += ' decoding="async"';
+    }
+    return `<img${nextAttrs}>`;
+  });
+
+  result = result.replace(/<video\b([^>]*)>/gi, (_match, attrs: string) => {
+    let nextAttrs = attrs;
+    if (!/\bpreload\s*=/i.test(nextAttrs)) {
+      nextAttrs += ' preload="metadata"';
+    }
+    return `<video${nextAttrs}>`;
+  });
+
+  return result;
+}
+
+/**
  * Converts legacy Markdown content to clean semantic HTML for the WYSIWYG editor and public view.
  * If content is already HTML, returns it standardized with section title formatting.
  */
@@ -82,7 +111,7 @@ export function migrateContentToHtml(content: string, projectTitle?: string): st
     ? (marked.parse(content.trim(), { async: false }) as string).trim()
     : content.trim();
 
-  return standardizeSectionTitles(parsedHtml, projectTitle);
+  return enhanceRichHtmlMedia(standardizeSectionTitles(parsedHtml, projectTitle));
 }
 
 /**
@@ -98,12 +127,12 @@ export function formatPublicDescription(content: string): string {
   // If already contains block HTML tags, return as HTML
   const hasBlockHtml = /<(p|ul|ol|li|h[1-6]|div|blockquote)\b/i.test(trimmed);
   if (hasBlockHtml) {
-    return trimmed;
+    return enhanceRichHtmlMedia(trimmed);
   }
 
   // Parse legacy markdown or plain text with marked
   const parsed = marked.parse(trimmed, { async: false, breaks: true }) as string;
-  return parsed.trim();
+  return enhanceRichHtmlMedia(parsed.trim());
 }
 
 /**
@@ -115,5 +144,56 @@ export function optimizeCloudinaryVideoUrl(url?: string | null): string {
     return url.replace('/video/upload/', '/video/upload/q_auto,f_auto,w_1920,c_limit/');
   }
   return url;
+}
+
+export interface CloudinaryImageOptions {
+  width?: number;
+  quality?: string;
+  format?: string;
+}
+
+/**
+ * Injects Cloudinary automatic format/quality/width transformations on `res.cloudinary.com` image URLs.
+ * Leaves non-Cloudinary or local `/images/...` URLs untouched.
+ */
+export function optimizeCloudinaryImageUrl(
+  url?: string | null,
+  options: CloudinaryImageOptions = {},
+): string {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (!trimmed.includes('res.cloudinary.com') || !trimmed.includes('/image/upload/')) {
+    return trimmed;
+  }
+
+  const format = options.format || 'f_auto';
+  const quality = options.quality || 'q_auto';
+  const width = options.width ? `,w_${options.width}` : '';
+  const transforms = `${format},${quality},c_limit${width}`;
+
+  // Avoid duplicating transforms if already transformed
+  if (/\/image\/upload\/[^/]*(?:f_auto|q_auto)/.test(trimmed)) {
+    return trimmed;
+  }
+
+  return trimmed.replace('/image/upload/', `/image/upload/${transforms}/`);
+}
+
+/**
+ * Builds a responsive `srcset` string for Cloudinary images; returns `undefined` for non-Cloudinary sources.
+ */
+export function buildCloudinarySrcSet(
+  url?: string | null,
+  widths: readonly number[] = [400, 800, 1200],
+): string | undefined {
+  if (!url || typeof url !== 'string') return undefined;
+  const trimmed = url.trim();
+  if (!trimmed.includes('res.cloudinary.com') || !trimmed.includes('/image/upload/')) {
+    return undefined;
+  }
+
+  return widths
+    .map((width) => `${optimizeCloudinaryImageUrl(trimmed, { width })} ${width}w`)
+    .join(', ');
 }
 

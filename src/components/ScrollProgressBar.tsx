@@ -111,8 +111,8 @@ const ScrollProgressBar: React.FC<ScrollProgressBarProps> = ({
       </div>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted-200">
         <div
-          className="h-full rounded-full bg-brand transition-all duration-150 ease-out"
-          style={{ width: `${progress}%` }}
+          className="h-full w-full origin-left rounded-full bg-brand transition-transform duration-150 ease-out"
+          style={{ transform: `scaleX(${Math.max(0, Math.min(1, progress / 100))})` }}
           role="progressbar"
           aria-valuenow={roundedProgress}
           aria-valuemin={0}

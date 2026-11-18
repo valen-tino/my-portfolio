@@ -3,6 +3,13 @@ const WorkProcess = require('../models/WorkProcess');
 const { authMiddleware } = require('../middleware/auth');
 const DEFAULT_WORK_PROCESS_STEPS = require('../data/defaultWorkProcessSteps');
 const { handleRouteError } = require('../utils/errorHandler');
+const {
+  getCachedResponse,
+  setCachedResponse,
+  invalidateServerCache,
+  setPublicCacheHeaders,
+  execLean,
+} = require('../utils/responseCache');
 
 const router = express.Router();
 
@@ -11,12 +18,28 @@ const router = express.Router();
 // @access  Public
 router.get('/', async (req, res) => {
   try {
-    const query = req.query.published === 'true' ? { isPublished: { $ne: false } } : {};
-    const steps = await WorkProcess.find(query).sort({ order: 1, createdAt: 1 });
-    res.json({
+    const publishedOnly = req.query.published === 'true';
+    const isAuth = Boolean(req.headers && req.headers.authorization);
+    const cacheKey = `workProcess:list:${publishedOnly ? 'pub' : 'all'}`;
+
+    setPublicCacheHeaders(res, 60, 300, 600, req);
+    if (!isAuth) {
+      const cached = getCachedResponse(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+    }
+
+    const query = publishedOnly ? { isPublished: { $ne: false } } : {};
+    const steps = await execLean(WorkProcess.find(query).sort({ order: 1, createdAt: 1 }));
+    const payload = {
       success: true,
       data: steps
-    });
+    };
+    if (!isAuth) {
+      setCachedResponse(cacheKey, payload);
+    }
+    res.json(payload);
   } catch (error) {
     console.error('Get work process steps error:', error);
     return handleRouteError(res, error, 'Failed to fetch work process steps');
@@ -43,6 +66,7 @@ router.post('/seed', authMiddleware, async (req, res) => {
     }
 
     const inserted = await WorkProcess.insertMany(DEFAULT_WORK_PROCESS_STEPS);
+    invalidateServerCache('workProcess:');
     res.status(201).json({
       success: true,
       message: `Seeded ${inserted.length} default work process steps`,
@@ -59,17 +83,32 @@ router.post('/seed', authMiddleware, async (req, res) => {
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
-    const step = await WorkProcess.findById(req.params.id);
+    const isAuth = Boolean(req.headers && req.headers.authorization);
+    const cacheKey = `workProcess:item:${req.params.id}`;
+
+    setPublicCacheHeaders(res, 60, 300, 600, req);
+    if (!isAuth) {
+      const cached = getCachedResponse(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+    }
+
+    const step = await execLean(WorkProcess.findById(req.params.id));
     if (!step) {
       return res.status(404).json({
         success: false,
         message: 'Work process step not found'
       });
     }
-    res.json({
+    const payload = {
       success: true,
       data: step
-    });
+    };
+    if (!isAuth) {
+      setCachedResponse(cacheKey, payload);
+    }
+    res.json(payload);
   } catch (error) {
     console.error('Get work process step error:', error);
     return handleRouteError(res, error, 'Failed to fetch work process step');
@@ -120,6 +159,7 @@ router.post('/', authMiddleware, async (req, res) => {
     });
 
     await step.save();
+    invalidateServerCache('workProcess:');
 
     res.status(201).json({
       success: true,
@@ -188,6 +228,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
 
     await step.save();
+    invalidateServerCache('workProcess:');
 
     res.json({
       success: true,
@@ -214,6 +255,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     }
 
     await WorkProcess.findByIdAndDelete(req.params.id);
+    invalidateServerCache('workProcess:');
 
     res.json({
       success: true,

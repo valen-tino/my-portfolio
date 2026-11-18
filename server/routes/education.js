@@ -2,6 +2,13 @@ const express = require('express');
 const Education = require('../models/Education');
 const { authMiddleware } = require('../middleware/auth');
 const { handleRouteError } = require('../utils/errorHandler');
+const {
+  getCachedResponse,
+  setCachedResponse,
+  invalidateServerCache,
+  setPublicCacheHeaders,
+  execLean,
+} = require('../utils/responseCache');
 const router = express.Router();
 
 // @route   GET /api/education
@@ -9,7 +16,18 @@ const router = express.Router();
 // @access  Public
 router.get('/', async (req, res) => {
   try {
-    const rawEducation = await Education.find().sort({ endDate: -1, startDate: -1 });
+    const isAuth = Boolean(req.headers && req.headers.authorization);
+    const cacheKey = 'education:list';
+
+    setPublicCacheHeaders(res, 60, 300, 600, req);
+    if (!isAuth) {
+      const cached = getCachedResponse(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+    }
+
+    const rawEducation = await execLean(Education.find().sort({ endDate: -1, startDate: -1 }));
     const education = [...rawEducation].sort((a, b) => {
       const endA = a.endDate ? new Date(a.endDate).getTime() : Number.POSITIVE_INFINITY;
       const endB = b.endDate ? new Date(b.endDate).getTime() : Number.POSITIVE_INFINITY;
@@ -18,10 +36,14 @@ router.get('/', async (req, res) => {
       const startB = b.startDate ? new Date(b.startDate).getTime() : 0;
       return startB - startA;
     });
-    res.json({
+    const payload = {
       success: true,
       data: education
-    });
+    };
+    if (!isAuth) {
+      setCachedResponse(cacheKey, payload);
+    }
+    res.json(payload);
   } catch (error) {
     console.error('Get education error:', error);
     return handleRouteError(res, error, 'Server error while fetching education data');
@@ -59,6 +81,7 @@ router.post('/', authMiddleware, async (req, res) => {
     });
 
     await education.save();
+    invalidateServerCache('education:');
 
     res.status(201).json({
       success: true,
@@ -94,6 +117,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     education.link = link !== undefined ? link : education.link;
 
     await education.save();
+    invalidateServerCache('education:');
 
     res.json({
       success: true,
@@ -120,6 +144,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     }
 
     await Education.findByIdAndDelete(req.params.id);
+    invalidateServerCache('education:');
 
     res.json({
       success: true,

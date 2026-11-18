@@ -1,7 +1,8 @@
   import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import type { Education, Experience } from '../types/portfolio';
-import { formatPublicDescription } from '../utils/contentMigration';
+import { buildCloudinarySrcSet, formatPublicDescription } from '../utils/contentMigration';
 import { sortByLatestEndDate } from '../utils/dateFormat';
+import { animateElementTransition } from '../utils/gsapAnimations';
 import { ArrowRightIcon } from './Icons';
 import { TimelineListSkeleton } from './Skeleton';
 
@@ -31,6 +32,7 @@ export function ExperienceEducationSection({
   const eduTabRef = useRef<HTMLButtonElement>(null);
   const expPanelRef = useRef<HTMLDivElement>(null);
   const eduPanelRef = useRef<HTMLDivElement>(null);
+  const didMountTabRef = useRef(false);
 
   const baseId = useId();
   const expTabId = `${baseId}-tab-experiences`;
@@ -61,6 +63,15 @@ export function ExperienceEducationSection({
 
     syncPanel(expPanelRef.current, activeTab === 'experiences');
     syncPanel(eduPanelRef.current, activeTab === 'education');
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (!didMountTabRef.current) {
+      didMountTabRef.current = true;
+      return;
+    }
+    const targetPanel = activeTab === 'experiences' ? expPanelRef.current : eduPanelRef.current;
+    animateElementTransition(targetPanel, { staggerSelector: 'article', y: 10, duration: 0.3 });
   }, [activeTab]);
 
   // Synchronize active tab when browser Find-in-Page opens a hidden="until-found" panel
@@ -186,6 +197,8 @@ export function ExperienceEducationSection({
                       {exp.logoURL && !failedLogos[exp.id] && (
                         <img
                           src={exp.logoURL}
+                          srcSet={buildCloudinarySrcSet(exp.logoURL, [48, 96])}
+                          sizes="40px"
                           alt={`${exp.company} logo`}
                           width={40}
                           height={40}

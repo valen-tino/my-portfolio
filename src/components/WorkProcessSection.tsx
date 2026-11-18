@@ -1,6 +1,7 @@
 import { useId, useRef, useState } from 'react';
 import { WORK_PROCESS_STEPS } from '../data/portfolioData';
 import type { WorkProcessStep } from '../types/portfolio';
+import { animateElementTransition } from '../utils/gsapAnimations';
 import { ArrowLeftIcon, ArrowRightIcon } from './Icons';
 import { SkeletonBox, WorkProcessSkeleton } from './Skeleton';
 
@@ -22,6 +23,7 @@ export function WorkProcessSection({
 }: WorkProcessSectionProps = {}) {
   const [index, setIndex] = useState(0);
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
+  const panelRef = useRef<HTMLDivElement>(null);
   const id = useId();
   const resolvedSteps = steps && steps.length > 0 ? steps : WORK_PROCESS_STEPS;
   const safeIndex = Math.min(index, resolvedSteps.length - 1);
@@ -29,6 +31,10 @@ export function WorkProcessSection({
 
   function select(next: number, focus = false) {
     const clamped = Math.max(0, Math.min(next, resolvedSteps.length - 1));
+    if (clamped !== safeIndex) {
+      const direction: -1 | 1 = clamped > safeIndex ? 1 : -1;
+      animateElementTransition(panelRef.current, { direction, y: 0, duration: 0.28 });
+    }
     setIndex(clamped);
     if (focus) tabs.current[clamped]?.focus();
   }
@@ -111,6 +117,7 @@ export function WorkProcessSection({
               })}
             </div>
             <div
+              ref={panelRef}
               role="tabpanel"
               tabIndex={0}
               id={`${id}-panel`}

@@ -11,7 +11,11 @@ import ScrollProgressBar from '../components/ScrollProgressBar';
 import { PortfolioDetailSkeleton, ProgressiveImageFrame } from '../components/Skeleton';
 import { PROJECTS, mapPortfolioItemToProject } from '../data/portfolioData';
 import type { Project } from '../types/portfolio';
-import { migrateContentToHtml, optimizeCloudinaryVideoUrl } from '../utils/contentMigration';
+import {
+  buildCloudinarySrcSet,
+  migrateContentToHtml,
+  optimizeCloudinaryVideoUrl,
+} from '../utils/contentMigration';
 import { useGSAPPageEntrance } from '../utils/gsapAnimations';
 
 export default function PortfolioDetail() {
@@ -19,9 +23,20 @@ export default function PortfolioDetail() {
   const navigate = useNavigate();
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const [project, setProject] = useState<Project | null>(null);
-  const [aboutData, setAboutData] = useState<AboutData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedRawProject =
+    id && typeof CMSStorage.peekCachedPortfolioById === 'function'
+      ? CMSStorage.peekCachedPortfolioById(id)
+      : null;
+  const cachedAbout =
+    typeof CMSStorage.peekCachedAbout === 'function'
+      ? CMSStorage.peekCachedAbout()
+      : null;
+
+  const [project, setProject] = useState<Project | null>(() =>
+    cachedRawProject ? mapPortfolioItemToProject(cachedRawProject) : null,
+  );
+  const [aboutData, setAboutData] = useState<AboutData | null>(cachedAbout);
+  const [loading, setLoading] = useState(!cachedRawProject);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [imgError, setImgError] = useState(false);
@@ -217,6 +232,8 @@ export default function PortfolioDetail() {
                   <video
                     src={optimizeCloudinaryVideoUrl(project.videoURL)}
                     poster={project.imageURL}
+                    width={1280}
+                    height={720}
                     controls
                     playsInline
                     preload="metadata"
@@ -228,7 +245,11 @@ export default function PortfolioDetail() {
                 <ProgressiveImageFrame aspectRatio="aspect-video" loaded={imgLoaded}>
                   <img
                     src={project.imageURL}
+                    srcSet={buildCloudinarySrcSet(project.imageURL, [640, 1280, 1920])}
+                    sizes="(max-width: 1024px) 100vw, 40vw"
                     alt={project.title}
+                    width={1280}
+                    height={720}
                     fetchPriority="high"
                     decoding="async"
                     onLoad={() => setImgLoaded(true)}
